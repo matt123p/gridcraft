@@ -33,7 +33,7 @@ const ERRORS: &[(u16, CellError)] = &[
     (2042, CellError::NA),
     (2043, CellError::GettingData),
 ];
-fn from_cell(value: CellValue) -> HostResult<Value> {
+pub(crate) fn from_cell(value: CellValue) -> HostResult<Value> {
     match value {
         CellValue::Empty => Ok(Value::Empty),
         CellValue::Number(n) => Ok(Value::Double(n)),
@@ -79,7 +79,7 @@ pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bo
 }
 // Conversion happens only at the workbook storage/engine-command boundary. VBA values
 // retain their exact tags in the VM and host protocol; a worksheet stores IEEE doubles.
-fn content(value: &Value, formula: bool) -> HostResult<CellContent> {
+pub(crate) fn content(value: &Value, formula: bool) -> HostResult<CellContent> {
     let number = match value {
         Value::Empty => return Ok(CellContent::Value(CellValue::Empty)),
         Value::Boolean(b) => return Ok(CellContent::Value(CellValue::Bool(*b))),

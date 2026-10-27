@@ -106,6 +106,8 @@ pub fn title_bar(app: &mut SheetApp, ui: &mut Ui) {
             if redo.clicked() && can_redo {
                 app.run_or_alert("edit.redo", json!({}));
             }
+            #[cfg(feature = "vba")]
+            crate::vba::toolbar(app, ui);
             let more = icon_button(ui, Icon::More, t.text_dim, "More commands", vec2(26.0, ch));
             egui::Popup::menu(&more).show(|ui| {
                 for (label, id) in [
@@ -235,6 +237,10 @@ pub fn show(app: &mut SheetApp, ui: &mut Ui) {
                         file_menu(app, ui);
                     }
                     let mut tabs: Vec<&str> = TABS.to_vec();
+                    #[cfg(feature = "vba")]
+                    if app.ui.developer {
+                        tabs.push("Developer");
+                    }
                     let ctx_tabs = contextual_tabs(app);
                     tabs.extend(ctx_tabs.iter());
                     for tab in tabs {
@@ -319,6 +325,8 @@ pub fn show(app: &mut SheetApp, ui: &mut Ui) {
                             "Review" => review(app, ui),
                             "View" => view(app, ui),
                             "Automate" => automate(app, ui),
+                            #[cfg(feature = "vba")]
+                            "Developer" => crate::vba::developer(app, ui),
                             "Table Design" => table_design(app, ui),
                             "Chart Design" => chart_design(app, ui),
                             crate::paper_view::TAB => crate::paper_view::ribbon_tab(app, ui),
@@ -2465,6 +2473,13 @@ fn view(app: &mut SheetApp, ui: &mut Ui) {
     let page_layout =
         app.session.active().and_then(|d| d.wb.active().map(|s| s.view == gridcraft_engine::model::SheetViewMode::PageLayout)).unwrap_or(false);
     // Two columns of two, as in Excel's Show group: four stacked rows overflow the ribbon body.
+    #[cfg(feature = "vba")]
+    {
+        let mut on = app.ui.developer;
+        if ui.checkbox(&mut on, "Developer tab").changed() {
+            app.run_or_alert("vba.showDeveloper", json!({"on":on}));
+        }
+    }
     ui.vertical(|ui| {
         // Rulers exist only in Page Layout view.
         let mut ruler = !app.session.hide_ruler;

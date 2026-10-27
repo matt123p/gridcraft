@@ -78,6 +78,13 @@ pub(crate) fn stack_position() -> usize {
 
 /// What the evaluator needs from its surroundings.
 pub trait Host {
+    fn has_custom_function(&self, _name: &str) -> bool {
+        false
+    }
+    /// Optional application-owned functions. No document mutation is exposed.
+    fn custom_function(&mut self, _name: &str, _args: &[Value]) -> Option<Value> {
+        None
+    }
     fn workbook(&self) -> &Workbook;
     /// The current value of a cell (evaluating it first if it is dirty).
     fn cell_value(&mut self, sheet: usize, c: CellRef) -> Value;
@@ -887,6 +894,49 @@ impl<'h> Evaluator<'h> {
 
     fn builtin(&mut self, name: &str, args: &[Expr]) -> Ev {
         let Some(spec) = gridcraft_functions::lookup(name) else {
+            // Built-ins keep precedence. Arguments retain ordinary dependency tracking.
+            if self.host.has_custom_function(name) {
+                if args.len() > 64 {
+                    return err(CellError::Value);
+                }
+                let mut values = Vec::with_capacity(args.len());
+                let mut cells = 0u64;
+                let mut bytes = 0usize;
+                for a in args {
+                    let ev = self.eval(a);
+                    if let Ev::R(areas) = &ev {
+                        cells = cells.saturating_add(
+                            areas.iter().map(|a| u64::from(a.range.height()).saturating_mul(u64::from(a.range.width()))).sum::<u64>(),
+                        );
+                        if cells > 65_536 {
+                            return err(CellError::Value);
+                        }
+                    }
+                    let value = self.deref(ev);
+                    let data = match &value {
+                        Value::Array(a) => a.data.as_slice(),
+                        v => std::slice::from_ref(v),
+                    };
+                    if data.len() > 65_536 {
+                        return err(CellError::Value);
+                    }
+                    bytes = bytes.saturating_add(
+                        data.iter()
+                            .map(|v| match v {
+                                Value::Text(s) => s.len().saturating_add(64),
+                                _ => 64,
+                            })
+                            .fold(0usize, usize::saturating_add),
+                    );
+                    if bytes > 8 * 1024 * 1024 {
+                        return err(CellError::Value);
+                    }
+                    values.push(value);
+                }
+                if let Some(value) = self.host.custom_function(name, &values) {
+                    return Ev::V(value);
+                }
+            }
             // A defined name holding a LAMBDA, or a LET-bound lambda.
             return match self.name(name) {
                 Ev::L(l) => self.apply_lambda(&l, args),

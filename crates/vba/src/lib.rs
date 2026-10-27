@@ -1,9 +1,10 @@
 //! Fork-owned Excel object profile over the separate tiny-vba interpreter.
-//! Host calls are native typed Rust; only existing engine command parameters use JSON.
+//! Host calls are native typed Rust; JSON carries workbook metadata and command envelopes.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 mod objects;
 mod values;
+pub mod worksheet;
 
 use gridcraft_engine::{GroupToken, Session};
 use objects::Object;
@@ -59,6 +60,9 @@ impl Bridge {
     pub fn permitted(&self, session: &Session) -> bool {
         self.check(session).is_ok()
     }
+    pub fn current(&self, session: &Session) -> bool {
+        !self.closed && session.doc().is_ok_and(|doc| doc.uid == self.doc && doc.wb.sheets.iter().map(|s| &s.name).eq(self.sheets.iter()))
+    }
     pub(crate) fn check(&self, session: &Session) -> HostResult<()> {
         if self.closed {
             return Err(failure(91, "VBA host is closed"));
@@ -88,7 +92,13 @@ impl Bridge {
         Ok(Value::Object(self.reference(index)))
     }
     pub fn configure(&self, ide: &mut Ide) -> Result<()> {
-        let imports = [
+        ide.configure_host(self.imports(), self.roots(), catalog())
+    }
+    pub(crate) fn roots(&self) -> BTreeMap<String, ObjectRef> {
+        BTreeMap::from([("Excel".into(), self.reference(0)), ("Workbook".into(), self.reference(1)), ("Worksheet".into(), self.reference(2))])
+    }
+    pub(crate) fn imports(&self) -> Vec<Import> {
+        [
             ("Application", None, InvokeKind::Get),
             ("Worksheets", Some("Worksheets"), InvokeKind::Call),
             ("Range", Some("Range"), InvokeKind::Call),
@@ -102,12 +112,7 @@ impl Bridge {
             member: None,
             kind: InvokeKind::Get,
         }))
-        .collect();
-        ide.configure_host(
-            imports,
-            BTreeMap::from([("Excel".into(), self.reference(0)), ("Workbook".into(), self.reference(1)), ("Worksheet".into(), self.reference(2))]),
-            catalog(),
-        )
+        .collect()
     }
     /// Consent applies only to this editor/document instance. It never changes provenance.
     pub fn consent(&mut self, allow: bool) {

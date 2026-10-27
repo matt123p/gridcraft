@@ -370,6 +370,7 @@ impl Graph {
 /// Calculation state kept beside a workbook.
 #[derive(Clone, Debug)]
 pub struct Calc {
+    pub custom_functions: Option<std::sync::Arc<dyn crate::CustomFunctions>>,
     pub graph: Graph,
     rng: u64,
     /// Fixed "now" for deterministic tests; `None` = system clock.
@@ -381,11 +382,12 @@ pub struct Calc {
 
 impl Default for Calc {
     fn default() -> Self {
-        Calc { graph: Graph::default(), rng: 0x9E37_79B9_7F4A_7C15, fixed_now: None, circular: vec![], last_recalc_cells: 0 }
+        Calc { custom_functions: None, graph: Graph::default(), rng: 0x9E37_79B9_7F4A_7C15, fixed_now: None, circular: vec![], last_recalc_cells: 0 }
     }
 }
 
 struct PassHost<'a> {
+    custom_functions: Option<std::sync::Arc<dyn crate::CustomFunctions>>,
     wb: &'a Workbook,
     exprs: &'a HashMap<Key, std::sync::Arc<Expr>>,
     results: HashMap<Key, Value>,
@@ -441,6 +443,7 @@ struct PassHost<'a> {
 impl<'a> PassHost<'a> {
     fn new(wb: &'a Workbook, exprs: &'a HashMap<Key, std::sync::Arc<Expr>>, rng: &'a mut u64, now: f64) -> Self {
         PassHost {
+            custom_functions: None,
             wb,
             exprs,
             results: HashMap::with_capacity_and_hasher(exprs.len(), Default::default()),
@@ -765,6 +768,12 @@ fn fit_to_range(v: Value, range: RangeRef) -> Value {
 }
 
 impl Host for PassHost<'_> {
+    fn has_custom_function(&self, name: &str) -> bool {
+        self.custom_functions.as_ref().is_some_and(|f| f.contains(name))
+    }
+    fn custom_function(&mut self, name: &str, args: &[Value]) -> Option<Value> {
+        self.custom_functions.as_ref()?.call(self.wb, name, args)
+    }
     fn workbook(&self) -> &Workbook {
         self.wb
     }
@@ -1206,6 +1215,9 @@ impl Calc {
 
     /// Evaluates the dirty set and writes results (and spills) back.
     fn run(&mut self, wb: &mut Workbook, mut dirty: Vec<Key>, full: bool) {
+        if let Some(f) = &self.custom_functions {
+            f.begin_pass();
+        }
         let mut dynamic_again = !self.graph.dynamic.is_empty();
         self.last_recalc_cells = 0;
         for _round in 0..8 {
@@ -1225,6 +1237,7 @@ impl Calc {
             let tp = prof_now();
             let (results, spills, cycles) = {
                 let mut host = PassHost::new(wb, &exprs, &mut rng, now);
+                host.custom_functions = self.custom_functions.clone();
                 host.iterate = wb.calc.iterative;
                 for k in &dirty {
                     host.calculate(*k);

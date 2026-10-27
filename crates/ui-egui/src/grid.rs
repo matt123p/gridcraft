@@ -2235,6 +2235,15 @@ fn interact(app: &mut SheetApp, ui: &mut egui::Ui, resp: &egui::Response, geo: &
         if let Some(p) = at
             && let Some((kind, id, rect)) = crate::chartview::hit(app, geo, sh, p)
         {
+            #[cfg(feature = "vba")]
+            if kind == "shape"
+                && primary_clicked
+                && !app.vba.as_ref().is_some_and(|e| e.design_mode)
+                && let Some(entry) = crate::vba::assigned(app, id)
+            {
+                app.run_or_alert("vba.invoke", json!({"entry":entry}));
+                return;
+            }
             app.selected_chart = Some(id);
             if kind == "shape"
                 && resp.double_clicked()
@@ -3184,6 +3193,7 @@ fn keyboard(app: &mut SheetApp, ctx: &egui::Context, resp: &egui::Response, geo:
                         app.session.format_painter = None;
                     }
                     Key::Space if !cmd && !shift && is_checkbox(sh, app) => app.run_or_alert("cell.toggleCheckbox", json!({})),
+                    #[cfg(not(feature = "vba"))]
                     Key::F8 if m.alt => {
                         app.open_dialog("macros", json!({}));
                     }
@@ -3672,6 +3682,10 @@ fn object_menu(app: &mut SheetApp, ui: &mut egui::Ui) {
         egui::Frame::popup(ui.style()).show(ui, |ui| {
             ui.set_min_width(200.0);
             let mut items = vec![("Delete", "object.delete")];
+            #[cfg(feature = "vba")]
+            if kind == "shape" {
+                items.push(("Assign Macro…", "ui:assignMacro"));
+            }
             if kind == "chart" {
                 items.extend([("-", ""), ("Select Data…", "ui:selectData"), ("Format Chart Area…", "ui:formatChart")]);
             }
@@ -3684,6 +3698,8 @@ fn object_menu(app: &mut SheetApp, ui: &mut egui::Ui) {
                 if ui.add(egui::Button::new(lang.tr(label)).frame(false).min_size(vec2(190.0, 20.0))).clicked() {
                     close = true;
                     match action {
+                        #[cfg(feature = "vba")]
+                        "ui:assignMacro" => app.open_dialog("macros", json!({"shape":id})),
                         "ui:selectData" => app.open_dialog("selectData", json!({"chart": id})),
                         "ui:formatChart" => app.grid.pane = Some("formatChart".into()),
                         _ => {

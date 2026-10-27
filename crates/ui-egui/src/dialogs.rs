@@ -921,7 +921,7 @@ impl Dialog {
             }
             "journal" => Dialog::custom("journal", "Action Journal", json!({})),
             "macros" => {
-                let mut d = Dialog::custom("macros", "Macros", json!({}));
+                let mut d = Dialog::custom("macros", "Macros", params.clone());
                 d.result = app.session.run("view.macros", json!({})).ok();
                 d
             }
@@ -1338,7 +1338,7 @@ pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
                         }
                     });
                 }
-                "macros" => macros(app, ui, &mut d),
+                "macros" => macros(app, ui, &mut d, &mut confirm),
                 "statistics" | "accessibility" | "errorChecking" | "evaluateFormula" | "comments" => {
                     let r = if d.name == "comments" {
                         app.session.active().and_then(|doc| doc.wb.active().map(|s| json!(s.comments.iter().map(|(c, m)| json!({"cell": c.a1(), "author": m.author, "text": m.text})).collect::<Vec<_>>())))
@@ -1904,7 +1904,11 @@ fn about(ui: &mut egui::Ui, d: &mut Dialog) {
 /// The Macros dialog: lists GridCraft's own recorded scripts and (if the file carries one) the
 /// preserved VBA project. Mirrors Excel's Developer ▸ Macros list, but is honest that VBA is
 /// preserved and not executed.
-fn macros(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn macros(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog, _confirm: &mut bool) {
+    #[cfg(feature = "vba")]
+    {
+        *_confirm |= crate::vba::macro_picker(app, ui, &d.values);
+    }
     #[cfg(feature = "vba")]
     ui.horizontal(|ui| {
         if ui.button("VBA Editor").clicked()
@@ -1918,11 +1922,17 @@ fn macros(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog) {
             app.message = Some(("VBA".into(), e));
         }
     });
+    #[cfg(not(feature = "vba"))]
     ui.label("Automation in this workbook. GridCraft runs its own scripts; a file's VBA project is preserved but not executed.");
+    #[cfg(feature = "vba")]
+    ui.label("Imported VBA requires permission before it can run.");
     ui.add_space(6.0);
     let items: Vec<Json> = d.result.as_ref().and_then(Json::as_array).cloned().unwrap_or_default();
     if items.is_empty() {
+        #[cfg(not(feature = "vba"))]
         ui.weak("This workbook has no scripts or macros.");
+        #[cfg(feature = "vba")]
+        ui.weak("No GridCraft command scripts in this workbook.");
         return;
     }
     // Scripts that came with a file stay disabled until the user trusts the workbook (#2178).
@@ -1943,7 +1953,10 @@ fn macros(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog) {
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new(name).strong());
                 if is_vba {
+                    #[cfg(not(feature = "vba"))]
                     ui.weak("— VBA project (preserved, not run)");
+                    #[cfg(feature = "vba")]
+                    ui.weak("— preserved VBA project; read its source to edit or run");
                 } else {
                     let steps = it.get("steps").and_then(Json::as_u64).unwrap_or(0);
                     ui.weak(format!("— {steps} step{}", if steps == 1 { "" } else { "s" }));
@@ -2188,7 +2201,16 @@ fn insert_function(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog, confir
         r.request_focus();
     });
     let locale = language.formula_locale();
-    let list = gridcraft_engine::cmd::formulas::function_list();
+    #[allow(unused_mut)]
+    let mut list = gridcraft_engine::cmd::formulas::function_list();
+    #[cfg(feature = "vba")]
+    if let Some(project) = app.session.active().and_then(|d| gridcraft_vba::worksheet::Project::read(&d.wb).ok().flatten())
+        && let Ok(entries) = project.entries()
+    {
+        for e in entries.into_iter().filter(|e| e.function) {
+            list.push(json!({"name":e.name,"category":"User Defined","description":e.signature}));
+        }
+    }
     // The names and descriptions searched are the ones shown, so in the interface language.
     let q = d.search.to_lowercase();
     let hits: Vec<&Json> = list

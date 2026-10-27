@@ -139,6 +139,15 @@ pub fn specs() -> Vec<CommandSpec> {
             &with(p, "kind", json!("textBox"))
         )),
         cmd!("shape.setText", "Edit Text Box", [], None, "{id: textBox id, text: string}", has_doc, shape_set_text),
+        cmd!(
+            "shape.setMacro",
+            "Assign Shape Macro",
+            [],
+            None,
+            "{id: shape id, entry: string|null} (inert assignment; empty/null removes it)",
+            has_doc,
+            shape_set_macro
+        ),
         cmd!("object.delete", "Delete Object", [], None, "{kind: chart|image|shape, id}", has_doc, delete_object),
         cmd!("object.move", "Move Object", [], None, "{kind: chart|image|shape, id, at?: \"C3\", dx?, dy?, width?, height?}", has_doc, move_object),
         cmd!(
@@ -1108,6 +1117,7 @@ fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
         Color::Theme(4, -250)
     });
     let shape = Shape {
+        on_action: None,
         id,
         kind,
         anchor: Anchor {
@@ -1157,6 +1167,34 @@ fn shape_set_text(s: &mut Session, p: &Json) -> Result<Json> {
     edit(s, |cx| {
         let shape = cx.sheet_mut(sheet)?.shapes.iter_mut().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setText", "no such text box"))?;
         shape.text = text.into();
+        Ok(Json::Null)
+    })
+}
+
+fn shape_set_macro(s: &mut Session, p: &Json) -> Result<Json> {
+    let id = p.get("id").and_then(Json::as_u64).and_then(|n| u32::try_from(n).ok()).ok_or_else(|| bad("shape.setMacro", "missing shape id"))?;
+    let entry = match p.get("entry") {
+        Some(Json::Null) => None,
+        Some(Json::String(s)) if s.len() <= 256 && !s.chars().any(char::is_control) => {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.clone())
+            }
+        }
+        _ => return Err(bad("shape.setMacro", "entry must be text up to 256 bytes or null")),
+    };
+    let sheet = s.doc()?.sheet_index();
+    edit(s, |cx| {
+        let sh = cx.sheet_mut(sheet)?;
+        if sh.is_protected() {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
+        let shape = sh.shapes.iter_mut().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setMacro", "no such shape"))?;
+        if matches!(shape.kind, ShapeKind::Ink | ShapeKind::Icon) {
+            return Err(bad("shape.setMacro", "assign macros to an ordinary worksheet shape"));
+        }
+        shape.on_action = entry;
         Ok(Json::Null)
     })
 }
@@ -1722,6 +1760,7 @@ fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
     let color = super::format::color_param(p.get("color")).unwrap_or(Color::Theme(1, 0));
     let shape = Shape {
+        on_action: None,
         id,
         kind: ShapeKind::Icon,
         anchor: Anchor { cell: at, dx: 4.0, dy: 4.0, width: size, height: size, mode: anchor_mode_param(p).unwrap_or_default() },

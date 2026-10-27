@@ -39,6 +39,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("expected real debugger break".into());
         }
         h.render()?.save(format!("{folder}/{name}.png"))?;
+        let app = h.state_mut();
+        app.run("vba.reset", json!({})).map_err(std::io::Error::other)?;
+        if let Some(editor) = app.vba.as_mut() {
+            editor.ide.add_module("Functions.bas", "Public Function Triple(ByVal n As Double) As Double\nTriple = n * 3\nEnd Function\n")?;
+        }
+        app.run("vba.assign", json!({"entry":"Main","at":"D4","caption":"Fill values"})).map_err(std::io::Error::other)?;
+        app.run("vba.pin", json!({"entry":"Main"})).map_err(std::io::Error::other)?;
+        app.run("cell.set", json!({"cell":"D1","input":"=Triple(7)"})).map_err(std::io::Error::other)?;
+        app.run("vba.return", json!({})).map_err(std::io::Error::other)?;
+        app.run("vba.showDeveloper", json!({"on":true})).map_err(std::io::Error::other)?;
+        app.ui.ribbon_tab = "Developer".into();
+        h.run_steps(6);
+        h.render()?.save(format!("{folder}/{name}-worksheet.png"))?;
+        h.state_mut().open_dialog("macros", json!({}));
+        h.run_steps(4);
+        h.render()?.save(format!("{folder}/{name}-macros.png"))?;
     }
     Ok(())
 }

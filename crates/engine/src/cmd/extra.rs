@@ -9,6 +9,7 @@ use super::*;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
+        cmd!("workbook.setItem", "Store Workbook Item", [], None, "{key: string, text: string} (bounded hidden-name storage)", has_doc, set_item),
         // Chart Design / Format
         cmd!(
             "chart.addElement",
@@ -733,6 +734,14 @@ fn ruler(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 const VIEWS_NAME: &str = "_sc_custom_views";
+fn set_item(s: &mut Session, p: &Json) -> Result<Json> {
+    let key = str_param(p, "key").ok_or_else(|| bad("workbook.setItem", "missing key"))?;
+    let text = str_param(p, "text").ok_or_else(|| bad("workbook.setItem", "missing text"))?;
+    edit(s, |cx| {
+        stash::set(&mut cx.wb, key, text)?;
+        Ok(Json::Null)
+    })
+}
 const SCRIPTS_NAME: &str = "_sc_scripts";
 const WATCH_NAME: &str = "_sc_watch";
 

@@ -1,5 +1,27 @@
 # Decisions
 
+## Spreadsheet VBA entry points remain fork-owned (2026-10-27)
+
+Use the existing chunked hidden-name store for plain standard-module source and
+toolbar assignments, through generic `workbook.setItem` so history, dirty
+state, package preservation and recordings keep their existing owner. Reuse
+GridCraft shapes and ribbon/dialog controls rather than introducing another
+control or document hierarchy. Assignments belong to `Shape.on_action`, set by
+the inert `shape.setMacro` engine command and preserved as DrawingML's `macro`
+attribute. Numeric IDs alone can be reused after deletion and cannot own an
+assignment: shape-owned data prevents accidental transfer and follows package
+ID remapping. Office Form Control/ActiveX serialization is not claimed. No binary
+project writeback is added.
+
+An optional, value-only native `calc::CustomFunctions` trait is the only formula
+seam; the default calculator has no provider. Calc/engine never depend on VBA.
+The L6 adapter installs a bounded read-only provider for one open workbook with
+explicit source/consent identity. Generated wrapper calls preserve the shared
+compiler's default/ByRef semantics without changing its ByVal launch contract.
+UDFs cannot access a mutable engine, await host requests or mutate cells; normal
+formula dependencies/spills remain calculator-owned. Public-source provenance,
+exact behavior, budgets and compatibility limits are in [vba.md](vba.md).
+
 ## Native typed contents share the command lifecycle (2026-10-27)
 
 Add generic `CellContent` and `Session::set_range_contents` in engine, with the

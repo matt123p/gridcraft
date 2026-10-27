@@ -20,8 +20,17 @@ jobs:
   vba:
     name: Optional VBA integration
     runs-on: ubuntu-latest
+    env:
+      CRAFT_FONTS_DIR: ${{ github.workspace }}/target/craft-fonts
+      CRAFT_FONTS_REQUIRED: "1"
+      RUST_TEST_THREADS: "1"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-fonts
+          ref: b076417b5880bd4154bd22f00695b1d28c6bea83
+          path: target/craft-fonts
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.99.1"
@@ -37,7 +46,7 @@ jobs:
       - name: Adapter and shared editor acceptance
         run: |
           cargo test --locked -p gridcraft-vba
-          cargo test --locked -p gridcraft-ui-egui --features vba --test vba
+          cargo test --locked -p gridcraft-ui-egui --features vba
           cargo clippy --locked -p gridcraft-vba -p gridcraft-ui-egui --features gridcraft-ui-egui/vba --all-targets -- -D warnings
           cargo check --locked -p gridcraft-vba -p gridcraft-web --features gridcraft-web/vba --target wasm32-unknown-unknown
       - name: Run real workbook acceptance as WASM

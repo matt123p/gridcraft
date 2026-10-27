@@ -34,7 +34,7 @@ fn validate_shape_obj(obj: &El) -> Option<&El> {
     if obj.name != "sp"
         || !only_children(obj, &["nvSpPr", "spPr"])
         || !only_attrs(obj, &["macro", "textlink"])
-        || obj.attrs.iter().any(|(_, v)| !v.is_empty())
+        || obj.attrs.iter().any(|(k, v)| k != "macro" && !v.is_empty())
         || obj.path(&["nvSpPr", "cNvSpPr"]).is_some_and(|e| e.flag("txBox", false))
     {
         return None;
@@ -179,7 +179,16 @@ pub(super) fn read(obj: &El, anchor: Anchor) -> Option<Shape> {
     let (path, w, h) = validate_cust_geom(sp)?;
     let (width, line) = validate_line(sp)?;
     let text = parse_points(path, &anchor, w, h)?;
-    Some(Shape { id: 0, kind: ShapeKind::Ink, anchor, fill: Color::Rgb((width as u32) << 16), line, text, format: Default::default() })
+    Some(Shape {
+        id: 0,
+        on_action: obj.attr("macro").filter(|s| !s.is_empty()).map(str::to_string),
+        kind: ShapeKind::Ink,
+        anchor,
+        fill: Color::Rgb((width as u32) << 16),
+        line,
+        text,
+        format: Default::default(),
+    })
 }
 
 /// Invalid/native out-of-range data uses the existing rectangle fallback. A successful
@@ -218,7 +227,8 @@ pub(super) fn write(shape: &Shape, theme: &Theme, id: usize) -> Option<String> {
     }
     let [r, g, b] = shape.line.resolve(theme)?;
     let mut xml = format!(
-        "<xdr:sp macro=\"\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"{id}\" name=\"Ink {id}\"/><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr>{}<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:pathLst><a:path w=\"{w}\" h=\"{h}\" fill=\"none\">",
+        "<xdr:sp macro=\"{}\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"{id}\" name=\"Ink {id}\"/><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr>{}<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:pathLst><a:path w=\"{w}\" h=\"{h}\" fill=\"none\">",
+        crate::xml::esc_attr(shape.on_action.as_deref().unwrap_or("")),
         xfrm(a, "a:xfrm")
     );
     for (i, (x, y)) in points.iter().enumerate() {

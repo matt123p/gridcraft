@@ -33,6 +33,13 @@ Optional VBA integration is isolated in toolkit-free `gridcraft-vba` at L6 above
 engine and the `ui-egui/vba` shell feature. The engine has no VBA dependency; the
 separate tiny-vba Git repository supplies the compiler/VM and reusable editor.
 Workbook mutations remain engine commands. See [the profile and lifecycle](vba.md).
+The calculator's optional `CustomFunctions` value-only native trait accepts an
+application provider per open workbook. Its default is absent; it introduces no
+VBA dependencies below L6. The fork owns bounded UDF execution and consent.
+Source/toolbar assignments use the existing chunked hidden-name store via the
+generic undoable `workbook.setItem` command. Shape-owned inert `on_action` data
+uses `shape.setMacro` and DrawingML's `macro` attribute, so assignments follow
+their objects through rename, copy, deletion, undo and package ID remapping.
 The engine's [native content API](native-cell-contents.md) shares the ordinary
 command executor and edit/commit path; it bypasses JSON mutation dispatch while
 producing the same journal/recording envelope for replay.
@@ -158,6 +165,7 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-27 | minor | Generic custom calculation provider and workbook item command; fork-owned VBA worksheet functions and assigned UI controls |
 | 2026-10-27 | minor | Native typed cell-content command shares command lifecycle and removes VBA's Text-format write limitation |
 | 2026-10-27 | minor | Optional separate-repository tiny-vba adapter and shared editor; engine command/undo/recalc ownership retained |
 | 2026-10-24 | minor | Engine building blocks for multi-command actions: undo groups, recording buffer, document trust, chunked hidden-name storage |

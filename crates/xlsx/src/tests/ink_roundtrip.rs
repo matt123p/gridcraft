@@ -51,10 +51,21 @@ fn has_caption(element: &El) -> bool {
 }
 
 #[test]
+fn ink_macro_assignment_is_preserved_as_inert_shape_data() {
+    let wb = read_drawing(&drawing().replace("<xdr:sp>", "<xdr:sp macro=\"InkAction\">"));
+    let shape = &wb.sheets[0].shapes[0];
+    assert_eq!(shape.kind, ShapeKind::Ink);
+    assert_eq!(shape.on_action.as_deref(), Some("InkAction"));
+    let (again, _) = read_xlsx(&write_xlsx(&wb).unwrap()).unwrap();
+    assert_eq!(again.sheets[0].shapes[0].on_action, shape.on_action);
+}
+
+#[test]
 fn exported_ink_has_a_visible_unfilled_path_and_correct_stroke() {
     let mut sheet = Sheet::new("Ink");
     for (id, width) in [(1, 3), (2, 12)] {
         sheet.shapes.push(Shape {
+            on_action: None,
             id,
             kind: ShapeKind::Ink,
             anchor: Anchor { width: 100.0, height: 50.0, mode: AnchorMode::Absolute, ..Default::default() },

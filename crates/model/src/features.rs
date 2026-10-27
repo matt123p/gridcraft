@@ -588,6 +588,10 @@ pub enum ShapeKind {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Shape {
     pub id: u32,
+    /// Macro name assigned to this shape (Excel OnAction / DrawingML macro).
+    /// Inert model data: execution and permission belong to the optional application host.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_action: Option<String>,
     pub kind: ShapeKind,
     pub anchor: Anchor,
     pub fill: Color,

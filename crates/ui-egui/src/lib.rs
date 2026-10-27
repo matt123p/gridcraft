@@ -64,6 +64,8 @@ pub struct UiState {
     pub dark: bool,
     pub system_theme: bool,
     pub ribbon_tab: String,
+    #[cfg(feature = "vba")]
+    pub developer: bool,
     pub ribbon_collapsed: bool,
     pub formula_bar_expanded: bool,
     pub status_bar: bool,
@@ -113,6 +115,8 @@ impl Default for UiState {
             dark: false,
             system_theme: false,
             ribbon_tab: "Home".into(),
+            #[cfg(feature = "vba")]
+            developer: false,
             ribbon_collapsed: false,
             formula_bar_expanded: false,
             status_bar: true,
@@ -1749,6 +1753,8 @@ impl SheetApp {
             return;
         }
         let t0 = now_ms();
+        #[cfg(feature = "vba")]
+        vba::shortcuts(self, &ctx);
         // A script may have switched windows since the last frame.
         self.follow_active_window();
         text_box::before_ui(self, &ctx);
