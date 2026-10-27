@@ -10,13 +10,13 @@ workspace = true
 
 [dependencies]
 gridcraft-engine = { workspace = true }
-serde_json = { workspace = true }
 vba-foreign = { git = "https://github.com/matt123p/tiny-vba.git", rev = "4d80a9584b3daeb75d589c629eff272ecd5881fe" }
 vba-ide = { git = "https://github.com/matt123p/tiny-vba.git", rev = "4d80a9584b3daeb75d589c629eff272ecd5881fe" }
 vba-project = { git = "https://github.com/matt123p/tiny-vba.git", rev = "4d80a9584b3daeb75d589c629eff272ecd5881fe" }
 vba-values = { git = "https://github.com/matt123p/tiny-vba.git", rev = "4d80a9584b3daeb75d589c629eff272ecd5881fe" }
 
 [dev-dependencies]
+serde_json = { workspace = true }
 gridcraft-xlsx = { workspace = true }
 cfb = "=0.14.0"
 

@@ -1,6 +1,8 @@
 use super::*;
-use gridcraft_engine::core::{CellError, RangeRef, Value as CellValue};
-use serde_json::{Value as Json, json};
+use gridcraft_engine::{
+    CellContent,
+    core::{CellError, RangeRef, Value as CellValue},
+};
 use vba_values::{ScalarKind, VbaArray, VbaString};
 
 pub(crate) fn text(value: &Value) -> HostResult<String> {
@@ -77,10 +79,10 @@ pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bo
 }
 // Conversion happens only at the workbook storage/engine-command boundary. VBA values
 // retain their exact tags in the VM and host protocol; a worksheet stores IEEE doubles.
-fn input(value: &Value, formula: bool) -> HostResult<Json> {
+fn content(value: &Value, formula: bool) -> HostResult<CellContent> {
     let number = match value {
-        Value::Empty => return Ok(Json::Null),
-        Value::Boolean(b) => return Ok(json!(b)),
+        Value::Empty => return Ok(CellContent::Value(CellValue::Empty)),
+        Value::Boolean(b) => return Ok(CellContent::Value(CellValue::Bool(*b))),
         Value::Byte(n) => f64::from(*n),
         Value::Integer(n) => f64::from(*n),
         Value::Long(n) => f64::from(*n),
@@ -91,13 +93,13 @@ fn input(value: &Value, formula: bool) -> HostResult<Json> {
         Value::Currency(n) => *n as f64 / 10000.0,
         Value::String(_) => {
             let s = text(value)?;
-            return Ok(json!(if formula { s } else { format!("'{s}") }));
+            return Ok(if formula && s.starts_with('=') { CellContent::Formula(s) } else { CellContent::Value(CellValue::text(s)) });
         }
         Value::CvErr(n) => {
             return ERRORS
                 .iter()
                 .find(|(code, _)| code == n)
-                .map(|(_, e)| json!(e.as_str()))
+                .map(|(_, e)| CellContent::Value(CellValue::Error(*e)))
                 .ok_or_else(|| failure(13, "unsupported worksheet CVErr"));
         }
         Value::Null => return Err(failure(94, "invalid use of Null")),
@@ -107,7 +109,7 @@ fn input(value: &Value, formula: bool) -> HostResult<Json> {
     if !number.is_finite() {
         return Err(failure(6, "non-finite worksheet number"));
     }
-    Ok(json!(number))
+    Ok(CellContent::Value(CellValue::Number(number)))
 }
 pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value: &Value, formula: bool) -> HostResult<()> {
     let (rows, cols) = dimensions(range)?;
@@ -129,30 +131,17 @@ pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value:
     } else {
         None
     };
-    let mut data = Vec::with_capacity(rows);
-    let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
-    let sh = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+    let mut data = Vec::with_capacity(rows * cols);
     // Validate every conversion before the engine commits any part of the range.
     for row in 0..rows {
-        let mut out = Vec::with_capacity(cols);
         for col in 0..cols {
             let element = match array {
                 Some(a) => a.get(row * cols + col).ok_or_else(|| failure(9, "invalid array storage"))?,
                 None => value,
             };
-            let at = range.start.offset(row as i64, col as i64).ok_or_else(|| failure(1004, "range outside worksheet"))?;
-            // The current engine typed-input command stores its input verbatim for
-            // @ cells. Refuse conversions it cannot represent faithfully rather than
-            // adding a quote or changing a formula/error into text silently.
-            if matches!(element, Value::String(_) | Value::CvErr(_)) && doc.wb.styles.get(sh.style_id(at)).num_fmt.as_str() == "@" {
-                return Err(failure(1004, "text-formatted cells require a native typed value write, unsupported in this profile"));
-            }
-            out.push(input(element, formula)?);
+            data.push(content(element, formula)?);
         }
-        data.push(out);
     }
-    session
-        .execute_headless("range.setValues", json!({"sheet":sheet,"range":range.a1(),"values":data,"parse":true}))
-        .map_err(|e| failure(1004, e.to_string()))?;
+    session.set_range_contents(sheet, range, &data).map_err(|e| failure(1004, e.to_string()))?;
     Ok(())
 }

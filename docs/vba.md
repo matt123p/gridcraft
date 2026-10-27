@@ -22,10 +22,12 @@ submodules are opt-in and are not fetched by dependency builds.
 `gridcraft-vba` is a toolkit-free L6 adapter above engine. The engine does not
 depend on it. `ui-egui/vba` adds a small shell module which mounts `vba-ui-egui`
 with existing GridCraft theme/font/scale tokens, source IO services and bounded
-logic ticks. All workbook writes call the existing `range.setValues` command;
+logic ticks. Workbook writes call the native `Session::set_range_contents` API
+for the generic engine-owned `range.setContents` command;
 recalc, protection, recording and history stay in the engine. Typed native VBA
 values are converted only at that engine-command/workbook storage boundary;
-JSON is not the member-dispatch protocol.
+JSON is not the member-dispatch or mutation protocol. Successful writes serialize
+only their replayable journal/recording envelope. See [the native content API](native-cell-contents.md).
 
 These UI-only command IDs go through `SheetApp::run` and `engine.execute` on the
 desktop control channel. Programmatic calls do not open dialogs:
@@ -70,10 +72,9 @@ Worksheet numbers are IEEE doubles: Date/Currency become numeric values; Value
 currently has the same behavior as Value2 (no number-format-based Date/Currency
 inference). Integers outside the exact double range, Null/Missing/Nothing/objects,
 unpaired surrogates, unknown CVErrs and unsupported cell error kinds are refused.
-String/formula/error writes to cells formatted as Text (`@`) are explicitly
-refused: the current typed-input engine command would otherwise store a quote or
-silently turn a formula/error into text. A future native typed engine write can
-remove that limit without putting workbook mutations inside the adapter.
+Text-format (`@`) cells support literal string and CVErr writes, and explicit
+Formula writes calculate while preserving the format. Value/Value2 strings
+remain literal; Formula strings beginning `=` use the explicit formula path.
 
 Limits: 8,192 interned object handles; 65,536 cells per range; 8 MiB range payload;
 tiny-vba's project/string/runtime budgets also apply. Unknown members fail with

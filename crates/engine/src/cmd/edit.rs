@@ -12,6 +12,15 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!("cell.set", "Enter Cell", [], None, "{cell?: \"B2\", input: \"text, number or =formula\", sheet?, array?: bool}", has_doc, cell_set),
         cmd!(
+            "range.setContents",
+            "Set Cell Contents",
+            [],
+            None,
+            "{range, sheet?, contents: [row-major {value: tagged core Value} | {formula: string}]}: explicit scalar contents or formulas; destination formats preserved; max 65536 cells / 8 MiB",
+            has_doc,
+            crate::contents::run
+        ),
+        cmd!(
             "range.setValues",
             "Set Values",
             [],

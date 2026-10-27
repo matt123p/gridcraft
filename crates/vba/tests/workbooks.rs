@@ -119,13 +119,13 @@ fn break_edit_resume_does_not_repeat_writes() -> R {
     assert_eq!(ide.mode(), Mode::Break);
     assert_eq!(value(&s, "A1"), CellValue::Number(1.0));
     assert!(s.in_group(b.document()));
-    let writes = s.journal.iter().filter(|j| j.0 == "range.setValues").count();
+    let writes = s.journal.iter().filter(|j| j.0 == "range.setContents").count();
     ide.edit_local("n", "40")?;
     b.dispatch(&mut s, &mut ide, Action::Run)?;
     drain(&mut b, &mut s, &mut ide)?;
     assert_eq!(ide.mode(), Mode::Completed);
     assert_eq!(value(&s, "A2"), CellValue::Number(41.0));
-    assert_eq!(s.journal.iter().filter(|j| j.0 == "range.setValues").count(), writes + 1);
+    assert_eq!(s.journal.iter().filter(|j| j.0 == "range.setContents").count(), writes + 1);
     assert_eq!(s.doc()?.undo.len(), 1);
     Ok(())
 }
@@ -307,15 +307,47 @@ fn protection_is_enforced_and_range_payload_is_bounded() -> R {
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
-fn text_format_does_not_silently_corrupt_literal_values_or_formulas() -> R {
+fn text_format_supports_literal_values_errors_and_explicit_formulas() -> R {
     let mut s = session();
     s.execute("home.numberFormat", json!({"range":"A1","format":"@"}))?;
     let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
     let r = range(&mut b, &mut s, "A1");
-    let before = s.doc()?.wb.clone();
-    for (member, value) in [("Value2", text("=literal")), ("Formula", text("=1+2")), ("Value", Value::CvErr(2007))] {
-        error(call(&mut b, &mut s, r, InvokeKind::Let, member, vec![value]), 1004);
-        assert_eq!(*before, *s.doc()?.wb);
+    for (member, value, expected) in [
+        ("Value2", text("=literal"), text("=literal")),
+        ("Formula", text("=1+2"), Value::Double(3.0)),
+        ("Value", Value::CvErr(2007), Value::CvErr(2007)),
+        ("Value2", text("'quoted"), text("'quoted")),
+        ("Value2", text("00123"), text("00123")),
+        ("Value2", Value::Empty, Value::Empty),
+    ] {
+        complete(call(&mut b, &mut s, r, InvokeKind::Let, member, vec![value]));
+        assert_eq!(complete(call(&mut b, &mut s, r, InvokeKind::Get, "Value2", vec![])), expected);
+        let d = s.doc()?;
+        let sh = d.wb.sheet(0).ok_or("sheet")?;
+        assert_eq!(d.wb.styles.get(sh.style_id(CellRef::new(0, 0))).num_fmt.as_str(), "@");
     }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn macro_writes_text_format_and_records_replayable_typed_commands() -> R {
+    let mut s = session();
+    s.execute("home.numberFormat", json!({"range":"A1:C1","format":"@"}))?;
+    s.start_recording();
+    run(&mut s, "Sub Main()\nRange(\"A1\").Value2 = \"=literal\"\nRange(\"B1\").Formula = \"=1+2\"\nRange(\"C1\").Value2 = CVErr(2007)\nEnd Sub\n")?;
+    let recording = s.stop_recording().ok_or("recording")?;
+    assert_eq!(recording.steps.len(), 3);
+    assert!(recording.steps.iter().all(|step| step.id == "range.setContents"));
+    assert_eq!(value(&s, "A1"), CellValue::text("=literal"));
+    assert_eq!(value(&s, "B1"), CellValue::Number(3.0));
+    assert_eq!(value(&s, "C1"), CellValue::Error(gridcraft_engine::core::CellError::Div0));
+    let after = s.doc()?.wb.clone();
+    s.execute("edit.undo", json!({}))?;
+    assert!(value(&s, "A1").is_empty());
+    for step in recording.steps {
+        s.execute(&step.id, step.params)?;
+    }
+    assert_eq!(*after, *s.doc()?.wb);
     Ok(())
 }

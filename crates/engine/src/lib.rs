@@ -11,6 +11,7 @@ pub mod cf;
 mod chart_svg;
 mod clip_html;
 pub mod cmd;
+mod contents;
 pub mod display;
 pub mod fill;
 pub mod io;
@@ -34,6 +35,7 @@ use serde::Serialize;
 use serde_json::Value as Json;
 
 pub use cmd::{CommandInfo, CommandSpec, command_specs, find_command, register_test_command};
+pub use contents::{CellContent, MAX_CONTENT_BYTES, MAX_CONTENT_CELLS};
 pub use gridcraft_calc as calc;
 pub use gridcraft_core as core;
 pub use gridcraft_formula as formula;
@@ -594,12 +596,23 @@ impl Session {
     /// unless an undo group is open on the document (the group then makes the step).
     /// Panics inside commands are caught and reported; the workbook is restored.
     pub fn execute(&mut self, id: &str, params: Json) -> Result<Json> {
+        let params = if params.is_null() { Json::Object(Default::default()) } else { params };
+        self.execute_with(id, || std::borrow::Cow::Borrowed(&params), |session, spec| (spec.run)(session, &params))
+    }
+
+    /// Shared command lifecycle. Native callers supply a typed mutation and materialize
+    /// the wire envelope only for successful journal/recording entries.
+    fn execute_with<'p>(
+        &mut self,
+        id: &str,
+        params: impl FnOnce() -> std::borrow::Cow<'p, Json>,
+        run: impl FnOnce(&mut Self, &CommandSpec) -> Result<Json>,
+    ) -> Result<Json> {
         let spec = find_command(id).ok_or_else(|| EngineError::UnknownCommand(id.to_string()))?;
         if let Err(why) = (spec.enabled)(self) {
             return Err(EngineError::Disabled(id.to_string(), why));
         }
         let before = self.active().map(|d| (d.uid, d.wb.clone(), d.selection.clone()));
-        let params = if params.is_null() { Json::Object(Default::default()) } else { params };
         let (first_group, group_epoch) = (self.next_group, self.group_epoch);
         // Whether a group was open on the document before the command, and how long its history was.
         let start = before.as_ref().and_then(|(uid, ..)| self.docs.iter().find(|d| d.uid == *uid).map(|d| (self.in_group(*uid), d.undo.len())));
@@ -631,7 +644,7 @@ impl Session {
         let marked = doc_uid.zip(start).map(|(uid, (_, len))| (uid, len));
         self.marks.extend(marked);
         self.depth = self.depth.saturating_add(1);
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| (spec.run)(self, &params)));
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(self, spec)));
         self.depth = self.depth.saturating_sub(1);
         if marked.is_some() {
             self.marks.pop();
@@ -683,6 +696,7 @@ impl Session {
             self.rollback_groups_from(first_group);
         }
         if spec.journal && result.is_ok() {
+            let params = params();
             // A command that started recording is not part of the recording; one that stopped it
             // finds no recorder. A menu-style call that only opened a dialog (`file.open` with no
             // file, `home.formatCells` with no style) is not recorded either: the dialog's own

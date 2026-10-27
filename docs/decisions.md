@@ -1,5 +1,17 @@
 # Decisions
 
+## Native typed contents share the command lifecycle (2026-10-27)
+
+Add generic `CellContent` and `Session::set_range_contents` in engine, with the
+equivalent `range.setContents` wire command. Reuse the ordinary executor through
+a private typed-mutation/lazy-envelope helper, plus the existing edit/commit path.
+Native callers retain scalar/error/formula distinctions without JSON decoding;
+journals and recordings materialize a replayable envelope after success. This
+removes quote/error/formula corruption in Text-formatted cells without teaching
+engine about VBA or adding a second history/recalc/protection implementation.
+`range.setValues` keeps its existing typed-input semantics. Shape, payload,
+scalar/formula and protection failures are atomic. See [the contract](native-cell-contents.md).
+
 ## Optional separate-repository VBA adapter (2026-10-27)
 
 Keep the interpreter and reusable editor in tiny-vba, pinned by Git revision.
