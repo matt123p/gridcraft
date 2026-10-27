@@ -36,6 +36,7 @@ pub const TABLE: &[(&str, Class)] = &[
     ("xlsx", Class::Layer(2)),
     ("chart", Class::Layer(3)),
     ("engine", Class::Layer(5)),
+    ("vba", Class::Layer(6)),
     ("ui-egui", Class::Layer(6)),
     ("mcp", Class::Layer(6)),
     // L7 apps (exempt) and tooling (unchecked)
@@ -47,7 +48,8 @@ pub const TABLE: &[(&str, Class)] = &[
 
 /// Explicit orderings *within* a layer (earlier may be used by later). Each chain is separate:
 /// `calc` and `xlsx` both build on `model` but not on each other.
-pub const INTRA_LAYER_ORDER: &[&[&str]] = &[&["core", "numfmt"], &["formula", "functions"], &["model", "calc"], &["model", "xlsx"]];
+pub const INTRA_LAYER_ORDER: &[&[&str]] =
+    &[&["core", "numfmt"], &["formula", "functions"], &["model", "calc"], &["model", "xlsx"], &["vba", "ui-egui"]];
 
 fn intra_layer_allowed(from: &str, to: &str) -> bool {
     let (from, to) = (short_name(from), short_name(to));

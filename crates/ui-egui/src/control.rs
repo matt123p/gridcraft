@@ -659,6 +659,8 @@ pub fn handle(app: &mut SheetApp, ctx: &egui::Context, method: &str, p: &Json) -
             ] {
                 v.push(json!({"id": id, "label": label, "params": params, "enabled": true, "ui": true}));
             }
+            #[cfg(feature = "vba")]
+            v.extend(crate::vba::commands(app));
             ok(Json::Array(filter_commands(v, s("search"))))
         }
         "engine.journal" => ok(json!(app.session.journal.iter().map(|(id, p)| json!({"command": id, "params": p})).collect::<Vec<_>>())),

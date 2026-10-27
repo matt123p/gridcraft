@@ -39,6 +39,8 @@ pub mod text_box;
 pub mod theme;
 #[cfg(not(target_arch = "wasm32"))]
 mod updates_ui;
+#[cfg(feature = "vba")]
+pub mod vba;
 pub mod widgets;
 mod window_ui;
 
@@ -280,6 +282,8 @@ impl Default for Chrome {
 }
 
 pub struct SheetApp {
+    #[cfg(feature = "vba")]
+    pub vba: Option<vba::Editor>,
     pub session: Session,
     pub ui: UiState,
     /// The window chrome to draw (see [`Chrome`]).
@@ -385,6 +389,8 @@ impl SheetApp {
     /// Constructs a `SheetApp` with default UI, grid, printing, control and screenshot state and the caller's session and services.
     pub fn new(session: Session, services: Services) -> SheetApp {
         SheetApp {
+            #[cfg(feature = "vba")]
+            vba: None,
             session,
             ui: UiState::default(),
             chrome: Chrome::default(),
@@ -508,6 +514,8 @@ impl SheetApp {
     }
 
     fn run_command(&mut self, id: &str, params: Json) -> Result<Json, String> {
+        #[cfg(feature = "vba")]
+        vba::before_command(self, id)?;
         let switches_window = id.starts_with("window.")
             || matches!(id, "view.newWindow" | "view.hideWindow" | "view.unhideWindow")
             || (id == "view.switchWindows" && ["window", "doc"].iter().any(|k| params.get(*k).is_some_and(|d| !d.is_null())));
@@ -762,6 +770,10 @@ impl SheetApp {
 
     /// UI-only commands (dialogs, view toggles that aren't saved in the file).
     fn run_ui_command(&mut self, id: &str, p: &Json) -> Option<Result<Json, String>> {
+        #[cfg(feature = "vba")]
+        if id.starts_with("vba.") {
+            return Some(vba::run(self, id, p));
+        }
         let r = match id {
             "app.checkForUpdates" | "help.checkForUpdates" => {
                 self.check_for_updates();
@@ -1345,6 +1357,12 @@ impl SheetApp {
     /// Holds back a window close (the close button, Alt+F4, the OS quitting the app) while a
     /// workbook has unsaved changes, and asks about them first.
     fn guard_window_close(&mut self, ctx: &egui::Context) {
+        #[cfg(feature = "vba")]
+        if ctx.input(|i| i.viewport().close_requested()) && self.vba.as_ref().is_some_and(|e| e.ide.modules.iter().any(|m| m.dirty())) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.alert("VBA source has unsaved changes. Save source or explicitly discard it in the VBA editor before closing.".into());
+            return;
+        }
         if self.native_windows || self.allow_close || !ctx.input(|i| i.viewport().close_requested()) {
             return;
         }
@@ -1462,6 +1480,8 @@ impl SheetApp {
         // issues the capture command (after every widget, so a command cannot be missed).
         control::drain_screenshots(self, ctx);
         control::poll(self, ctx);
+        #[cfg(feature = "vba")]
+        vba::tick(self, ctx);
         // Printing feedback is polled once per frame, here, so hidden windows and logic-only
         // frames still see worker completion. `ui` and the desktop app no longer poll it.
         self.poll_printing(ctx);
@@ -1754,7 +1774,14 @@ impl SheetApp {
         if self.chrome.title_bar {
             ribbon::title_bar(self, ui);
         }
-        if self.backstage.is_some() {
+        #[cfg(feature = "vba")]
+        let vba_visible = self.vba.as_ref().is_some_and(|v| v.visible);
+        #[cfg(not(feature = "vba"))]
+        let vba_visible = false;
+        if vba_visible {
+            #[cfg(feature = "vba")]
+            vba::show(self, ui);
+        } else if self.backstage.is_some() {
             // File tab: the Backstage view replaces everything below the title bar.
             backstage::show(self, ui);
         } else {

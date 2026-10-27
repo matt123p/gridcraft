@@ -1,5 +1,9 @@
 # GridCraft control protocol
 
+With the optional `vba` feature, `engine.execute` also accepts the UI-only `vba.*`
+commands in [the integration command table](vba.md#ownership-and-commands), through
+the same authenticated `SheetApp::run` route. Opening source never executes it.
+
 Start the desktop app with a control port:
 
 ```sh

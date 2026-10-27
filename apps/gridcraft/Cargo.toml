@@ -10,6 +10,10 @@ description = "GridCraft desktop app"
 [lints]
 workspace = true
 
+[features]
+default = []
+vba = ["gridcraft-ui-egui/vba"]
+
 [dependencies]
 gridcraft-engine = { workspace = true }
 gridcraft-ui-egui = { workspace = true }

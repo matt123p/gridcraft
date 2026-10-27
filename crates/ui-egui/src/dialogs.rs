@@ -1905,6 +1905,19 @@ fn about(ui: &mut egui::Ui, d: &mut Dialog) {
 /// preserved VBA project. Mirrors Excel's Developer ▸ Macros list, but is honest that VBA is
 /// preserved and not executed.
 fn macros(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog) {
+    #[cfg(feature = "vba")]
+    ui.horizontal(|ui| {
+        if ui.button("VBA Editor").clicked()
+            && let Err(e) = app.run("vba.open", json!({}))
+        {
+            app.message = Some(("VBA".into(), e));
+        }
+        if ui.button("Read VBA Project Source").clicked()
+            && let Err(e) = app.run("vba.open", json!({"project":true}))
+        {
+            app.message = Some(("VBA".into(), e));
+        }
+    });
     ui.label("Automation in this workbook. GridCraft runs its own scripts; a file's VBA project is preserved but not executed.");
     ui.add_space(6.0);
     let items: Vec<Json> = d.result.as_ref().and_then(Json::as_array).cloned().unwrap_or_default();

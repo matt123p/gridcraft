@@ -767,6 +767,7 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
+    #[cfg(unix)]
     fn save_fails_upfront_when_the_temp_name_is_taken() {
         // Another local user who can write the directory must not be able to point the
         // save's predictable temporary name at their own file: creation is exclusive.

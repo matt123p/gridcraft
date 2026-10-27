@@ -1,5 +1,15 @@
 # Decisions
 
+## Optional separate-repository VBA adapter (2026-10-27)
+
+Keep the interpreter and reusable editor in tiny-vba, pinned by Git revision.
+Place Office objects and the native host adapter in a toolkit-free L6 crate
+above engine; mount its shared editor through an opt-in UI feature. The engine
+retains command/protection/recalc/history ownership and has no VBA dependency.
+The bounded profile, explicit unsupported cases and lifecycle are in [vba.md](vba.md).
+This makes the integration reviewable without replacing existing scripts or
+embedding Office compatibility names in the shared language engine.
+
 ## Bound repeated XLSX column expansion (#1022)
 
 Limit each worksheet to 1,000,000 nondefault column assignments across all `<cols>` blocks.
