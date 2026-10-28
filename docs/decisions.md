@@ -1,5 +1,23 @@
 # Decisions
 
+## VBA window presentation stays in the native shell (2026-10-28)
+
+`vba-window` implies `vba` and enables a separate immediate viewport on native
+window hosts; `vba` alone embeds. The command can override presentation at launch.
+Both use the existing single Ide/Bridge and root execution tick. Native window
+close hides the editor and preserves source; explicit project/workbook close
+retains the existing dirty-source and host-cancellation policy. Repeated launch
+focuses the same editor, and breakpoint/failure transitions reveal it. Browser
+builds exclude native viewport state and embed normally. No external editor
+process, IPC or source-copy synchronization layer is introduced.
+
+Use the documented Excel launch routes: Developer Code, View Macros, selected
+macro Edit/Step Into and keyboard shortcuts. Developer visibility belongs under
+File Options Customize Ribbon. Default quick-access launch buttons and automatic
+demo source were removed; explicit user-assigned toolbar macros remain available.
+Public references and build/launch contracts are in [vba.md](vba.md) and the
+cross-repository work log; no vendor art, reference code or private sources are used.
+
 ## Spreadsheet VBA entry points remain fork-owned (2026-10-27)
 
 Use the existing chunked hidden-name store for plain standard-module source and

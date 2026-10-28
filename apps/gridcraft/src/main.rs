@@ -60,6 +60,8 @@ impl eframe::App for App {
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.1.show(&mut self.0, ui);
+        #[cfg(feature = "vba-window")]
+        gridcraft_ui_egui::vba::show_desktop(&mut self.0, ui.ctx(), self.1.focused_viewport());
     }
     fn on_exit(&mut self) {
         print::finish_pending_jobs();

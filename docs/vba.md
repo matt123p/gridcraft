@@ -1,12 +1,22 @@
 # Optional tiny-vba integration
 
-Updated 2026-10-27. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
+Updated 2026-10-28. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
 
-Build the desktop with `cargo +1.99.1 run -p gridcraft --features vba` (or enable
-`gridcraft-web/vba` for the browser). Default application builds keep VBA disabled.
-View → Macros → VBA Editor opens the shared editor. Read VBA Project Source
-decodes the original project without execution. No source change rewrites
+For a separate desktop editor window, run
+`cargo +1.99.1 run -p gridcraft --features vba-window`.
+For an embedded desktop editor, use `--features vba`. The `vba-window` feature
+includes `vba`; it adds only native shell presentation, not another interpreter or
+process. Browser builds use `gridcraft-web/vba` and always embed the editor.
+Default application builds keep VBA disabled.
+
+Developer → Visual Basic or Alt+F11 opens the editor; Macros → Edit selects a
+procedure in it. Enable Developer under File → Options → Customize Ribbon →
+Main Tabs. View → Macros → View Macros and Alt+F8 open the macro picker.
+There are no permanent VB/Macros launch buttons on the Quick Access Toolbar;
+only macros the user explicitly assigns appear there. Existing workbook source
+is read without execution; new projects start blank rather than loading a demo.
+No source change rewrites
 `vbaProject.bin`; save source to the workbook's GridCraft storage or export modules
 as plain source. The original binary project stays unchanged.
 
@@ -35,7 +45,7 @@ desktop control channel. Programmatic calls do not open dialogs:
 
 | Command | Parameters / behavior |
 |---|---|
-| `vba.open` | `{source?: string, project?: bool}`; default authored FillCells demo; never executes |
+| `vba.open` | `{source?: string, project?: bool, separateWindow?: bool, entry?: string}`; open/focus shared project, optionally navigate to a procedure; never executes |
 | `vba.compile` | Compile current standard modules |
 | `vba.run` | `{entry?: string}`; Run/Continue, bounded by subsequent logic ticks |
 | `vba.stepInto`, `vba.stepOver`, `vba.stepOut` | Same shared debugger actions as toolbar |
@@ -113,20 +123,24 @@ document modules; inert document metadata remains in the preserved package.
 
 ## Spreadsheet workflows
 
-1. Build with `--features vba`. Use the toolbar **VB** button or **Alt+F11** to
-   open/toggle the editor. **Alt+F8**, the toolbar **Macros**, and View → Macros
-   open the procedure picker. View → **Developer tab** exposes the persisted
-   Developer ribbon with Visual Basic, Macros, Save Source to Workbook, Insert
-   and Design Mode. Developer is initially hidden, as in Excel; the View location
-   of its preference is GridCraft's own convention.
+1. Build with `--features vba-window` for the separate desktop window or
+   `--features vba` for embedded mode. Developer → Code → **Visual Basic**, or
+   **Alt+F11**, opens/focuses the same shared editor. File → Options → Customize
+   Ribbon → Main Tabs → **Developer** exposes the initially hidden, persisted tab.
+   Developer → Code → **Macros**, View → Macros → **View Macros**, and **Alt+F8**
+   open the selectable procedure list. Choose **Edit** or **Step Into** to open
+   the selected procedure; **Run** executes it without opening the editor.
 2. Edit standard modules in the shared editor. **Save Source to Workbook** applies
    source and registers public Functions; the workbook must then be saved normally.
    Source is chunked through existing hidden-name storage, not a new VBA binary.
    Opening/importing source never runs it. For file provenance, give explicit
    session permission before running macros or calculating VBA functions.
-3. In Macros choose a public no-argument Sub and **Run**, **Edit**, **Assign Button**
-   or **Add to Toolbar**. Developer → Insert → Button opens the same assignment
-   picker. New buttons are placed at the active cell (or `vba.assign.at`).
+3. In Macros choose a public no-argument Sub and **Run**, **Edit** or **Step Into**.
+   Functions are excluded, as in Excel; they appear under Insert Function instead.
+   GridCraft-specific **Assign Button** / **Add to Toolbar** actions are under the
+   collapsed **GridCraft customizations** section. Developer → Controls → Insert
+   → Button opens the assignment picker with an **Assign** action. New buttons
+   are placed at the active cell (or `vba.assign.at`).
    Right-click an existing shape → Assign Macro to assign/reassign it. Ordinary
    clicks run its Sub; Design Mode allows selection, movement, resizing and deletion.
    Source plus button insertion/assignment is one undo step, using engine commands.
@@ -139,6 +153,29 @@ Public Function Triple(ByVal number As Double) As Double
     Triple = number * 3
 End Function
 ```
+
+### Window ownership and launch overrides
+
+With `vba-window`, the desktop shell creates one immediate native viewport after
+rendering workbook windows. Workbook editing stays visible and usable; the child
+renders the same `EditorUi`, `Ide` and `Bridge`. Only parent logic advances the VM.
+Macros launched from the worksheet bring the editor forward on a breakpoint or
+unhandled runtime failure.
+Repeated launch focuses the existing window. Alt+F11 or the editor's Return action
+returns focus to the workbook. Closing the editor's OS window hides it and retains
+source, breakpoints and state; closing the project or workbook still observes the
+existing dirty-source and cancellation guards. Native viewport state is excluded
+from the WASM build, which retains in-page presentation.
+
+`vba.open {"separateWindow": false}` explicitly embeds even in a window-enabled
+desktop. `true` requires `vba-window` and a native window host; otherwise it returns
+an error. Omitting it chooses the build/host default on first launch and retains
+the current project's mode when reopening. Switching modes never creates another
+project or VM. `vba.status` reports `separateWindow` and `visible`.
+
+The desktop feature uses the existing egui viewport backend, not IPC, filesystem
+source transfer, or a copied editor. `vba_windows` tests exercise nested native
+viewport input/close/focus and assert rendering does not run another VM slice.
 
 Functions accept scalar values and bounded rectangular reference values as
 one-based two-dimensional Variant arrays; return scalars or rectangular arrays
@@ -193,6 +230,19 @@ are independently authored; existing dependency licences remain unchanged. No
 fresh Microsoft oracle observation or complete Excel compatibility is claimed.
 
 ## Validation and extension
+
+Window/launch correction acceptance (2026-10-28): `cargo xtask ci` passes all ten
+steps (2,553 tests). The full `vba-window` UI suite passes 1,150 tests, including
+21 VBA workflow and four native-viewport cases; the embedded-only workflow suite
+also passes. Strict all-target Clippy passes for embedded and window-enabled
+desktop builds. Browser application compilation and a WASM build with the window
+feature selected both pass; the latter still excludes native state and embeds.
+The real Windows desktop build was launched in an isolated, preferences-disabled
+session: distinct workbook/editor native windows were visually inspected, return
+to the workbook retained the project, and the smoke instance was closed afterward.
+Nine original light/dark/narrow renderings under ignored `target/vba-window-ui`
+were regenerated and reviewed. Logs are `target/vba-window-*`. No hosted CI run
+or manual macOS/Linux window test is claimed by this local evidence.
 
 `crates/vba/tests/workbooks.rs` owns real workbook acceptance, including undo,
 recalc, errors, typed arrays, trust, lifecycle and package preservation.

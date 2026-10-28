@@ -11,6 +11,7 @@ workspace = true
 [features]
 default = []
 vba = ["dep:gridcraft-vba", "dep:vba-ui-egui"]
+vba-window = ["vba"]
 
 [[example]]
 name = "vba_snapshot"

@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         app.use_prepared_fonts();
         app.ui.dark = dark;
         app.ui.system_theme = false;
-        app.run("vba.open", json!({})).map_err(std::io::Error::other)?;
+        app.run("vba.open", json!({"source":gridcraft_vba::DEMO})).map_err(std::io::Error::other)?;
         if let Some(editor) = app.vba.as_mut() {
             let byte = gridcraft_vba::DEMO.find("Range(\"B1\")").ok_or("breakpoint not found")?;
             editor.ide.toggle_breakpoint_at(byte)?;

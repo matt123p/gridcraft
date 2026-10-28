@@ -958,6 +958,16 @@ fn options(app: &mut SheetApp, ui: &mut Ui) {
     let lang = app.ui.language;
     section(ui, lang, "Options|General");
     general_options(app, ui, lang);
+    #[cfg(feature = "vba")]
+    {
+        ui.add_space(18.);
+        section(ui, lang, "Customize Ribbon");
+        ui.label("Main Tabs");
+        let mut on = app.ui.developer;
+        if ui.checkbox(&mut on, "Developer").changed() {
+            app.run_or_alert("vba.showDeveloper", json!({"on":on}));
+        }
+    }
     ui.add_space(6.0);
     let mut formula_bar = app.session.prefs.formula_bar;
     if ui.checkbox(&mut formula_bar, lang.tr("Show formula bar")).changed() {

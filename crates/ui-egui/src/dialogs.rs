@@ -1907,21 +1907,8 @@ fn about(ui: &mut egui::Ui, d: &mut Dialog) {
 fn macros(app: &mut SheetApp, ui: &mut egui::Ui, d: &mut Dialog, _confirm: &mut bool) {
     #[cfg(feature = "vba")]
     {
-        *_confirm |= crate::vba::macro_picker(app, ui, &d.values);
+        *_confirm |= crate::vba::macro_picker(app, ui, &mut d.values);
     }
-    #[cfg(feature = "vba")]
-    ui.horizontal(|ui| {
-        if ui.button("VBA Editor").clicked()
-            && let Err(e) = app.run("vba.open", json!({}))
-        {
-            app.message = Some(("VBA".into(), e));
-        }
-        if ui.button("Read VBA Project Source").clicked()
-            && let Err(e) = app.run("vba.open", json!({"project":true}))
-        {
-            app.message = Some(("VBA".into(), e));
-        }
-    });
     #[cfg(not(feature = "vba"))]
     ui.label("Automation in this workbook. GridCraft runs its own scripts; a file's VBA project is preserved but not executed.");
     #[cfg(feature = "vba")]

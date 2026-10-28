@@ -1781,7 +1781,7 @@ impl SheetApp {
             ribbon::title_bar(self, ui);
         }
         #[cfg(feature = "vba")]
-        let vba_visible = self.vba.as_ref().is_some_and(|v| v.visible);
+        let vba_visible = self.vba.as_ref().is_some_and(|v| v.visible && !v.separate_window);
         #[cfg(not(feature = "vba"))]
         let vba_visible = false;
         if vba_visible {

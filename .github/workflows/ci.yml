@@ -47,7 +47,9 @@ jobs:
         run: |
           cargo test --locked -p gridcraft-vba
           cargo test --locked -p gridcraft-ui-egui --features vba
+          cargo test --locked -p gridcraft-ui-egui --features vba-window
           cargo clippy --locked -p gridcraft-vba -p gridcraft-ui-egui --features gridcraft-ui-egui/vba --all-targets -- -D warnings
+          cargo clippy --locked -p gridcraft --features vba-window --all-targets -- -D warnings
           cargo check --locked -p gridcraft-vba -p gridcraft-web --features gridcraft-web/vba --target wasm32-unknown-unknown
       - name: Run real workbook acceptance as WASM
         env:

@@ -14,6 +14,10 @@ pub struct Editor {
     confirm_close: bool,
     pub design_mode: bool,
     functions: Option<Arc<Functions>>,
+    pub separate_window: bool,
+    focus_window: bool,
+    #[cfg(all(feature = "vba-window", not(target_arch = "wasm32")))]
+    owner_viewport: egui::ViewportId,
 }
 impl Drop for Editor {
     fn drop(&mut self) {
@@ -26,11 +30,77 @@ type Result<T> = std::result::Result<T, String>;
 fn error(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
+fn placement(app: &SheetApp, p: &Json) -> Result<bool> {
+    let available = cfg!(all(feature = "vba-window", not(target_arch = "wasm32"))) && app.native_windows;
+    match p.get("separateWindow") {
+        None => Ok(available),
+        Some(Json::Bool(false)) => Ok(false),
+        Some(Json::Bool(true)) if available => Ok(true),
+        Some(Json::Bool(true)) => Err("A separate VBA window requires the desktop vba-window feature and a native window host.".into()),
+        Some(_) => Err("separateWindow must be true or false".into()),
+    }
+}
+fn navigate(editor: &mut Editor, entry: &str) -> Result<()> {
+    for (index, module) in editor.ide.modules.iter_mut().enumerate() {
+        if let Some(p) = module.procedures.iter().find(|p| p.name.eq_ignore_ascii_case(entry)) {
+            editor.ide.active = index;
+            module.caret = p.start;
+            editor.ide.entry = p.name.clone();
+            return Ok(());
+        }
+    }
+    Err("No such VBA procedure".into())
+}
+
+/// One immediate native viewport, rendered once by the desktop shell after workbook windows.
+/// Execution still advances only in the parent SheetApp::logic; no second VM or host is created.
+#[cfg(all(feature = "vba-window", not(target_arch = "wasm32")))]
+pub fn show_desktop(app: &mut SheetApp, ctx: &egui::Context, owner: egui::ViewportId) {
+    let Some(editor) = app.vba.as_mut().filter(|e| e.visible && e.separate_window) else { return };
+    let id = egui::ViewportId::from_hash_of(("gridcraft-vba-editor", editor.bridge.document()));
+    let focus = editor.focus_window;
+    if focus {
+        editor.owner_viewport = owner;
+        editor.focus_window = false;
+    }
+    let return_to = editor.owner_viewport;
+    let title = format!(
+        "{} — Visual Basic",
+        app.session.documents().iter().find(|d| d.uid == editor.bridge.document()).map(|d| d.title.as_str()).unwrap_or("GridCraft")
+    );
+    ctx.show_viewport_immediate(
+        id,
+        egui::ViewportBuilder::default().with_title(title).with_inner_size([1200., 800.]).with_min_inner_size([640., 420.]).with_decorations(true),
+        |ui, _class| {
+            let ctx = ui.ctx().clone();
+            if ctx.input(|i| i.viewport().close_requested()) {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                // Closing VBE hides its window; the source/project remains owned by the workbook.
+                app.run_or_alert("vba.return", json!({}));
+            } else {
+                if focus {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                }
+                shortcuts(app, &ctx);
+                if app.vba.as_ref().is_some_and(|e| e.visible) {
+                    show(app, ui);
+                }
+            }
+            if app.vba.as_ref().is_none_or(|e| !e.visible) {
+                ctx.send_viewport_cmd_to(return_to, egui::ViewportCommand::Focus);
+            }
+            if app.vba.as_ref().is_some_and(|e| matches!(e.ide.mode(), Mode::Running | Mode::Waiting)) {
+                ctx.request_repaint();
+                ctx.request_repaint_of(egui::ViewportId::ROOT);
+            }
+        },
+    );
+}
 
 pub fn commands(app: &SheetApp) -> Vec<Json> {
     let mut commands = vec![
         json!({"id":"vba.showDeveloper","label":"Show Developer Tab","params":"{on: bool}","enabled":true,"ui":true}),
-        json!({"id":"vba.open","label":"VBA Editor","params":"{source?: string, project?: bool}","enabled":app.session.active().is_some(),"ui":true}),
+        json!({"id":"vba.open","label":"Visual Basic","params":"{source?: string, project?: bool, separateWindow?: bool, entry?: string}","enabled":app.session.active().is_some(),"ui":true}),
     ];
     for (id, label, params, action) in [
         ("vba.compile", "Compile VBA", "{}", Some(Action::Compile)),
@@ -86,12 +156,20 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
         return Ok(Json::Null);
     }
     if id == "vba.open" {
+        let separate = placement(app, p)?;
         if let Some(editor) = app.vba.as_mut() {
             if editor.bridge.document() == app.session.doc().map_err(error)?.uid
                 && p.get("source").is_none()
                 && !p.get("project").and_then(Json::as_bool).unwrap_or(false)
             {
+                if let Some(entry) = p.get("entry").and_then(Json::as_str) {
+                    navigate(editor, entry)?;
+                }
+                if p.get("separateWindow").is_some() {
+                    editor.separate_window = separate;
+                }
                 editor.visible = true;
+                editor.focus_window = true;
                 return Ok(json!({"mode":editor.ide.mode().label()}));
             }
             return Err("Close the existing VBA project before opening another.".into());
@@ -100,14 +178,14 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
         let bridge = Bridge::new(&app.session).map_err(error)?;
         let stored = Project::read(&app.session.doc().map_err(error)?.wb).map_err(error)?;
         let binary = app.session.doc().map_err(error)?.wb.vba_project.is_some();
-        let ide = if p.get("source").is_none() && !p.get("project").and_then(Json::as_bool).unwrap_or(false) && stored.is_some() {
+        let mut ide = if p.get("source").is_none() && !p.get("project").and_then(Json::as_bool).unwrap_or(false) && stored.is_some() {
             stored.ok_or("missing source")?.ide(&bridge).map_err(error)?
         } else if p.get("project").and_then(Json::as_bool).unwrap_or(false) || (p.get("source").is_none() && binary) {
             bridge.import_project(&app.session).map_err(error)?
         } else {
             let mut ide = Ide::new();
             let source = match p.get("source") {
-                None => gridcraft_vba::DEMO,
+                None => "Option Explicit\n",
                 Some(Json::String(s)) => s,
                 Some(_) => return Err("source must be VBA text".into()),
             };
@@ -115,7 +193,24 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             bridge.configure(&mut ide).map_err(error)?;
             ide
         };
-        app.vba = Some(Editor { ide, bridge, view: EditorUi::default(), visible: true, confirm_close: false, design_mode: false, functions: None });
+        ide.title = format!("VBAProject ({})", app.session.doc().map_err(error)?.title);
+        let mut editor = Editor {
+            ide,
+            bridge,
+            view: EditorUi::default(),
+            visible: true,
+            confirm_close: false,
+            design_mode: false,
+            functions: None,
+            separate_window: separate,
+            focus_window: true,
+            #[cfg(all(feature = "vba-window", not(target_arch = "wasm32")))]
+            owner_viewport: egui::ViewportId::ROOT,
+        };
+        if let Some(entry) = p.get("entry").and_then(Json::as_str) {
+            navigate(&mut editor, entry)?;
+        }
+        app.vba = Some(editor);
         return Ok(json!({"opened":true,"executed":false}));
     }
     if matches!(id, "vba.invoke" | "vba.assign" | "vba.pin" | "vba.entries" | "vba.designMode") && app.vba.is_none() {
@@ -137,7 +232,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
     match id {
         "vba.status" => {
             return Ok(
-                json!({"mode":editor.ide.mode().label(),"output":editor.ide.output(),"diagnostics":editor.ide.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>()}),
+                json!({"mode":editor.ide.mode().label(),"separateWindow":editor.separate_window,"visible":editor.visible,"output":editor.ide.output(),"diagnostics":editor.ide.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>()}),
             );
         }
         "vba.trust" => {
@@ -209,6 +304,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
 }
 pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
     let Some(editor) = app.vba.as_mut() else { return };
+    let was_running = matches!(editor.ide.mode(), Mode::Running | Mode::Waiting);
     if let Some(f) = &editor.functions {
         let allowed = editor.bridge.permitted(&app.session);
         if f.allowed.swap(allowed, Ordering::AcqRel) != allowed {
@@ -217,6 +313,10 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
     }
     if let Err(e) = editor.bridge.tick(&mut app.session, &mut editor.ide) {
         editor.ide.message(e.to_string());
+    }
+    if was_running && matches!(editor.ide.mode(), Mode::Break | Mode::Failed) {
+        editor.visible = true;
+        editor.focus_window = true;
     }
     if matches!(editor.ide.mode(), Mode::Running | Mode::Waiting) {
         ctx.request_repaint();
@@ -336,41 +436,45 @@ pub fn assigned(app: &SheetApp, shape: u32) -> Option<String> {
 
 pub fn developer(app: &mut SheetApp, ui: &mut egui::Ui) {
     use crate::{icons::Icon, widgets::big_button};
-    for (label, id) in [("Visual Basic", "vba.open"), ("Save Source to Workbook", "vba.apply")] {
-        let icon = if id == "vba.open" { Icon::Script } else { Icon::Save };
-        let button = big_button(ui, icon, label, label, false);
-        button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), label));
-        if button.clicked() {
-            app.run_or_alert(id, json!({}));
-        }
-    }
-    let macros = big_button(ui, Icon::Script, "Macros", "Macros (Alt+F8)", false);
-    macros.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Macros (Alt+F8)"));
-    if macros.clicked() {
-        app.open_dialog("macros", json!({}));
-    }
-    ui.separator();
-    let insert = big_button(ui, Icon::Shapes, "Insert", "Insert worksheet button", true);
-    insert.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Insert worksheet button"));
-    egui::Popup::menu(&insert).show(|ui| {
-        if ui.button("Button (Assign Macro…)").clicked() {
-            app.open_dialog("macros", json!({"assign":true}));
-            ui.close();
-        }
+    ui.vertical(|ui| {
+        ui.horizontal(|ui| {
+            let visual = big_button(ui, Icon::Script, "Visual\nBasic", "Visual Basic (Alt+F11)", false);
+            visual.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Visual Basic"));
+            if visual.clicked() {
+                app.run_or_alert("vba.open", json!({}));
+            }
+            let macros = big_button(ui, Icon::Script, "Macros", "Macros (Alt+F8)", false);
+            macros.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Macros (Alt+F8)"));
+            if macros.clicked() {
+                app.open_dialog("macros", json!({}));
+            }
+        });
+        ui.label(egui::RichText::new("Code").small());
     });
-    let on = app.vba.as_ref().is_some_and(|e| e.design_mode);
-    if ui.selectable_label(on, "Design Mode").clicked() {
-        app.run_or_alert("vba.designMode", json!({"on":!on}));
-    }
+    ui.separator();
+    ui.vertical(|ui| {
+        ui.horizontal(|ui| {
+            let insert = big_button(ui, Icon::Shapes, "Insert", "Insert worksheet button", true);
+            insert.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Insert worksheet button"));
+            egui::Popup::menu(&insert).show(|ui| {
+                if ui.button("Button (Assign Macro?)").clicked() {
+                    app.open_dialog("macros", json!({"assign":true}));
+                    ui.close();
+                }
+            });
+            let on = app.vba.as_ref().is_some_and(|e| e.design_mode);
+            ui.vertical(|ui| {
+                if crate::widgets::toggle_button(ui, Icon::Shapes, on, "Design Mode").clicked() {
+                    app.run_or_alert("vba.designMode", json!({"on":!on}));
+                }
+                ui.label("Design Mode");
+            });
+        });
+        ui.label(egui::RichText::new("Controls").small());
+    });
 }
 
 pub fn toolbar(app: &mut SheetApp, ui: &mut egui::Ui) {
-    if ui.button("VB").on_hover_text("Visual Basic (Alt+F11)").clicked() {
-        app.run_or_alert("vba.open", json!({}));
-    }
-    if ui.button("Macros").clicked() {
-        app.open_dialog("macros", json!({}));
-    }
     let pins = app.session.doc().ok().and_then(|d| Project::read(&d.wb).ok().flatten()).map(|p| p.toolbar).unwrap_or_default();
     for entry in pins {
         if ui.button(&entry).on_hover_text("Run assigned VBA macro").clicked() {
@@ -391,7 +495,7 @@ pub fn shortcuts(app: &mut SheetApp, ctx: &egui::Context) {
     }
 }
 
-pub fn macro_picker(app: &mut SheetApp, ui: &mut egui::Ui, values: &serde_json::Map<String, Json>) -> bool {
+pub fn macro_picker(app: &mut SheetApp, ui: &mut egui::Ui, values: &mut serde_json::Map<String, Json>) -> bool {
     if app.vba.is_none() {
         if let Err(e) = run(app, "vba.open", &json!({})) {
             ui.label(e);
@@ -402,43 +506,81 @@ pub fn macro_picker(app: &mut SheetApp, ui: &mut egui::Ui, values: &serde_json::
         }
     }
     let entries = app.vba.as_ref().and_then(|e| Project::from_ide(&e.ide, None).and_then(|p| p.entries()).ok()).unwrap_or_default();
-    ui.label("VBA procedures in this workbook");
-    let mut close = false;
-    egui::ScrollArea::vertical().max_height(300.).show(ui, |ui| {
-        for entry in entries {
-            ui.push_id(&entry.name, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(&entry.signature);
-                    if entry.function {
-                        ui.weak("User Defined — use in a cell formula");
-                        return;
-                    }
-                    for (label, id, params) in [
-                        ("Run", "vba.invoke", json!({"entry":entry.name})),
-                        ("Edit", "vba.open", json!({})),
-                        ("Assign Button", "vba.assign", json!({"entry":entry.name,"id":values.get("shape").cloned().unwrap_or(Json::Null)})),
-                        ("Add to Toolbar", "vba.pin", json!({"entry":entry.name})),
-                    ] {
-                        if ui.button(label).clicked() {
-                            let mut params = params;
-                            if params.get("id").is_some_and(Json::is_null)
-                                && let Some(o) = params.as_object_mut()
-                            {
-                                o.remove("id");
-                            }
-                            match app.run(id, params) {
-                                Ok(_) => close = matches!(id, "vba.open" | "vba.invoke"),
-                                Err(e) => app.message = Some(("VBA".into(), e)),
-                            }
-                        }
-                    }
-                });
-            });
+    let names: Vec<_> = entries.into_iter().filter(|e| !e.function).map(|e| e.name).collect();
+    let mut selected = values.get("macro").and_then(Json::as_str).map(str::to_string).unwrap_or_else(|| names.first().cloned().unwrap_or_default());
+    let label = ui.label("Macro name:");
+    ui.text_edit_singleline(&mut selected).labelled_by(label.id);
+    let mut edit = false;
+    egui::ScrollArea::vertical().max_height(200.).show(ui, |ui| {
+        for name in &names {
+            let r = ui.selectable_label(selected.eq_ignore_ascii_case(name), name);
+            if r.clicked() {
+                selected = name.clone();
+            }
+            if r.double_clicked() {
+                selected = name.clone();
+                edit = true;
+            }
+        }
+        if names.is_empty() {
+            ui.weak("No public macros in this workbook.");
         }
     });
-    ui.separator();
-    close
+    values.insert("macro".into(), json!(selected));
+    let valid = names.iter().any(|n| n.eq_ignore_ascii_case(&selected));
+    let assign = values.get("assign").and_then(Json::as_bool).unwrap_or(false) || values.get("shape").is_some();
+    let mut action = None;
+    ui.horizontal(|ui| {
+        if assign {
+            if ui.add_enabled(valid, egui::Button::new("Assign")).clicked() {
+                action = Some("vba.assign");
+            }
+        } else {
+            if ui.add_enabled(valid, egui::Button::new("Run")).clicked() {
+                action = Some("vba.invoke");
+            }
+            if ui.add_enabled(valid, egui::Button::new("Step Into")).clicked() {
+                action = Some("vba.stepInto");
+            }
+            if ui.add_enabled(valid, egui::Button::new("Edit")).clicked() {
+                edit = true;
+            }
+        }
+    });
+    if !assign {
+        ui.collapsing("GridCraft customizations", |ui| {
+            if ui.add_enabled(valid, egui::Button::new("Assign Button")).clicked() {
+                action = Some("vba.assign");
+            }
+            if ui.add_enabled(valid, egui::Button::new("Add to Toolbar")).clicked() {
+                action = Some("vba.pin");
+            }
+        });
+    }
+    if edit && valid {
+        action = Some("vba.open");
+    }
+    if let Some(id) = action {
+        let mut p = json!({"entry":selected});
+        if let Some(shape) = values.get("shape") {
+            p["id"] = shape.clone();
+        }
+        match app.run(id, p) {
+            Ok(_) => {
+                if id == "vba.stepInto"
+                    && let Some(e) = app.vba.as_mut()
+                {
+                    e.visible = true;
+                    e.focus_window = true;
+                }
+                return id != "vba.pin";
+            }
+            Err(e) => app.message = Some(("VBA".into(), e)),
+        }
+    }
+    false
 }
+
 pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let Some(mut editor) = app.vba.take() else { return };
     let mut commands = Vec::new();

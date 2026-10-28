@@ -13,6 +13,7 @@ workspace = true
 [features]
 default = []
 vba = ["gridcraft-ui-egui/vba"]
+vba-window = ["vba", "gridcraft-ui-egui/vba-window"]
 
 [dependencies]
 gridcraft-engine = { workspace = true }

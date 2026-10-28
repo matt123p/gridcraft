@@ -89,18 +89,23 @@ fn toolbar_macro_picker_and_developer_controls_are_reachable() {
     a.ui.developer = true;
     let mut h = common::harness_with(common::builder().with_size(egui::vec2(1440., 900.)), a, 4);
     assert!(h.query_by_label("Visual Basic").is_some());
-    h.get_by_label("Macros").click();
+    h.get_by_label("Macros (Alt+F8)").click();
+    h.run_steps(2);
+    h.get_by_label("GridCraft customizations").click();
+    h.run_steps(3);
+    h.get_by_label("Add to Toolbar").click();
     h.run_steps(3);
     h.get_by_label("Assign Button").click();
     h.run_steps(3);
     assert_eq!(h.state().session.doc().unwrap().wb.active().unwrap().shapes.len(), 1);
-    h.get_by_label("Add to Toolbar").click();
+    h.state_mut().open_dialog("macros", json!({}));
     h.run_steps(3);
     h.get_by_label("Run").click();
     h.run_steps(8);
     assert!(h.state().dialog.is_none());
     assert_eq!(cell(h.state(), "A1"), gridcraft_engine::core::Value::Number(17.));
-    h.get_by_label("VB").click();
+    assert!(h.query_by_label("VB").is_none());
+    h.get_by_label("Visual Basic").click();
     h.run_steps(3);
     assert!(h.state().vba.as_ref().unwrap().visible);
 }
@@ -143,7 +148,7 @@ fn worksheet_button_click_runs_and_design_mode_selects() {
     h.get_by_label("Assign Macro…").click();
     h.run_steps(3);
     assert_eq!(h.state().dialog.as_ref().unwrap().values["shape"], id);
-    h.get_by_label("Assign Button").click();
+    h.get_by_label("Assign").click();
     h.run_steps(3);
     assert_eq!(h.state().session.doc().unwrap().wb.active().unwrap().shapes.len(), 1);
 }
@@ -218,9 +223,62 @@ fn keyboard_opens_toggles_editor_and_macro_picker_and_developer_preference_persi
     assert!(restored.developer);
 }
 #[test]
+fn normal_launch_has_no_demo_and_window_requests_require_native_capability() {
+    let mut a = app();
+    assert!(a.run("vba.open", json!({"separateWindow":true})).is_err());
+    assert!(a.vba.is_none());
+    a.run("vba.open", json!({"separateWindow":false})).unwrap();
+    assert!(!a.vba.as_ref().unwrap().separate_window);
+    assert!(a.run("vba.entries", json!({})).unwrap().as_array().unwrap().is_empty());
+    assert!(!a.vba.as_ref().unwrap().ide.modules[0].text.contains("Sub Main"));
+}
+#[test]
+fn view_menu_and_options_customize_ribbon_are_the_launch_routes() {
+    let a = app();
+    let mut h = common::harness_with(common::builder().with_size(egui::vec2(1440., 900.)), a, 4);
+    assert!(h.query_by_label("VB").is_none());
+    h.state_mut().ui.ribbon_tab = "View".into();
+    h.run_steps(2);
+    h.get_by_label("Macros menu").click();
+    h.run_steps(2);
+    h.get_by_label("View Macros").click();
+    h.run_steps(3);
+    assert_eq!(h.state().dialog.as_ref().unwrap().name, "macros");
+    h.state_mut().dialog = None;
+    h.state_mut().run("ui.backstage", json!({"page":"options"})).unwrap();
+    h.run_steps(3);
+    h.get_by_label("Developer").click();
+    h.run_steps(3);
+    assert!(h.state().ui.developer);
+}
+#[test]
+fn macro_edit_and_step_into_navigate_to_the_selected_module_without_listing_functions() {
+    let mut a = worksheet_app();
+    a.vba.as_mut().unwrap().ide.add_module("Other.bas", "Public Sub SecondOne()\nDebug.Print 8\nEnd Sub\n").unwrap();
+    a.run("vba.return", json!({})).unwrap();
+    a.open_dialog("macros", json!({}));
+    let mut h = common::harness_with(common::builder().with_size(egui::vec2(1440., 900.)), a, 4);
+    assert!(h.query_by_label("Triple").is_none());
+    h.get_by_label("SecondOne").click();
+    h.run_steps(2);
+    h.get_by_label("Edit").click();
+    h.run_steps(3);
+    let editor = h.state().vba.as_ref().unwrap();
+    assert!(editor.visible);
+    assert_eq!(editor.ide.entry, "SecondOne");
+    assert_eq!(editor.ide.modules[editor.ide.active].name, "Other.bas");
+    h.state_mut().run("vba.return", json!({})).unwrap();
+    h.state_mut().open_dialog("macros", json!({"macro":"SecondOne"}));
+    h.run_steps(3);
+    h.get_by_label("Step Into").click();
+    h.run_steps(3);
+    assert_eq!(h.state().vba.as_ref().unwrap().ide.mode(), Mode::Break);
+    assert_eq!(h.state().vba.as_ref().unwrap().ide.entry, "SecondOne");
+}
+#[test]
 fn control_commands_open_without_execution_run_and_close() {
     let mut app = app();
-    app.run("vba.open", json!({})).unwrap();
+    app.run("vba.open", json!({"source":gridcraft_vba::DEMO})).unwrap();
     assert_eq!(app.vba.as_ref().unwrap().ide.mode(), Mode::Design);
     assert_eq!(app.session.doc().unwrap().undo.len(), 0);
     app.run("vba.run", json!({})).unwrap();
@@ -267,7 +325,7 @@ fn shared_editor_accessible_in_light_dark_narrow_and_scaled_hosts() {
         let mut app = app();
         app.ui.dark = dark;
         app.ui.system_theme = false;
-        app.run("vba.open", json!({})).unwrap();
+        app.run("vba.open", json!({"source":gridcraft_vba::DEMO})).unwrap();
         app.run("vba.stepInto", json!({})).unwrap();
         let mut h = common::harness_with(common::builder().with_size(egui::vec2(width, 850.)).with_pixels_per_point(scale), app, 6);
         assert_eq!(h.state().vba.as_ref().unwrap().ide.mode(), Mode::Break);
