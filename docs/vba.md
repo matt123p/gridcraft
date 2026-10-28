@@ -82,8 +82,11 @@ Application.Parent returns Application. Worksheet.Range accepts local rectangula
 A1 strings; with Cell2 supplied, either endpoint may also be a same-sheet Range
 object. It returns their bounding rectangle; existing cell/payload budgets apply.
 These members are a projection: Worksheets/Sheets are not collection objects and
-Cells is not yet Excel's all-cell Range with default Item. Typed declarations such
-as `As Worksheet` and `As Excel.Range` are rejected by the current compiler.
+Cells is not yet Excel's all-cell Range with default Item. Registered Application,
+Workbook, Worksheet and Range types now support qualified/unqualified declarations,
+parameters and results, including unchanged `As Worksheet` / `As Excel.Range` source.
+Nominal checks query GridCraft's existing object store; wrong classes fail with 13,
+and stale/foreign/closed references fail with 91. See [M1.1 acceptance](vba-m1-types.md).
 
 Unqualified Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, Worksheets,
 Range and Cells are M5 imports. Object names/member names are case insensitive;

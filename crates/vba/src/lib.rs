@@ -3,12 +3,14 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 mod objects;
+mod types;
 mod values;
 pub mod worksheet;
 
 use gridcraft_engine::{GroupToken, Session};
 use objects::Object;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use vba_foreign::{Completion, ForeignError, HostCall, InvokeKind, Reply};
 pub use vba_ide::{self, Action, Host, Ide, Mode, ObjectRef, Value};
@@ -33,7 +35,7 @@ pub struct Bridge {
     identity: u64,
     pub(crate) doc: u64,
     sheets: Vec<String>,
-    objects: Vec<Object>,
+    objects: Arc<types::Objects>,
     group: Option<GroupToken>,
     consent: bool,
     closed: bool,
@@ -48,7 +50,7 @@ impl Bridge {
             identity,
             doc: doc.uid,
             sheets: doc.wb.sheets.iter().map(|s| s.name.clone()).collect(),
-            objects: vec![Object::Application, Object::Workbook, Object::Sheet(doc.sheet_index())],
+            objects: Arc::new(types::Objects::new(identity, doc.uid, doc.sheet_index())),
             group: None,
             consent: false,
             closed: false,
@@ -80,19 +82,13 @@ impl Bridge {
         ObjectRef { host: self.identity, object: object as u64, generation: self.doc }
     }
     pub(crate) fn intern(&mut self, object: Object) -> HostResult<Value> {
-        let index = if let Some(i) = self.objects.iter().position(|o| o == &object) {
-            i
-        } else {
-            if self.objects.len() >= MAX_OBJECTS {
-                return Err(failure(7, "object handle budget exceeded"));
-            }
-            self.objects.push(object);
-            self.objects.len().saturating_sub(1)
-        };
+        let index = self.objects.intern(object)?;
         Ok(Value::Object(self.reference(index)))
     }
     pub fn configure(&self, ide: &mut Ide) -> Result<()> {
-        ide.configure_host(self.imports(), self.roots(), catalog())
+        ide.configure_host(self.imports(), self.roots(), catalog())?;
+        ide.configure_reference_bindings(types::references()?)?;
+        ide.configure_type_resolver(Some(self.objects.clone()))
     }
     pub(crate) fn roots(&self) -> BTreeMap<String, ObjectRef> {
         BTreeMap::from([("Excel".into(), self.reference(0)), ("Workbook".into(), self.reference(1)), ("Worksheet".into(), self.reference(2))])
@@ -174,6 +170,7 @@ impl Bridge {
             let _ = ide.dispatch(Action::Reset, &mut self.host(session));
             self.finish(session)?;
             self.closed = true;
+            self.objects.close();
             return Err(diagnostic(e.description));
         }
         let result = ide.tick(&mut self.host(session));
@@ -196,12 +193,18 @@ impl Bridge {
         ide.close(&mut self.host(session), discard)?;
         self.finish(session)?;
         self.closed = true;
+        self.objects.close();
         Ok(())
     }
 }
 pub struct WorkbookHost<'a> {
     bridge: &'a mut Bridge,
     session: &'a mut Session,
+}
+impl Drop for Bridge {
+    fn drop(&mut self) {
+        self.objects.close();
+    }
 }
 impl Host for WorkbookHost<'_> {
     fn identity(&self) -> u64 {
@@ -213,8 +216,7 @@ impl Host for WorkbookHost<'_> {
             if call.target.host != self.bridge.identity || call.target.generation != self.bridge.doc {
                 return Err(failure(91, "stale or foreign object reference"));
             }
-            let index = usize::try_from(call.target.object).map_err(|_| failure(91, "invalid object"))?;
-            let object = self.bridge.objects.get(index).cloned().ok_or_else(|| failure(91, "invalid object"))?;
+            let object = self.bridge.objects.get(call.target)?;
             self.bridge.invoke_object(self.session, object, call)
         })();
         match result {
@@ -253,7 +255,7 @@ pub fn catalog() -> Vec<ApiMember> {
     ]
     .into_iter()
     .map(|(owner, name, signature)| ApiMember {
-        library: "GridCraft.Excel.v1".into(),
+        library: "Excel".into(),
         owner: owner.into(),
         name: name.into(),
         signature: signature.into(),

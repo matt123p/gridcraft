@@ -180,7 +180,13 @@ impl Functions {
             *target = wrapped;
             let program = compile_modules(
                 &compiled_modules,
-                &CompileOptions { entry: wrapper, imports: bridge.imports(), capabilities: vba_vm::capabilities(), ..Default::default() },
+                &CompileOptions {
+                    entry: wrapper,
+                    imports: bridge.imports(),
+                    references: super::types::references()?,
+                    capabilities: vba_vm::capabilities(),
+                    ..Default::default()
+                },
             )?;
             compiled_bytes = compiled_bytes
                 .saturating_add(source.text().len())

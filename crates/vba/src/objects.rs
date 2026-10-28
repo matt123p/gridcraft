@@ -66,12 +66,10 @@ impl Bridge {
                 if reference.host != self.identity || reference.generation != self.doc {
                     return Err(failure(91, "stale or foreign range endpoint"));
                 }
-                let index = usize::try_from(reference.object).map_err(|_| failure(91, "invalid range endpoint"))?;
-                match self.objects.get(index) {
-                    Some(Object::Range(owner, range)) if *owner == sheet => Ok(*range),
-                    Some(Object::Range(..)) => Err(failure(1004, "range endpoint belongs to another worksheet")),
-                    Some(_) => Err(failure(13, "range endpoint must be a Range")),
-                    None => Err(failure(91, "invalid range endpoint")),
+                match self.objects.get(*reference)? {
+                    Object::Range(owner, range) if owner == sheet => Ok(range),
+                    Object::Range(..) => Err(failure(1004, "range endpoint belongs to another worksheet")),
+                    _ => Err(failure(13, "range endpoint must be a Range")),
                 }
             }
             _ => {

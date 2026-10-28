@@ -1,8 +1,9 @@
 # Excel VBA source compatibility audit
 
 Reviewed 2026-10-28 against public Microsoft Learn documentation and the actual
-`gridcraft-vba` adapter, tiny-vba revision
-`ea38c3f346b4010d6017b3a6d27e645ebad7ef79`. Target: existing Excel workbook source
+`gridcraft-vba` adapter and the tiny-vba Git revision pinned in its manifest/lockfile.
+Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
+Target: existing Excel workbook source
 running unchanged. **That target is not met.** `GridCraft.Excel.v1` is a bounded
 standard-module profile; it must not be advertised as an identical Excel object
 model or general XLSM execution support.
@@ -29,7 +30,7 @@ refusal test proves a clear boundary, not compatibility with the rejected source
 | Value conversion | Empty, booleans, text, doubles and known cell CVErrs; typed native writes through engine commands | Literal Value strings are retained rather than fully matching Excel's input conversion. Date/Currency writes become numeric storage; integers beyond exact double precision, unknown errors and invalid UTF-16 are refused |
 | ClearContents/Address | ClearContents through native undoable command; Address returns absolute local A1 | Address's five optional arguments, relative/R1C1/external references absent; other range mutation/formatting methods absent |
 | Implicit roots | Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, Worksheets, Range, Cells | Unqualified ActiveSheet is captured on editor opening; Application.ActiveSheet and global Range/Cells use the current sheet. Cross-workbook active/code-owner distinctions are not implemented |
-| Language and references | Supported standard-module VBA subset, Object/Variant late binding, explicit properties | Worksheet/Excel.Range typed declarations fail compilation. Host type library/constants, document codenames, general default members, classes/UserForms and Office reference binding are not implemented |
+| Language and references | Standard-module subset, Object/Variant late binding, explicit properties and registered Excel Application/Workbook/Worksheet/Range nominal types | The supplied reference snapshot is a bounded adapter profile, not a complete Excel typelib/COM loader. Document codenames, default members, broader collections, classes/UserForms and unregistered Excel types remain unsupported |
 | Project import | Inert read-only standard-module extraction; original VBA bytes preserved | Executable workbook/worksheet/class modules reject import; no Workbook_Open/Worksheet_Change event dispatch, controls/forms designer or P-code execution. Source edits do not rewrite vbaProject.bin or signatures |
 | Worksheet UDFs | Public standard-module functions, value-only arguments/results, recalculation/spill and bounded execution | Reference arguments are value arrays, not Range objects; no Caller/Volatile, persistent UDF state or host access. Thus Range-typed/context-sensitive Excel UDFs do not work unchanged |
 | Buttons/toolbars | Explicit public no-argument Sub assignment; inert DrawingML macro association and GridCraft toolbar metadata | Not full Excel Forms/ActiveX/control/event/CommandBars/Ribbon object models; no UserForm execution |
@@ -51,12 +52,13 @@ Existing native mutation, protection, undo/recalculation and trust remain in use
 
 `crates/vba/tests/workbooks.rs` covers unchanged source for the corrected subset,
 named endpoints, bounding rectangles, owner identity, exact error paths, no writes
-on failure, handle validation and range budgets. Separate refusal tests pin typed
-Excel declaration, collection, Cells and Address gaps so they cannot be mistaken
+on failure, handle validation and range budgets. New nominal tests execute typed
+Excel declarations unchanged; refusal tests retain unregistered-type,
+collection, Cells and Address gaps so they cannot be mistaken
 for successful workbook execution. Existing project/worksheet tests cover source
 import refusals, inert package preservation, UDFs and their boundaries.
 
-Validation on Windows with Rust 1.99.1: all 29 adapter tests pass natively and
+Earlier exposed-profile audit validation on Windows with Rust 1.99.1: all 29 adapter tests pass natively and
 under the actual Node-hosted `wasm-bindgen-test-runner`; all 1,150 optional
 `gridcraft-ui-egui/vba-window` tests pass; strict all-target adapter/window UI
 Clippy passes. Native UI tests use the pinned optional craft-fonts checkout and
@@ -67,11 +69,11 @@ format/Clippy, assets/layers and browser compilation).
 
 ## Stages toward unchanged workbooks
 
-1. Add generic host type/default-member/collection binding in tiny-vba, with
-   generic tests only. GridCraft supplies Excel types/constants and real
+1. Extend generic default-member/collection binding in tiny-vba, with
+   generic tests only. GridCraft supplies further Excel types/constants and real
    Worksheets/Sheets/Range Item collections. Preserve existing native ABI and
-   named/omitted argument semantics. Accept typed Excel declarations and common
-   collection/default-property source unchanged before widening the profile.
+   named/omitted argument semantics. Registered typed declarations are covered by
+   M1.1; common collection/default-property source remains the next gate.
 2. Separate lightweight range references from materialization budgets. Implement
    Cells/Rows/Columns/CountLarge/Item, relative Range, Offset/Resize, named ranges,
    UsedRange and End using engine state and native commands. Verify bounds,

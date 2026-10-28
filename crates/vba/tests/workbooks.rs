@@ -194,7 +194,7 @@ fn range_endpoint_validation_preserves_identity_and_budgets() -> R {
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn unsupported_excel_declarations_are_diagnosed() -> R {
-    for declaration in ["Dim ws As Worksheet", "Dim r As Excel.Range"] {
+    for declaration in ["Dim chart As Excel.Chart", "Dim missing As MissingLibrary.Item"] {
         let mut s = session();
         let (mut b, mut ide) = setup(&s, &format!("Option Explicit\nSub Main()\n{declaration}\nEnd Sub\n"))?;
         assert!(b.dispatch(&mut s, &mut ide, Action::Run).is_err(), "{declaration}");

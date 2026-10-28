@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-27 · **Change:** minor (optional separate-repository VBA adapter and shared editor) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-28 · **Last updated:** 2026-10-28 · **Change:** minor (fork-owned nominal Excel types over the separate tiny-vba contract) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -33,6 +33,11 @@ Optional VBA integration is isolated in toolkit-free `gridcraft-vba` at L6 above
 engine and the `ui-egui/vba` shell feature. The engine has no VBA dependency; the
 separate tiny-vba Git repository supplies the compiler/VM and reusable editor.
 Workbook mutations remain engine commands. See [the profile and lifecycle](vba.md).
+Excel type descriptors and the type resolver live exclusively in `gridcraft-vba`.
+The resolver shares the bridge's existing object store with bounded read queries;
+no document borrow or store lock survives a query/host call. tiny-vba owns only
+generic identity, verified metadata and validation. [M1.1 evidence](vba-m1-types.md)
+records the ownership and lifecycle checks.
 The optional `vba-window` desktop feature presents the same editor/session in one
 immediate egui viewport, created by the native shell after workbook windows draw.
 The root remains the only execution driver; child rendering cannot replay host
@@ -173,6 +178,7 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 | 2026-10-27 | minor | Generic custom calculation provider and workbook item command; fork-owned VBA worksheet functions and assigned UI controls |
 | 2026-10-27 | minor | Native typed cell-content command shares command lifecycle and removes VBA's Text-format write limitation |
 | 2026-10-27 | minor | Optional separate-repository tiny-vba adapter and shared editor; engine command/undo/recalc ownership retained |
+| 2026-10-28 | minor | Registered Excel nominal types and shared-store read-only resolver stay in the optional adapter; generic IR 5/type rules remain in tiny-vba |
 | 2026-10-24 | minor | Engine building blocks for multi-command actions: undo groups, recording buffer, document trust, chunked hidden-name storage |
 | 2026-10-14 | minor | Document Undo's retained-cell-storage budget and latest-step guarantee |
 | 2026-10-10 | major | Created from the code on main: crates, layers, data flow, agent control, known gaps |

@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-27 · **Change:** minor (optional tiny-vba integration; existing parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-28 · **Last updated:** 2026-10-28 · **Change:** minor (registered Excel nominal types; existing parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -11,6 +11,8 @@ This page is the summary. The detail is in:
 The optional [tiny-vba baseline](docs/vba.md) is isolated behind `vba` and a pinned
 separate Git repository. It adds a bounded Excel object profile and the shared
 editor/debugger; existing estimates below do not claim full VBA compatibility.
+Registered typed declarations now have [M1.1 native/WASM acceptance](docs/vba-m1-types.md).
+Excel definitions remain in this fork; tiny-vba remains an independent Git dependency.
 
 - [`docs/target-app-parity.md`](docs/target-app-parity.md): the authoritative assessment, method and weights
 - [`docs/gaps.md`](docs/gaps.md): every known shortfall, ranked; the work list
