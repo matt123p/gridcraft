@@ -207,17 +207,20 @@ fn unsupported_excel_declarations_are_diagnosed() -> R {
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
-fn remaining_excel_collection_and_cells_gaps_are_explicit() -> R {
+fn collections_are_real_objects_and_remaining_cells_gaps_are_explicit() -> R {
     let mut s = session();
     let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
     let app = root(&mut b, &mut s);
-    error(call(&mut b, &mut s, app, InvokeKind::Get, "Worksheets", vec![]), 449);
+    let collection = object(call(&mut b, &mut s, app, InvokeKind::Get, "Worksheets", vec![]));
+    let count = i32::try_from(s.doc()?.wb.sheets.len())?;
+    assert_eq!(complete(call(&mut b, &mut s, collection, InvokeKind::Get, "Count", vec![])), Value::Long(count));
     error(call(&mut b, &mut s, app, InvokeKind::Get, "Cells", vec![]), 449);
     error(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1)]), 449);
     error(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1), text("B")]), 13);
     let r = range(&mut b, &mut s, "A1:B2");
     error(call(&mut b, &mut s, r, InvokeKind::Get, "Rows", vec![]), 438);
-    error(call(&mut b, &mut s, r, InvokeKind::Call, "Item", vec![Value::Long(1)]), 438);
+    let item = object(call(&mut b, &mut s, r, InvokeKind::Call, "Item", vec![Value::Long(1)]));
+    assert_eq!(complete(call(&mut b, &mut s, item, InvokeKind::Get, "Address", vec![])), text("$A$1"));
     error(call(&mut b, &mut s, r, InvokeKind::Get, "Address", vec![Value::Boolean(false)]), 450);
     Ok(())
 }

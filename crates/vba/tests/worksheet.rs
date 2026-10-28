@@ -78,6 +78,23 @@ fn functions_cannot_mutate_and_work_is_bounded() -> R {
     assert!(!s.in_group(s.doc()?.uid));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn worksheet_function_for_each_reads_value_arrays_and_recalculates() -> R {
+    let (mut s, _, _) = setup(
+        "Function TotalItems(ByVal items As Variant) As Double\nDim item As Variant,total As Double\nFor Each item In items\ntotal=total+item\nNext item\nTotalItems=total\nEnd Function\n",
+    )?;
+    for (address, input) in [("A1", "2"), ("B1", "3"), ("A2", "4"), ("B2", "5")] {
+        s.execute("cell.set", json!({"cell":address,"input":input}))?;
+    }
+    s.execute("cell.set", json!({"cell":"C1","input":"=TotalItems(A1:B2)"}))?;
+    assert_eq!(cell(&s, "C1"), Value::Number(14.0));
+    s.execute("cell.set", json!({"cell":"B2","input":"10"}))?;
+    assert_eq!(cell(&s, "C1"), Value::Number(19.0));
+    assert!(!s.in_group(s.doc()?.uid));
+    Ok(())
+}
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn revoked_or_replaced_source_never_executes_old_functions() -> R {

@@ -12,7 +12,7 @@ pub(crate) fn references() -> Result<ReferenceSet> {
         name: "Excel".into(),
         version: EXCEL_TYPES_VERSION.into(),
         available: true,
-        types: ["Application", "Workbook", "Worksheet", "Range"]
+        types: ["Application", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets"]
             .into_iter()
             .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
             .collect(),
@@ -35,7 +35,7 @@ impl Objects {
             identity,
             document,
             closed: AtomicBool::new(false),
-            values: RwLock::new(vec![Object::Application, Object::Workbook, Object::Sheet(sheet)]),
+            values: RwLock::new(vec![Object::Application, Object::Workbook, Object::Sheet(sheet), Object::Worksheets, Object::Sheets]),
         }
     }
     pub(crate) fn close(&self) {
@@ -52,6 +52,31 @@ impl Objects {
             .get(index)
             .cloned()
             .ok_or_else(|| failure(91, "invalid object reference"))
+    }
+    pub(crate) fn intern_many(&self, values: Vec<Object>) -> HostResult<Vec<usize>> {
+        if self.closed.load(Ordering::Relaxed) {
+            return Err(failure(91, "object store closed"));
+        }
+        let mut objects = self.values.write().map_err(|_| failure(91, "object store unavailable"))?;
+        // Preflight the whole snapshot before extending the existing registry.
+        let missing = values.iter().filter(|v| !objects.contains(v)).count();
+        if objects.len().checked_add(missing).is_none_or(|n| n > MAX_OBJECTS) {
+            return Err(failure(7, "object handle budget exceeded"));
+        }
+        objects.try_reserve(missing).map_err(|_| failure(7, "object allocation"))?;
+        let mut handles = Vec::new();
+        handles.try_reserve(values.len()).map_err(|_| failure(7, "enumeration allocation"))?;
+        for value in values {
+            let i = if let Some(i) = objects.iter().position(|o| o == &value) {
+                i
+            } else {
+                let i = objects.len();
+                objects.push(value);
+                i
+            };
+            handles.push(i);
+        }
+        Ok(handles)
     }
     pub(crate) fn intern(&self, object: Object) -> HostResult<usize> {
         if self.closed.load(Ordering::Relaxed) {
@@ -78,6 +103,8 @@ impl ObjectTypeResolver for Objects {
         let name = match object {
             Object::Application => "application",
             Object::Workbook => "workbook",
+            Object::Worksheets => "worksheets",
+            Object::Sheets => "sheets",
             Object::Sheet(_) => "worksheet",
             Object::Range(..) => "range",
         };

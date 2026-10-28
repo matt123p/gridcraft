@@ -91,24 +91,30 @@ impl Bridge {
         ide.configure_type_resolver(Some(self.objects.clone()))
     }
     pub(crate) fn roots(&self) -> BTreeMap<String, ObjectRef> {
-        BTreeMap::from([("Excel".into(), self.reference(0)), ("Workbook".into(), self.reference(1)), ("Worksheet".into(), self.reference(2))])
+        BTreeMap::from([
+            ("Excel".into(), self.reference(0)),
+            ("Workbook".into(), self.reference(1)),
+            ("Worksheet".into(), self.reference(2)),
+            ("Worksheets".into(), self.reference(3)),
+            ("Sheets".into(), self.reference(4)),
+        ])
     }
     pub(crate) fn imports(&self) -> Vec<Import> {
-        [
-            ("Application", None, InvokeKind::Get),
-            ("Worksheets", Some("Worksheets"), InvokeKind::Call),
-            ("Range", Some("Range"), InvokeKind::Call),
-            ("Cells", Some("Cells"), InvokeKind::Call),
-        ]
-        .into_iter()
-        .map(|(name, member, kind)| Import { name: name.into(), root: "Excel".into(), member: member.map(str::to_string), kind })
-        .chain([("ThisWorkbook", "Workbook"), ("ActiveWorkbook", "Workbook"), ("ActiveSheet", "Worksheet")].into_iter().map(|(name, root)| Import {
-            name: name.into(),
-            root: root.into(),
-            member: None,
-            kind: InvokeKind::Get,
-        }))
-        .collect()
+        [("Application", None, InvokeKind::Get), ("Range", Some("Range"), InvokeKind::Call), ("Cells", Some("Cells"), InvokeKind::Call)]
+            .into_iter()
+            .map(|(name, member, kind)| Import { name: name.into(), root: "Excel".into(), member: member.map(str::to_string), kind })
+            .chain(
+                [
+                    ("ThisWorkbook", "Workbook"),
+                    ("ActiveWorkbook", "Workbook"),
+                    ("ActiveSheet", "Worksheet"),
+                    ("Worksheets", "Worksheets"),
+                    ("Sheets", "Sheets"),
+                ]
+                .into_iter()
+                .map(|(name, root)| Import { name: name.into(), root: root.into(), member: None, kind: InvokeKind::Get }),
+            )
+            .collect()
     }
     /// Consent applies only to this editor/document instance. It never changes provenance.
     pub fn consent(&mut self, allow: bool) {
@@ -235,7 +241,17 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Application", "ThisWorkbook", "Property Get ThisWorkbook() As Workbook"),
         ("Application", "ActiveWorkbook", "Property Get ActiveWorkbook() As Workbook"),
         ("Application", "ActiveSheet", "Property Get ActiveSheet() As Worksheet"),
-        ("Workbook", "Worksheets", "Function Worksheets(Index As Variant) As Worksheet"),
+        ("Workbook", "Worksheets", "Property Get Worksheets() As Worksheets"),
+        ("Workbook", "Sheets", "Property Get Sheets() As Sheets"),
+        ("Application", "Worksheets", "Property Get Worksheets() As Worksheets"),
+        ("Application", "Sheets", "Property Get Sheets() As Sheets"),
+        ("Worksheets", "Count", "Property Get Count() As Long"),
+        ("Worksheets", "Item", "Property Get Item(Index As Variant) As Worksheet"),
+        ("Worksheets", "Parent", "Property Get Parent() As Workbook"),
+        ("Sheets", "Count", "Property Get Count() As Long"),
+        ("Sheets", "Item", "Property Get Item(Index As Variant) As Worksheet"),
+        ("Sheets", "Parent", "Property Get Parent() As Workbook"),
+        ("Range", "Item", "Property Item(RowIndex As Variant, Optional ColumnIndex As Variant) As Range"),
         ("Workbook", "Parent", "Property Get Parent() As Application"),
         ("Worksheet", "Application", "Property Get Application() As Application"),
         ("Worksheet", "Parent", "Property Get Parent() As Workbook"),
