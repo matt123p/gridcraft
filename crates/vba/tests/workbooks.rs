@@ -107,6 +107,120 @@ fn qualified_objects_named_arguments_and_error_handlers() -> R {
     assert_eq!(value(&s, "A1"), CellValue::Number(438.0));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn excel_two_endpoint_range_and_ownership_execute_unchanged_source() -> R {
+    let mut s = session();
+    run(
+        &mut s,
+        r#"Option Explicit
+Sub Main()
+Dim ws As Object
+Dim block As Object
+Set ws = ThisWorkbook.Worksheets(1)
+Set block = ws.Range(ws.Cells(3, 4), ws.Cells(2, 2))
+block.Value2 = 17
+Range("A1").Value2 = block.Row
+Range("A2").Value2 = block.Column
+Range("A3").Value2 = block.Count
+Range("A4").Value2 = block.Parent.Name
+Range("A5").Value2 = block.Worksheet.Name
+Range("A6").Value2 = block.Parent.Parent.Name
+Range("A7").Value2 = block.Application.ThisWorkbook.Name
+ws.Range(Cell2:="F2", Cell1:="E1").Value2 = 23
+On Error Resume Next
+ThisWorkbook.Range("A1").Value2 = 999
+Range("A8").Value2 = Err.Number
+Err.Clear
+ThisWorkbook.Cells(1, 1).Value2 = 999
+Range("A9").Value2 = Err.Number
+Err.Clear
+ThisWorkbook.ActiveWorkbook.Name
+Range("A10").Value2 = Err.Number
+End Sub
+"#,
+    )?;
+    for address in ["B2", "C2", "D2", "B3", "C3", "D3"] {
+        assert_eq!(value(&s, address), CellValue::Number(17.0));
+    }
+    for (address, number) in [("A1", 2.0), ("A2", 2.0), ("A3", 6.0), ("A8", 438.0), ("A9", 438.0), ("A10", 438.0)] {
+        assert_eq!(value(&s, address), CellValue::Number(number));
+    }
+    assert_eq!(value(&s, "A4"), value(&s, "A5"));
+    assert_eq!(value(&s, "A6"), value(&s, "A7"));
+    assert_eq!(value(&s, "F2"), CellValue::Number(23.0));
+    assert!(value(&s, "G2").is_empty());
+    assert_eq!(s.doc()?.undo.len(), 1);
+    s.execute("edit.undo", json!({}))?;
+    assert!(value(&s, "B2").is_empty());
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_endpoint_validation_preserves_identity_and_budgets() -> R {
+    let mut s = session();
+    s.execute("home.insertSheet", json!({}))?;
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    let ws = object(call(&mut b, &mut s, app, InvokeKind::Call, "Worksheets", vec![Value::Long(1)]));
+    let other = object(call(&mut b, &mut s, app, InvokeKind::Call, "Worksheets", vec![Value::Long(2)]));
+    let local = object(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![text("B2:C3")]));
+    let remote = object(call(&mut b, &mut s, other, InvokeKind::Call, "Range", vec![text("A1")]));
+    let block = object(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![Value::Object(local), text("A1")]));
+    assert_eq!(complete(call(&mut b, &mut s, block, InvokeKind::Get, "Address", vec![])), text("$A$1:$C$3"));
+    assert_eq!(complete(call(&mut b, &mut s, block, InvokeKind::Get, "Parent", vec![])), Value::Object(ws));
+    assert_eq!(complete(call(&mut b, &mut s, block, InvokeKind::Get, "Application", vec![])), Value::Object(app));
+    let before = s.doc()?.wb.clone();
+    error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![Value::Object(local)]), 1004);
+    error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![Value::Object(local), Value::Object(remote)]), 1004);
+    error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![Value::Object(app), text("A1")]), 13);
+    for bad in
+        [ObjectRef { host: app.host + 1, ..local }, ObjectRef { generation: app.generation + 1, ..local }, ObjectRef { object: u64::MAX, ..local }]
+    {
+        error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![Value::Object(bad), text("A1")]), 91);
+    }
+    error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![text("A1"), text("XFD1048576")]), 7);
+    error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![text("A1"), Value::Null]), 94);
+    error(call(&mut b, &mut s, block, InvokeKind::Let, "Row", vec![Value::Long(1)]), 438);
+    error(call(&mut b, &mut s, block, InvokeKind::Get, "Parent", vec![Value::Long(1)]), 450);
+    assert_eq!(*before, *s.doc()?.wb);
+    Ok(())
+}
+
+// These passing refusal tests document incompatibility; they are not successful
+// executions of the corresponding Excel workbook source.
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn unsupported_excel_declarations_are_diagnosed() -> R {
+    for declaration in ["Dim ws As Worksheet", "Dim r As Excel.Range"] {
+        let mut s = session();
+        let (mut b, mut ide) = setup(&s, &format!("Option Explicit\nSub Main()\n{declaration}\nEnd Sub\n"))?;
+        assert!(b.dispatch(&mut s, &mut ide, Action::Run).is_err(), "{declaration}");
+        assert!(!ide.diagnostics.is_empty(), "missing diagnostic: {declaration}");
+        assert!(value(&s, "A1").is_empty());
+        assert!(!s.in_group(b.document()));
+    }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn remaining_excel_collection_and_cells_gaps_are_explicit() -> R {
+    let mut s = session();
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    error(call(&mut b, &mut s, app, InvokeKind::Get, "Worksheets", vec![]), 449);
+    error(call(&mut b, &mut s, app, InvokeKind::Get, "Cells", vec![]), 449);
+    error(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1)]), 449);
+    error(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1), text("B")]), 13);
+    let r = range(&mut b, &mut s, "A1:B2");
+    error(call(&mut b, &mut s, r, InvokeKind::Get, "Rows", vec![]), 438);
+    error(call(&mut b, &mut s, r, InvokeKind::Call, "Item", vec![Value::Long(1)]), 438);
+    error(call(&mut b, &mut s, r, InvokeKind::Get, "Address", vec![Value::Boolean(false)]), 450);
+    Ok(())
+}
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn break_edit_resume_does_not_repeat_writes() -> R {

@@ -43,8 +43,7 @@ impl Desk {
     fn frame(&mut self) -> Vec<ViewportId> {
         DRAWS.with(|s| s.borrow_mut().clear());
         COMMANDS.with(|s| s.borrow_mut().clear());
-        let mut input = RawInput::default();
-        input.viewports = INPUT.with(|s| s.borrow().clone());
+        let mut input = RawInput { viewports: INPUT.with(|s| s.borrow().clone()), ..Default::default() };
         input.viewports.entry(ViewportId::ROOT).or_default();
         let out = self.ctx.clone().run_ui(input, |ui| {
             let ctx = ui.ctx().clone();

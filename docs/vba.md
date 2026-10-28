@@ -2,6 +2,9 @@
 
 Updated 2026-10-28. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
+The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
+members, remaining mismatches and stages toward running existing workbooks
+unchanged. Arbitrary XLSM execution without source changes is not yet supported.
 
 For a separate desktop editor window, run
 `cargo +1.99.1 run -p gridcraft --features vba-window`.
@@ -71,9 +74,16 @@ also use `vba.open {source: ...}`. This feature does not install a second editor
 | Object | Supported members |
 |---|---|
 | Application | Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, Worksheets(index/name), Sheets(index/name), Range(address), Cells(row, column) |
-| Workbook | Name, Application, ActiveSheet, Worksheets(index/name), Sheets(index/name), Range, Cells |
-| Worksheet | Name, Range(local rectangular A1 address), Cells(1-based row, column) |
-| Range | Get/Let Value, Value2, Formula; ClearContents; absolute Address |
+| Workbook | Name, Application, Parent, ActiveSheet, Worksheets(index/name), Sheets(index/name) |
+| Worksheet | Name, Application, Parent, Range(Cell1, optional Cell2), Cells(1-based row, column) |
+| Range | Application, Parent, Worksheet, Row, Column, Count; Get/Let Value, Value2, Formula; ClearContents; absolute Address |
+
+Application.Parent returns Application. Worksheet.Range accepts local rectangular
+A1 strings; with Cell2 supplied, either endpoint may also be a same-sheet Range
+object. It returns their bounding rectangle; existing cell/payload budgets apply.
+These members are a projection: Worksheets/Sheets are not collection objects and
+Cells is not yet Excel's all-cell Range with default Item. Typed declarations such
+as `As Worksheet` and `As Excel.Range` are rejected by the current compiler.
 
 Unqualified Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, Worksheets,
 Range and Cells are M5 imports. Object names/member names are case insensitive;

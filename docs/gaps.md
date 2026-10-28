@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-24 · **Change:** minor (§8: PivotTable Enable show details; earlier: PivotTable Show Details) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-28 · **Change:** minor (§8: PivotTable Enable show details; earlier: PivotTable Show Details) · **Target:** Microsoft Excel (Microsoft 365)
 
 Every known shortfall against Excel, one entry each, ranked by user impact (what blocks someone
 using GridCraft for real work first). This is the work list: pick from the top, check the open
@@ -12,6 +12,12 @@ Kinds: **F** feature · **U** UI/UX · **FF** file format · **H** hardware · *
 **P** performance · **S** stability.
 
 ## Beta blockers
+
+VBA feature-branch audit (2026-10-28): the optional adapter remains a bounded
+standard-module subset. Existing Excel workbooks are not generally executable
+without modification. Typed Excel declarations, collections/default members,
+document modules/events and Value coercion are priority gaps; see the
+[detailed object-model audit and staged work](vba-excel-compatibility.md).
 
 No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-gate).
 
@@ -180,6 +186,9 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
   chrome (#169, #170), Linux title bar (#54), icon consistency across apps (#173). **Estimate:** 7–12 h.
 
 ## Revision history
+
+- 2026-10-28: Record Excel VBA source-compatibility blockers and link the audited
+  optional adapter profile; no general unchanged-workbook claim.
 
 | Date | Change | Summary |
 |---|---|---|

@@ -58,20 +58,53 @@ fn read_kind(kind: InvokeKind) -> bool {
 }
 
 impl Bridge {
+    /// Resolve only local rectangular references. Range endpoints are host handles,
+    /// not serialized addresses; validate their owner before inspecting the object.
+    fn endpoint(&self, sheet: usize, value: &Value) -> HostResult<RangeRef> {
+        match value {
+            Value::Object(reference) => {
+                if reference.host != self.identity || reference.generation != self.doc {
+                    return Err(failure(91, "stale or foreign range endpoint"));
+                }
+                let index = usize::try_from(reference.object).map_err(|_| failure(91, "invalid range endpoint"))?;
+                match self.objects.get(index) {
+                    Some(Object::Range(owner, range)) if *owner == sheet => Ok(*range),
+                    Some(Object::Range(..)) => Err(failure(1004, "range endpoint belongs to another worksheet")),
+                    Some(_) => Err(failure(13, "range endpoint must be a Range")),
+                    None => Err(failure(91, "invalid range endpoint")),
+                }
+            }
+            _ => {
+                let address = string(value)?;
+                if address.len() > 64 || address.contains(['!', ',']) {
+                    return Err(failure(1004, "only a local rectangular A1 range is supported"));
+                }
+                RangeRef::parse(&address).ok_or_else(|| failure(1004, "invalid range"))
+            }
+        }
+    }
     pub(crate) fn invoke_object(&mut self, session: &mut Session, object: Object, call: HostCall) -> HostResult<Value> {
         if call.member.len() > 256 || call.arguments.len() > 256 {
             return Err(failure(7, "host call budget exceeded"));
         }
         let member = call.member.to_ascii_lowercase();
+        if read_kind(call.kind) && member == "application" {
+            arguments(&call, &[])?;
+            return self.intern(Object::Application);
+        }
+        if read_kind(call.kind) && member == "parent" {
+            arguments(&call, &[])?;
+            return self.intern(match object {
+                Object::Application | Object::Workbook => Object::Application,
+                Object::Sheet(_) => Object::Workbook,
+                Object::Range(sheet, _) => Object::Sheet(sheet),
+            });
+        }
         match object {
             Object::Application | Object::Workbook if read_kind(call.kind) => {
                 let active = session.doc().map_err(|e| failure(91, e.to_string()))?.sheet_index();
                 match member.as_str() {
-                    "application" => {
-                        arguments(&call, &[])?;
-                        self.intern(Object::Application)
-                    }
-                    "thisworkbook" | "activeworkbook" => {
+                    "thisworkbook" | "activeworkbook" if object == Object::Application => {
                         arguments(&call, &[])?;
                         self.intern(Object::Workbook)
                     }
@@ -90,7 +123,7 @@ impl Bridge {
                         };
                         self.intern(Object::Sheet(sheet))
                     }
-                    "range" | "cells" => self.invoke_object(session, Object::Sheet(active), call),
+                    "range" | "cells" if object == Object::Application => self.invoke_object(session, Object::Sheet(active), call),
                     "name" if object == Object::Workbook => {
                         arguments(&call, &[])?;
                         values::vba_text(&session.doc().map_err(|e| failure(91, e.to_string()))?.title)
@@ -104,12 +137,18 @@ impl Bridge {
                     values::vba_text(self.sheets.get(sheet).ok_or_else(|| failure(91, "worksheet gone"))?)
                 }
                 "range" => {
-                    let args = arguments(&call, &["Cell1"])?;
-                    let address = string(required(&args, 0)?)?;
-                    if address.len() > 64 || address.contains(['!', ',']) {
-                        return Err(failure(1004, "only a local rectangular A1 range is supported"));
+                    let args = arguments(&call, &["Cell1", "Cell2"])?;
+                    let first = required(&args, 0)?;
+                    let mut range = self.endpoint(sheet, first)?;
+                    if let Some(second) = args.get(1).filter(|v| !matches!(v, Value::Missing)) {
+                        let other = self.endpoint(sheet, second)?;
+                        range = RangeRef {
+                            start: CellRef::new(range.start.row.min(other.start.row), range.start.col.min(other.start.col)),
+                            end: CellRef::new(range.end.row.max(other.end.row), range.end.col.max(other.end.col)),
+                        };
+                    } else if matches!(first, Value::Object(_)) {
+                        return Err(failure(1004, "single-argument Worksheet.Range requires an address"));
                     }
-                    let range = RangeRef::parse(&address).ok_or_else(|| failure(1004, "invalid range"))?;
                     values::dimensions(range)?;
                     self.intern(Object::Range(sheet, range))
                 }
@@ -121,6 +160,19 @@ impl Bridge {
                 _ => Err(failure(438, "unsupported Worksheet member")),
             },
             Object::Range(sheet, range) => match member.as_str() {
+                "worksheet" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    self.intern(Object::Sheet(sheet))
+                }
+                "row" | "column" | "count" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    let number = match member.as_str() {
+                        "row" => u64::from(range.start.row) + 1,
+                        "column" => u64::from(range.start.col) + 1,
+                        _ => u64::from(range.end.row - range.start.row + 1) * u64::from(range.end.col - range.start.col + 1),
+                    };
+                    Ok(Value::Long(i32::try_from(number).map_err(|_| failure(6, "Range.Count overflow"))?))
+                }
                 "value" | "value2" | "formula" => {
                     if read_kind(call.kind) {
                         arguments(&call, &[])?;

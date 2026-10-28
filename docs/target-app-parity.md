@@ -1,6 +1,6 @@
 # Target-app parity: GridCraft vs Microsoft Excel
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-22 · **Change:** minor (several windows: a native window per workbook window, New Window on the same workbook, Arrange All; no score change) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-28 · **Change:** minor (several windows: a native window per workbook window, New Window on the same workbook, Arrange All; no score change) · **Target:** Microsoft Excel (Microsoft 365)
 
 This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summarizes it,
 [`gaps.md`](gaps.md) lists every shortfall, and the area checklists hold the detail:
@@ -9,6 +9,12 @@ This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summa
 generated ribbon checklist is [`parity-checklist.md`](parity-checklist.md).
 
 ## Summary
+
+VBA audit update (2026-10-28, optional integration feature): corrected range
+endpoints/ownership do not establish unchanged Excel workbook compatibility.
+Typed Excel declarations, collections/default members and document events remain
+unsupported. See the [audited profile](vba-excel-compatibility.md); no parity score
+is increased by this work.
 
 | Number | Value | Kind |
 |---|---|---|
@@ -331,6 +337,9 @@ The inventory carried over from the 2026-10-07 ROADMAP.md, updated for what land
 - Whether Excel opens our XLSX output without repair, across features.
 
 ## Revision history
+
+- 2026-10-28: Link the VBA object-model audit and explicit unchanged-workbook
+  limitations; existing parity scores remain unchanged.
 
 | Date | Change | Summary |
 |---|---|---|
