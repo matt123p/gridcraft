@@ -57,6 +57,9 @@ impl Project {
         Ok(())
     }
     pub fn from_ide(ide: &Ide, previous: Option<Self>) -> Result<Self> {
+        if ide.modules.iter().any(|m| m.kind != ModuleKind::Standard || ide.form(m.id).is_some()) {
+            return Err(diagnostic("Workbook source storage supports standard modules only; export classes/forms separately before closing."));
+        }
         let mut p = previous.unwrap_or_default();
         p.modules = ide.modules.iter().map(|m| (m.name.clone(), m.text.clone())).collect();
         p.validate()?;

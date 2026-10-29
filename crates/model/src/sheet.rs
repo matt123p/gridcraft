@@ -52,8 +52,25 @@ impl SheetViewMode {
     }
 }
 
+/// Process-local identity survives COW/undo, but never enters files or content equality.
+#[derive(Clone, Debug, Default)]
+pub struct SheetIdentity(Arc<()>);
+impl SheetIdentity {
+    pub fn same(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+impl PartialEq for SheetIdentity {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+impl Eq for SheetIdentity {}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Sheet {
+    #[serde(skip)]
+    pub identity: SheetIdentity,
     pub name: String,
     /// The `sheetId` the file gave the sheet, written back on save so that what refers to the
     /// sheet by its id keeps finding it; 0 for a sheet the file did not have. Not in JSON.
@@ -148,6 +165,7 @@ pub fn points_to_chars(px: f64) -> f64 {
 impl Sheet {
     pub fn new(name: impl Into<String>) -> Sheet {
         Sheet {
+            identity: SheetIdentity::default(),
             name: name.into(),
             file_id: 0,
             cells: CellStore::new(),

@@ -2,7 +2,13 @@
 //! Host calls are native typed Rust; JSON carries workbook metadata and command envelopes.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
+mod address;
+mod formatting;
 mod objects;
+mod ranges;
+mod references;
+mod search;
+mod structure;
 mod types;
 mod values;
 pub mod worksheet;
@@ -34,11 +40,16 @@ fn failure(number: i32, text: impl Into<String>) -> ForeignError {
 pub struct Bridge {
     identity: u64,
     pub(crate) doc: u64,
-    sheets: Vec<String>,
+    sheets: BTreeMap<u64, Vec<gridcraft_engine::model::sheet::SheetIdentity>>,
+    context: u64,
+    range_epochs: BTreeMap<u64, u64>,
     objects: Arc<types::Objects>,
-    group: Option<GroupToken>,
+    group: BTreeMap<u64, GroupToken>,
     consent: bool,
     closed: bool,
+    find: search::FindState,
+    scan_work: usize,
+    match_work: usize,
 }
 impl Bridge {
     pub fn new(session: &Session) -> Result<Self> {
@@ -49,11 +60,16 @@ impl Bridge {
         Ok(Self {
             identity,
             doc: doc.uid,
-            sheets: doc.wb.sheets.iter().map(|s| s.name.clone()).collect(),
+            sheets: BTreeMap::from([(doc.uid, doc.wb.sheets.iter().map(|s| s.identity.clone()).collect())]),
+            context: doc.uid,
+            range_epochs: BTreeMap::from([(doc.uid, doc.range_epoch)]),
             objects: Arc::new(types::Objects::new(identity, doc.uid, doc.sheet_index())),
-            group: None,
+            group: BTreeMap::new(),
             consent: false,
             closed: false,
+            find: search::FindState::default(),
+            scan_work: 0,
+            match_work: 0,
         })
     }
     pub fn document(&self) -> u64 {
@@ -63,14 +79,14 @@ impl Bridge {
         self.check(session).is_ok()
     }
     pub fn current(&self, session: &Session) -> bool {
-        !self.closed && session.doc().is_ok_and(|doc| doc.uid == self.doc && doc.wb.sheets.iter().map(|s| &s.name).eq(self.sheets.iter()))
+        !self.closed && session.doc().is_ok_and(|doc| doc.uid == self.doc)
     }
     pub(crate) fn check(&self, session: &Session) -> HostResult<()> {
         if self.closed {
             return Err(failure(91, "VBA host is closed"));
         }
-        let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
-        if doc.uid != self.doc || !doc.wb.sheets.iter().map(|s| &s.name).eq(self.sheets.iter()) {
+        let doc = session.document(self.doc).ok_or_else(|| failure(91, "workbook closed"))?;
+        if doc.uid != self.doc {
             return Err(failure(91, "workbook or worksheet topology changed; reset the editor"));
         }
         if !doc.trust.allows_code() && !self.consent {
@@ -78,10 +94,52 @@ impl Bridge {
         }
         Ok(())
     }
+    fn sync_sheets(&mut self, session: &Session) -> HostResult<()> {
+        let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
+        if self.range_epochs.get(&doc.uid).is_some_and(|epoch| *epoch != doc.range_epoch) {
+            self.objects.invalidate_ranges(doc.uid)?;
+        }
+        self.range_epochs.insert(doc.uid, doc.range_epoch);
+        if doc.wb.sheets.len() > MAX_OBJECTS {
+            return Err(failure(7, "worksheet identity budget"));
+        }
+        let current: Vec<_> = doc.wb.sheets.iter().map(|s| s.identity.clone()).collect();
+        if self.sheets.get(&doc.uid).is_some_and(|old| old.len() == current.len() && old.iter().zip(&current).all(|(a, b)| a.same(b))) {
+            self.context = doc.uid;
+            return Ok(());
+        }
+        let mapping: Vec<_> = self.sheets.get(&doc.uid).into_iter().flatten().map(|old| current.iter().position(|id| id.same(old))).collect();
+        self.objects.remap_sheets(doc.uid, &mapping)?;
+        self.context = doc.uid;
+        self.sheets.insert(doc.uid, current);
+        Ok(())
+    }
+    fn ensure_group(&mut self, session: &mut Session, doc: u64) -> Result<()> {
+        if !self.group.contains_key(&doc) {
+            if self.group.len() >= 64 {
+                return Err(diagnostic("workbook group budget"));
+            }
+            let token =
+                session.with_target(gridcraft_engine::Target::Doc(doc), |s| s.group_begin("VBA Macro")).map_err(diagnostic)?.map_err(diagnostic)?;
+            self.group.insert(doc, token);
+        }
+        Ok(())
+    }
+    fn object(&self, session: &Session, reference: ObjectRef) -> HostResult<Object> {
+        match self.objects.get(reference)? {
+            Object::Document(doc, object) if session.doc().is_ok_and(|d| d.uid == doc) => Ok(*object),
+            Object::Document(..) => Err(failure(1004, "object belongs to another workbook")),
+            object => Ok(object),
+        }
+    }
     fn reference(&self, object: usize) -> ObjectRef {
         ObjectRef { host: self.identity, object: object as u64, generation: self.doc }
     }
     pub(crate) fn intern(&mut self, object: Object) -> HostResult<Value> {
+        if let Object::Range(_, range) = &object {
+            range.validate()?;
+        }
+        let object = if matches!(object, Object::Application) { object } else { Object::Document(self.context, Box::new(object)) };
         let index = self.objects.intern(object)?;
         Ok(Value::Object(self.reference(index)))
     }
@@ -97,24 +155,25 @@ impl Bridge {
             ("Worksheet".into(), self.reference(2)),
             ("Worksheets".into(), self.reference(3)),
             ("Sheets".into(), self.reference(4)),
+            ("Cells".into(), self.reference(5)),
+            ("Rows".into(), self.reference(6)),
+            ("Columns".into(), self.reference(7)),
         ])
     }
     pub(crate) fn imports(&self) -> Vec<Import> {
-        [("Application", None, InvokeKind::Get), ("Range", Some("Range"), InvokeKind::Call), ("Cells", Some("Cells"), InvokeKind::Call)]
-            .into_iter()
-            .map(|(name, member, kind)| Import { name: name.into(), root: "Excel".into(), member: member.map(str::to_string), kind })
-            .chain(
-                [
-                    ("ThisWorkbook", "Workbook"),
-                    ("ActiveWorkbook", "Workbook"),
-                    ("ActiveSheet", "Worksheet"),
-                    ("Worksheets", "Worksheets"),
-                    ("Sheets", "Sheets"),
-                ]
-                .into_iter()
-                .map(|(name, root)| Import { name: name.into(), root: root.into(), member: None, kind: InvokeKind::Get }),
-            )
-            .collect()
+        let mut imports = vec![
+            Import { name: "Application".into(), root: "Excel".into(), member: None, kind: InvokeKind::Get },
+            Import { name: "ThisWorkbook".into(), root: "Workbook".into(), member: None, kind: InvokeKind::Get },
+        ];
+        for name in ["ActiveWorkbook", "ActiveSheet", "ActiveCell", "Selection", "Worksheets", "Sheets", "Range", "Cells", "Rows", "Columns"] {
+            imports.push(Import {
+                name: name.into(),
+                root: "Excel".into(),
+                member: Some(name.into()),
+                kind: if name == "Range" { InvokeKind::Call } else { InvokeKind::Get },
+            });
+        }
+        imports
     }
     /// Consent applies only to this editor/document instance. It never changes provenance.
     pub fn consent(&mut self, allow: bool) {
@@ -122,9 +181,11 @@ impl Bridge {
     }
     pub fn begin(&mut self, session: &mut Session) -> Result<()> {
         self.check(session).map_err(|e| diagnostic(e.description))?;
-        if self.group.is_none() {
-            self.group = Some(session.group_begin("VBA Macro").map_err(diagnostic)?);
+        if self.group.is_empty() {
+            self.scan_work = 0;
+            self.match_work = 0;
         }
+        self.ensure_group(session, self.doc)?;
         Ok(())
     }
     /// Decode source without running it or modifying the package. Only standard modules
@@ -187,9 +248,8 @@ impl Bridge {
     }
     /// Retain successful writes on failure/stop and make them one ordinary undo step.
     pub fn finish(&mut self, session: &mut Session) -> Result<()> {
-        if let Some(token) = self.group.take() {
-            // Closing a document already aborts its engine groups.
-            if session.document_index(self.doc).is_some() {
+        for (doc, token) in std::mem::take(&mut self.group) {
+            if session.document_index(doc).is_some() {
                 session.group_end(token).map_err(diagnostic)?;
             }
         }
@@ -223,7 +283,26 @@ impl Host for WorkbookHost<'_> {
                 return Err(failure(91, "stale or foreign object reference"));
             }
             let object = self.bridge.objects.get(call.target)?;
-            self.bridge.invoke_object(self.session, object, call)
+            let (doc, object) = match object {
+                Object::Document(doc, object) => (doc, *object),
+                object => (self.session.doc().map_err(|_| failure(91, "workbook closed"))?.uid, object),
+            };
+            let target = self.session.document(doc).ok_or_else(|| failure(91, "workbook closed"))?;
+            if !target.trust.allows_code() && !(doc == self.bridge.doc && self.bridge.consent) {
+                return Err(failure(70, "target workbook requires consent"));
+            }
+            self.bridge.ensure_group(self.session, doc).map_err(|e| failure(7, e.to_string()))?;
+            self.session
+                .with_target(gridcraft_engine::Target::Doc(doc), |session| {
+                    self.bridge.sync_sheets(session)?;
+                    // Resolve again after sheet topology synchronization.
+                    let object = match self.bridge.objects.get(call.target)? {
+                        Object::Document(_, object) => *object,
+                        _ => object,
+                    };
+                    self.bridge.invoke_object(session, object, call)
+                })
+                .map_err(|e| failure(91, e.to_string()))?
         })();
         match result {
             Ok(value) => Reply::Complete(Completion { value, writes: vec![] }),
@@ -238,8 +317,27 @@ impl Host for WorkbookHost<'_> {
 
 pub fn catalog() -> Vec<ApiMember> {
     [
+        ("Application", "ActiveCell", "Property Get ActiveCell() As Range"),
+        ("Application", "Selection", "Property Get Selection() As Range"),
+        ("Application", "Calculation", "Property Calculation As XlCalculation"),
+        ("Application", "Calculate", "Sub Calculate()"),
+        ("Workbook", "Calculate", "Sub Calculate()"),
+        ("Worksheet", "Name", "Property Name As String"),
+        ("Range", "NumberFormat", "Property NumberFormat As Variant"),
+        ("Range", "Font", "Property Get Font() As Font"),
+        ("Range", "Interior", "Property Get Interior() As Interior"),
+        ("Font", "Bold", "Property Bold As Variant"),
+        ("Font", "Italic", "Property Italic As Variant"),
+        ("Font", "Name", "Property Name As Variant"),
+        ("Font", "Size", "Property Size As Variant"),
+        ("Font", "Color", "Property Color As Variant"),
+        ("Interior", "Color", "Property Color As Variant"),
         ("Application", "ThisWorkbook", "Property Get ThisWorkbook() As Workbook"),
         ("Application", "ActiveWorkbook", "Property Get ActiveWorkbook() As Workbook"),
+        ("Application", "Range", "Property Get Range(Cell1 As Variant, Optional Cell2 As Variant) As Range"),
+        ("Application", "Cells", "Property Get Cells(Optional RowIndex As Variant, Optional ColumnIndex As Variant) As Range"),
+        ("Application", "Rows", "Property Get Rows(Optional RowIndex As Variant) As Range"),
+        ("Application", "Columns", "Property Get Columns(Optional RowIndex As Variant) As Range"),
         ("Application", "ActiveSheet", "Property Get ActiveSheet() As Worksheet"),
         ("Workbook", "Worksheets", "Property Get Worksheets() As Worksheets"),
         ("Workbook", "Sheets", "Property Get Sheets() As Sheets"),
@@ -256,7 +354,28 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Worksheet", "Application", "Property Get Application() As Application"),
         ("Worksheet", "Parent", "Property Get Parent() As Workbook"),
         ("Worksheet", "Range", "Property Get Range(Cell1 As Variant, Optional Cell2 As Variant) As Range"),
-        ("Worksheet", "Cells", "Function Cells(Row As Long, Column As Long) As Range"),
+        ("Worksheet", "Cells", "Property Get Cells(Optional RowIndex As Variant, Optional ColumnIndex As Variant) As Range"),
+        ("Worksheet", "Rows", "Property Get Rows(Optional RowIndex As Variant) As Range"),
+        ("Worksheet", "Columns", "Property Get Columns(Optional RowIndex As Variant) As Range"),
+        ("Range", "Cells", "Property Get Cells(Optional RowIndex As Variant, Optional ColumnIndex As Variant) As Range"),
+        ("Range", "Rows", "Property Get Rows(Optional RowIndex As Variant) As Range"),
+        ("Range", "Columns", "Property Get Columns(Optional RowIndex As Variant) As Range"),
+        ("Worksheet", "UsedRange", "Property Get UsedRange() As Range"),
+        ("Range", "Range", "Property Get Range(Cell1 As Variant, Optional Cell2 As Variant) As Range"),
+        ("Range", "Areas", "Property Get Areas() As Areas"),
+        ("Areas", "Count", "Property Get Count() As Long"),
+        ("Areas", "Item", "Property Get Item(Index As Variant) As Range"),
+        ("Range", "Offset", "Property Get Offset(Optional RowOffset As Variant, Optional ColumnOffset As Variant) As Range"),
+        ("Range", "Resize", "Property Get Resize(Optional RowSize As Variant, Optional ColumnSize As Variant) As Range"),
+        ("Range", "EntireRow", "Property Get EntireRow() As Range"),
+        ("Range", "EntireColumn", "Property Get EntireColumn() As Range"),
+        ("Range", "End", "Property Get End(Direction As Long) As Range"),
+        ("Range", "Find", "Function Find(What As Variant, Optional After As Range, Optional LookIn As Long, Optional LookAt As Long, Optional SearchOrder As Long, Optional SearchDirection As Long, Optional MatchCase As Boolean, Optional MatchByte As Boolean, Optional SearchFormat As Boolean) As Range"),
+        ("Range", "FindNext", "Function FindNext(Optional After As Range) As Range"),
+        ("Range", "FindPrevious", "Function FindPrevious(Optional After As Range) As Range"),
+        ("Range", "Insert", "Sub Insert(Optional Shift As Long, Optional CopyOrigin As Long)"),
+        ("Range", "Delete", "Sub Delete(Optional Shift As Long)"),
+        ("Range", "CountLarge", "Property Get CountLarge() As Variant"),
         ("Range", "Value", "Property Value As Variant"),
         ("Range", "Application", "Property Get Application() As Application"),
         ("Range", "Parent", "Property Get Parent() As Worksheet"),
@@ -267,7 +386,7 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Range", "Value2", "Property Value2 As Variant"),
         ("Range", "Formula", "Property Formula As Variant"),
         ("Range", "ClearContents", "Sub ClearContents()"),
-        ("Range", "Address", "Property Get Address() As String"),
+        ("Range", "Address", "Property Get Address(Optional RowAbsolute As Variant, Optional ColumnAbsolute As Variant, Optional ReferenceStyle As Long, Optional External As Variant, Optional RelativeTo As Variant) As String"),
     ]
     .into_iter()
     .map(|(owner, name, signature)| ApiMember {
@@ -277,5 +396,6 @@ pub fn catalog() -> Vec<ApiMember> {
         signature: signature.into(),
         supported: true,
     })
+    .chain([("ScreenUpdating", "Property ScreenUpdating As Boolean"), ("EnableEvents", "Property EnableEvents As Boolean")].into_iter().map(|(name, signature)| ApiMember { library: "Excel".into(), owner: "Application".into(), name: name.into(), signature: signature.into(), supported: false }))
     .collect()
 }

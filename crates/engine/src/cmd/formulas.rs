@@ -840,7 +840,7 @@ fn evaluate(s: &mut Session, p: &Json) -> Result<Json> {
     Ok(crate::cmd::inspect::value_json(&v))
 }
 
-fn calc_now(s: &mut Session, _: &Json) -> Result<Json> {
+pub(crate) fn calc_now(s: &mut Session, _: &Json) -> Result<Json> {
     let d = s.doc_mut()?;
     let mut wb = (*d.wb).clone();
     d.calc.recalc_all(&mut wb);

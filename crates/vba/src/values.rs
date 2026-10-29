@@ -5,6 +5,13 @@ use gridcraft_engine::{
 };
 use vba_values::{ScalarKind, VbaArray, VbaString};
 
+pub(crate) fn runtime_error(error: vba_runtime::Error) -> ForeignError {
+    match error {
+        vba_runtime::Error::Vba { number, message } => failure(number, message),
+        vba_runtime::Error::Resource(message) => failure(7, message),
+        vba_runtime::Error::Unsupported(message) => failure(13, message),
+    }
+}
 pub(crate) fn text(value: &Value) -> HostResult<String> {
     match value {
         Value::String(s) => String::from_utf16(s.units()).map_err(|_| failure(13, "worksheet text cannot contain unpaired UTF-16 surrogates")),
@@ -47,7 +54,7 @@ pub(crate) fn from_cell(value: CellValue) -> HostResult<Value> {
         CellValue::Array(_) => Err(failure(13, "nested cell array unsupported")),
     }
 }
-pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bool) -> HostResult<Value> {
+pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bool, typed: bool) -> HostResult<Value> {
     let (rows, cols) = dimensions(range)?;
     let sh = session.doc().map_err(|e| failure(91, e.to_string()))?.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
     let mut values = Vec::with_capacity(rows * cols);
@@ -61,6 +68,28 @@ pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bo
             }
         } else {
             from_cell(sh.value(at))?
+        };
+        let value = if typed && let Value::Double(number) = value {
+            let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
+            let format = gridcraft_engine::numfmt::NumberFormat::parse(doc.wb.styles.get(sh.style_id(at)).num_fmt.as_str());
+            if format.is_date() {
+                let number = if doc.wb.date_system == gridcraft_engine::core::date::DateSystem::D1904 {
+                    number + 1462.0
+                } else if (0.0..60.0).contains(&number) {
+                    number + 1.0
+                } else if (60.0..61.0).contains(&number) {
+                    return Err(failure(1004, "Excel's fictitious leap day has no VBA Date"));
+                } else {
+                    number
+                };
+                vba_runtime::bind(ScalarKind::Date, &Value::Double(number)).map_err(runtime_error)?
+            } else if matches!(format.kind(), gridcraft_engine::numfmt::FormatKind::Currency | gridcraft_engine::numfmt::FormatKind::Accounting) {
+                vba_runtime::bind(ScalarKind::Currency, &Value::Double(number)).map_err(runtime_error)?
+            } else {
+                Value::Double(number)
+            }
+        } else {
+            value
         };
         payload = payload.saturating_add(64).saturating_add(value.payload_bytes());
         if payload > 8 * 1024 * 1024 {
@@ -111,7 +140,7 @@ pub(crate) fn content(value: &Value, formula: bool) -> HostResult<CellContent> {
     }
     Ok(CellContent::Value(CellValue::Number(number)))
 }
-pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value: &Value, formula: bool) -> HostResult<()> {
+pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value: &Value, formula: bool, typed: bool) -> HostResult<()> {
     let (rows, cols) = dimensions(range)?;
     if let Value::Array(_) = value {
         value.validate().map_err(|e| failure(13, e.to_string()))?;
@@ -124,24 +153,74 @@ pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value:
     let array = if let Value::Array(a) = value {
         let shape: Vec<usize> =
             a.bounds().iter().map(|(lo, hi)| i64::from(*hi) - i64::from(*lo) + 1).map(|n| usize::try_from(n).unwrap_or(0)).collect();
-        if shape != [rows, cols] {
-            return Err(failure(13, "array must have two dimensions matching the destination"));
+        if shape.len() != 2 || shape.contains(&0) {
+            return Err(failure(13, "two-dimensional array required"));
         }
-        Some(a.elements())
+        Some((a.elements(), shape))
     } else {
         None
     };
     let mut data = Vec::with_capacity(rows * cols);
+    let mut formats = Vec::with_capacity(rows * cols);
+    let mut payload = 0usize;
     // Validate every conversion before the engine commits any part of the range.
     for row in 0..rows {
         for col in 0..cols {
-            let element = match array {
-                Some(a) => a.get(row * cols + col).ok_or_else(|| failure(9, "invalid array storage"))?,
+            let missing = Value::CvErr(2042);
+            let element = match &array {
+                Some((a, shape)) if row < shape.first().copied().unwrap_or(0) && col < shape.get(1).copied().unwrap_or(0) => {
+                    a.get(row * shape.get(1).copied().unwrap_or(0) + col).ok_or_else(|| failure(9, "invalid array storage"))?
+                }
+                Some(_) => &missing,
                 None => value,
             };
-            data.push(content(element, formula)?);
+            payload = payload.saturating_add(64).saturating_add(element.payload_bytes());
+            if payload > 8 * 1024 * 1024 {
+                return Err(failure(7, "range payload exceeds VBA budget"));
+            }
+            let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
+            let at = gridcraft_engine::core::CellRef::new(range.start.row + row as u32, range.start.col + col as u32);
+            let sheet = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+            let general = doc.wb.styles.get(sheet.style_id(at)).num_fmt.as_str() == "General";
+            let (stored, format) = if typed {
+                match element {
+                    Value::Date(n) => {
+                        let number = if doc.wb.date_system == gridcraft_engine::core::date::DateSystem::D1904 {
+                            *n - 1462.0
+                        } else if (1.0..61.0).contains(n) {
+                            *n - 1.0
+                        } else {
+                            *n
+                        };
+                        (Value::Double(number), general.then(|| "m/d/yyyy".to_string()))
+                    }
+                    Value::Currency(n) => {
+                        let cents = n / 100 + if (n % 100).abs() >= 50 { n.signum() } else { 0 };
+                        (Value::Double(cents as f64 / 100.0), general.then(|| "$#,##0.00".to_string()))
+                    }
+                    _ => (element.clone(), None),
+                }
+            } else {
+                (element.clone(), None)
+            };
+            let (cell, format) = if let Value::String(_) = &stored {
+                let text = text(&stored)?;
+                let text_format = gridcraft_engine::numfmt::NumberFormat::parse(doc.wb.styles.get(sheet.style_id(at)).num_fmt.as_str()).is_text();
+                if text.starts_with('=') && (formula || !text_format) {
+                    (CellContent::Formula(text), format)
+                } else if text_format {
+                    (content(&stored, false)?, format)
+                } else {
+                    let parsed = gridcraft_engine::core::parse::parse_input(&text, doc.wb.date_system);
+                    (CellContent::Value(parsed.value), if general { parsed.format.map(str::to_string).or(format) } else { format })
+                }
+            } else {
+                (content(&stored, formula)?, format)
+            };
+            formats.push(format);
+            data.push(cell);
         }
     }
-    session.set_range_contents(sheet, range, &data).map_err(|e| failure(1004, e.to_string()))?;
+    session.set_range_contents_with_formats(sheet, range, &data, &formats).map_err(|e| failure(1004, e.to_string()))?;
     Ok(())
 }

@@ -182,3 +182,15 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 | 2026-10-24 | minor | Engine building blocks for multi-command actions: undo groups, recording buffer, document trust, chunked hidden-name storage |
 | 2026-10-14 | minor | Document Undo's retained-cell-storage budget and latest-step guarantee |
 | 2026-10-10 | major | Created from the code on main: crates, layers, data flow, agent control, known gaps |
+
+## M4 document/object identity amendment (2026-10-29)
+
+The model supplies process-local sheet identity tokens preserved by COW/undo;
+copy/import creates a new token. Tokens are excluded from serialized data and
+content equality. The fork-owned bridge qualifies handles with document UIDs,
+resolves dynamic getters on each source access and uses existing engine scoped
+targets, per-document consent and undo groups. No document borrow survives a call.
+External structural/undo epochs invalidate saved coordinates; native VBA structural
+commands still rebase them. Native typed values/formats and style changes share
+command protection/undo/recording. No new layer edge or Office definitions enter
+tiny-vba. See [the contract/evidence](vba-m4-identity-values-and-members.md).

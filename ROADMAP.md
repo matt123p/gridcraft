@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-10-28 · **Last updated:** 2026-10-28 · **Change:** minor (registered Excel nominal types; existing parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-29 · **Last updated:** 2026-10-29 · **Change:** minor (M3 range/navigation/structural coverage; existing parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -12,7 +12,10 @@ The optional [tiny-vba baseline](docs/vba.md) is isolated behind `vba` and a pin
 separate Git repository. It adds a bounded Excel object profile and the shared
 editor/debugger; existing estimates below do not claim full VBA compatibility.
 Registered typed declarations now have [M1.1 native/WASM acceptance](docs/vba-m1-types.md).
-Excel definitions remain in this fork; tiny-vba remains an independent Git dependency.
+[M3 acceptance](docs/vba-m3-ranges-and-worksheets.md) adds lightweight ranges, sparse
+search/navigation and native structural commands. [M4](docs/vba-m4-identity-values-and-members.md)
+adds stable identities, dynamic roots and real value/format/calculation semantics;
+the shared dependency is published and pinned by Git revision. Excel definitions stay in this fork.
 
 - [`docs/target-app-parity.md`](docs/target-app-parity.md): the authoritative assessment, method and weights
 - [`docs/gaps.md`](docs/gaps.md): every known shortfall, ranked; the work list
@@ -249,6 +252,8 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 | 2026-10-05 | Repository created |
 
 ## Revision history
+
+- 2026-10-29: M3 range/navigation/structural coverage on its feature branch; no change to broad parity estimates.
 
 | Date | Change | Summary |
 |---|---|---|

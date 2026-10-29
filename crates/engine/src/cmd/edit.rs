@@ -16,7 +16,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Set Cell Contents",
             [],
             None,
-            "{range, sheet?, contents: [row-major {value: tagged core Value} | {formula: string}]}: explicit scalar contents or formulas; destination formats preserved; max 65536 cells / 8 MiB",
+            "{range, sheet?, contents: [row-major {value: tagged core Value} | {formula: string}]}: explicit scalar contents or formulas; optional formats: [null | number-format string] commit atomically; otherwise destination formats preserved; max 65536 cells / 8 MiB",
             has_doc,
             crate::contents::run
         ),

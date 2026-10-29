@@ -124,3 +124,15 @@ fn executable_document_module_is_refused_without_mutation() {
     assert!(error.message.contains("class/document"), "{error}");
     assert_eq!(*before, *s.doc().unwrap().wb);
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn workbook_source_save_refuses_to_drop_class_or_form_design() -> Result<(), Box<dyn std::error::Error>> {
+    let mut ide = gridcraft_vba::Ide::new();
+    ide.add_form("OriginalForm")?;
+    assert!(gridcraft_vba::worksheet::Project::from_ide(&ide, None).is_err());
+    let mut ide = gridcraft_vba::Ide::new();
+    ide.add_module("OriginalClass.cls", "Public Value As Long")?;
+    assert!(gridcraft_vba::worksheet::Project::from_ide(&ide, None).is_err());
+    Ok(())
+}

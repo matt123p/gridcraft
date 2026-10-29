@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-28 · **Change:** minor (§8: PivotTable Enable show details; earlier: PivotTable Show Details) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-29 · **Change:** minor (§8: PivotTable Enable show details; earlier: PivotTable Show Details) · **Target:** Microsoft Excel (Microsoft 365)
 
 Every known shortfall against Excel, one entry each, ranked by user impact (what blocks someone
 using GridCraft for real work first). This is the work list: pick from the top, check the open
@@ -13,10 +13,11 @@ Kinds: **F** feature · **U** UI/UX · **FF** file format · **H** hardware · *
 
 ## Beta blockers
 
-VBA feature-branch audit (2026-10-28): the optional adapter remains a bounded
+VBA feature-branch audit (2026-10-29): the optional adapter remains a bounded
 standard-module subset. Existing Excel workbooks are not generally executable
-without modification. Typed Excel declarations, collections/default members,
-document modules/events and Value coercion are priority gaps; see the
+without modification. M1 typed declarations/defaults/collections and M3 range/navigation/structural
+coverage and the M4 identity/value/member profile are complete.
+Document modules/events and package acceptance remain open; see the
 [detailed object-model audit and staged work](vba-excel-compatibility.md).
 
 No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-gate).
@@ -187,6 +188,8 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
 
 ## Revision history
 
+- 2026-10-29: Record M3 range/navigation/structural coverage and retain M4 identity/value and M5 events gaps.
+
 - 2026-10-28: Record Excel VBA source-compatibility blockers and link the audited
   optional adapter profile; no general unchanged-workbook claim.
 
@@ -226,3 +229,5 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
 | 2026-10-10 | minor | Updated for the 10-10 merges (#17, #31, #38, #62, #82, #104, #116) and the new chart resize bug (#190) |
 | 2026-10-10 | minor | Noted that no gap blocks the alpha gate |
 | 2026-10-10 | major | Created: 24 ranked gaps with evidence, from the full re-measure and the 60 open issues |
+
+- 2026-10-29: Audit M3 and implement M4 identity/value/member behavior; publish/pin the shared prerequisite and remove local overrides.

@@ -12,6 +12,10 @@ mod chart_svg;
 mod clip_html;
 pub mod cmd;
 mod contents;
+mod styles;
+pub use styles::StyleChange;
+mod structure;
+pub use structure::StructuralEdit;
 pub mod display;
 pub mod fill;
 pub mod io;
@@ -184,6 +188,8 @@ pub struct DocState {
     pub path: Option<String>,
     pub saved: Arc<Workbook>,
     pub revision: u64,
+    /// Monotonic invalidation for external range hosts; never persisted or undone.
+    pub range_epoch: u64,
     /// Identifies this open workbook for the rest of the session: it never changes while the
     /// workbook is open (saving, renaming, reordering) and is never reused for another one.
     pub uid: u64,
@@ -298,6 +304,7 @@ impl DocState {
             redo: vec![],
             path,
             revision: 1,
+            range_epoch: 0,
             uid: NEXT_UID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             title,
             sheet_selections: vec![],
@@ -430,6 +437,7 @@ pub type TextWidth = Arc<dyn Fn(&str, &model::Font, bool) -> f32 + Send + Sync>;
 
 #[derive(Default)]
 pub struct Session {
+    calculation_mode: Option<gridcraft_model::CalcMode>,
     docs: Vec<DocState>,
     /// Index in `docs` of the active window's workbook.
     active: usize,
@@ -512,6 +520,9 @@ impl Session {
         self.docs.get(self.active)
     }
     /// Where the open workbook with this [`DocState::uid`] is in [`Session::documents`].
+    pub fn document(&self, uid: u64) -> Option<&DocState> {
+        self.docs.iter().find(|d| d.uid == uid)
+    }
     pub fn document_index(&self, uid: u64) -> Option<usize> {
         self.docs.iter().position(|d| d.uid == uid)
     }
@@ -525,7 +536,10 @@ impl Session {
         self.active_mut().ok_or(EngineError::NoDocument)
     }
     /// Opens a workbook in a new window, which becomes the active one.
-    pub fn add_document(&mut self, d: DocState) -> usize {
+    pub fn add_document(&mut self, mut d: DocState) -> usize {
+        if let Some(mode) = self.calculation_mode {
+            Arc::make_mut(&mut d.wb).calc.mode = mode;
+        }
         let uid = d.uid;
         self.docs.push(d);
         let w = self.push_window(uid);
@@ -775,6 +789,24 @@ impl Session {
             self.group_step = None;
         } else if let Some(uid) = doc_uid {
             self.bound_tail(uid);
+        }
+        if result.is_ok()
+            && matches!(
+                id,
+                "home.insertRows"
+                    | "home.insertColumns"
+                    | "home.deleteRows"
+                    | "home.deleteColumns"
+                    | "home.insertCells"
+                    | "home.insertCopiedCells"
+                    | "home.deleteCells"
+                    | "sheet.moveColumns"
+                    | "edit.undo"
+                    | "edit.redo"
+            )
+            && let Some(d) = self.active_mut()
+        {
+            d.range_epoch = d.range_epoch.saturating_add(1);
         }
         result
     }

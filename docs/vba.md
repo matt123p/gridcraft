@@ -1,6 +1,6 @@
 # Optional tiny-vba integration
 
-Updated 2026-10-28. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
+Updated 2026-10-29. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
 The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
 members, remaining mismatches and stages toward running existing workbooks
@@ -28,7 +28,7 @@ The interpreter, debugger, source importer and editor remain in the separate
 revision in Cargo manifests/lockfile. No sibling checkout or copied interpreter
 code is needed. WordCraft can use the same native protocol and revision with its
 own document objects. Workspace-root egui patches select the shared reviewed fork.
-The pin is `ea38c3f346b4010d6017b3a6d27e645ebad7ef79`; corpus/reference
+The pin is `22cc845e5ee74a1bcd15eec32cdb8a8f18d316f8`; corpus/reference
 submodules are opt-in and are not fetched by dependency builds.
 
 ## Ownership and commands
@@ -73,41 +73,55 @@ also use `vba.open {source: ...}`. This feature does not install a second editor
 
 | Object | Supported members |
 |---|---|
-| Application | Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, Worksheets(index/name), Sheets(index/name), Range(address), Cells(row, column) |
-| Workbook | Name, Application, Parent, ActiveSheet, Worksheets(index/name), Sheets(index/name) |
-| Worksheet | Name, Application, Parent, Range(Cell1, optional Cell2), Cells(1-based row, column) |
-| Range | Application, Parent, Worksheet, Row, Column, Count; Get/Let Value, Value2, Formula; ClearContents; absolute Address |
+| Application | Application/Parent, ThisWorkbook/ActiveWorkbook, ActiveSheet, Worksheets/Sheets, Range, Cells, Rows, Columns |
+| Workbook | Name, Application/Parent, ActiveSheet, Worksheets/Sheets |
+| Worksheet | Name, Application/Parent, Range(Cell1, optional Cell2), Cells, Rows, Columns, UsedRange |
+| Range | Item/default Item, Cells/Rows/Columns, Areas, Row/Column/Count/CountLarge, relative Range, Offset/Resize, EntireRow/EntireColumn, End, Find/FindNext/FindPrevious, Insert/Delete; Value/Value2/Formula Get/Let and default Value, ClearContents, absolute Address; Application/Parent/Worksheet |
+| Worksheets/Sheets | Count, Item(index/name), default Item, bounded For Each, Parent/Application |
+| Areas | Count, Item/default Item, bounded For Each, Parent/Application |
 
-Application.Parent returns Application. Worksheet.Range accepts local rectangular
-A1 strings; with Cell2 supplied, either endpoint may also be a same-sheet Range
-object. It returns their bounding rectangle; existing cell/payload budgets apply.
-These members are a projection: Worksheets/Sheets are not collection objects and
-Cells is not yet Excel's all-cell Range with default Item. Registered Application,
-Workbook, Worksheet and Range types now support qualified/unqualified declarations,
-parameters and results, including unchanged `As Worksheet` / `As Excel.Range` source.
-Nominal checks query GridCraft's existing object store; wrong classes fail with 13,
-and stale/foreign/closed references fail with 91. See [M1.1 acceptance](vba-m1-types.md).
+References are lightweight, including whole worksheets. Cells supports zero/one/two
+indexes, Excel Item argument names, column letters and shared VBA Long coercion.
+Rows/Columns expose subrange collections; Cells returns cell collections. Worksheet
+Range accepts A1, quoted sheet qualification, workbook/local reference names,
+colon, disjoint comma areas and intersections. Application.Range can resolve another
+worksheet; Worksheet/Range endpoints enforce ownership. Range.Range offsets literal
+addresses from its first area's origin; Range object endpoints remain absolute.
+Offset/Resize use checked bounds. Noncomputed defined names resolve with local-scope
+precedence and bounded recursion. See [M3 acceptance and exact boundaries](vba-m3-ranges-and-worksheets.md).
 
-Unqualified Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, Worksheets,
-Range and Cells are M5 imports. Object names/member names are case insensitive;
-named arguments bind explicitly. ActiveWorkbook is confined to this editor's
-workbook; the unqualified ActiveSheet root is captured when the editor opens.
-Application.ActiveSheet and unqualified Range/Cells use the current active sheet
-in that workbook. The profile does not allow cross-workbook effects.
+Registered nominal types include Application, Workbook, Worksheet, Range,
+Worksheets, Sheets and Areas. Wrong classes fail with 13; stale/foreign/closed
+references fail with 91. Structural commands rebase existing references and deleted
+references fail with 1004. [M1.1 acceptance](vba-m1-types.md) records the generic type boundary.
 
-Multi-cell reads return 1-based two-dimensional Variant arrays. Writes accept
-matching two-dimensional arrays with arbitrary lower bounds or broadcast a
-scalar. Shape/type conversion is validated before mutation. Values preserve
-literal text (including text beginning `=`), Empty, booleans and supported CVErrs.
-Worksheet numbers are IEEE doubles: Date/Currency become numeric values; Value
-currently has the same behavior as Value2 (no number-format-based Date/Currency
-inference). Integers outside the exact double range, Null/Missing/Nothing/objects,
-unpaired surrogates, unknown CVErrs and unsupported cell error kinds are refused.
-Text-format (`@`) cells support literal string and CVErr writes, and explicit
-Formula writes calculate while preserving the format. Value/Value2 strings
-remain literal; Formula strings beginning `=` use the explicit formula path.
+Imports include Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, ActiveCell,
+Selection, Worksheets/Sheets, Range and Cells/Rows/Columns. Getter aliases resolve
+on each source access, while captured objects retain workbook/sheet ownership.
+ThisWorkbook is the code owner; active roots follow the visible application
+workbook. Scoped native targets restore the visible window after calls. Stable
+sheet identities preserve handles through rename/reorder; deleted sheets and
+closed workbooks fail explicitly. Consent remains per workbook.
 
-Limits: 8,192 interned object handles; 65,536 cells per range; 8 MiB range payload;
+Value reads infer Date/Currency from formatting; Value2 retains Double. Typed
+Value writes respect date systems and atomically apply default formats to General
+cells, with Currency storage rounded to cents. Value2 preserves numeric storage.
+Reads return 1-based 2D Variant arrays; writes broadcast scalars or crop/fill a 2D
+array from arbitrary lower bounds (uncovered cells get CVErr(2042)). General
+strings use the engine's en-US input conversion; Text-formatted Value/Value2 text
+stays literal. Formula explicitly parses leading `=` even in Text cells.
+
+Address implements its five optional arguments and A1/R1C1, relative and external
+forms. Live NumberFormat, Font Bold/Italic/Name/Size/Color and Interior.Color use
+bounded protected native commands. Calculation settings and Calculate have real
+engine effects. Unsupported settings/members refuse explicitly; the catalogue
+marks ScreenUpdating/EnableEvents unsupported. See the
+[M4 contract and acceptance](vba-m4-identity-values-and-members.md) for exact
+boundaries, immutable dependency pin and executable evidence.
+
+Limits: 8,192 interned object handles; 64 disjoint areas; 65,536 materialized cells
+per read/write; 8 MiB value payload; 65,536 stored cells per End/Find scan, one million
+scanned entries and eight million wildcard matching steps per macro;
 tiny-vba's project/string/runtime budgets also apply. Unknown members fail with
 VBA error 438. Invalid indices/ranges, type errors, stale references and trust
 failures return explicit numbered errors and are visible to VBA handlers.
@@ -291,3 +305,15 @@ Clippy, browser compilation and JavaScript-hosted WASM acceptance explicitly.
 
 The staged cross-repository evidence and resumption record lives in tiny-vba's
 `docs/gridcraft-integration.md`.
+
+2026-10-29: M3 adds bounded range geometry, sparse navigation/search and native
+structural command coverage; see the M3 acceptance report for validation and gaps.
+
+The M3 dependency update includes the shared M2 class/form editor. Current workbook
+source persistence explicitly refuses classes/forms before effects; export them
+separately. Dirty design state blocks implicit close. Full workbook form storage
+and document/event integration remain M6/M5 work.
+
+2026-10-29: M4 adds stable document/sheet ownership, dynamic active roots, typed
+Value conversion, Address arguments and live formatting/calculation. The shared getter prerequisite is published and pinned by immutable Git revision;
+the temporary local override is removed.

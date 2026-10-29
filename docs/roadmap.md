@@ -1,12 +1,18 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-23 · **Change:** minor (test command) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-29 · **Change:** minor (test command) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
 [`target-app-parity.md`](target-app-parity.md). Estimates are Opus 5.5 agent-hours.
 
 ## Current focus
+
+Optional VBA: [M3 range/worksheet acceptance](vba-m3-ranges-and-worksheets.md) extends
+the M1 profile. [M4 identity/value/member acceptance](vba-m4-identity-values-and-members.md)
+is complete for its declared profile, using the published immutable shared dependency.
+Next language/host work is M5 document modules/events; package writeback stays separate.
+
 
 1. **Review and land the open PR queue** (50 PRs on 2026-10-10): recalc and spill fixes (#148,
    #155, #156, #157), whole-sheet and large-range fixes (#151, #152, #153, #154), chart kinds
@@ -110,6 +116,8 @@ to check our files, and Windows machines with the reported GPU drivers.
 - No `cargo xtask scorecard` or `bench` yet.
 
 ## Revision history
+
+- 2026-10-29: Record M3 coverage and remaining M4–M5 VBA stages.
 
 | Date | Change | Summary |
 |---|---|---|

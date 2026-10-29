@@ -60,10 +60,20 @@ impl Session {
     /// Constants retain their types even in Text-formatted cells; formulas are explicit.
     /// Recording/journaling serialize the command after success, never for dispatch.
     pub fn set_range_contents(&mut self, sheet: usize, range: RangeRef, contents: &[CellContent]) -> Result<Json> {
+        self.set_range_contents_with_formats(sheet, range, contents, &[])
+    }
+    /// Optional per-cell number formats commit atomically with values.
+    pub fn set_range_contents_with_formats(
+        &mut self,
+        sheet: usize,
+        range: RangeRef,
+        contents: &[CellContent],
+        formats: &[Option<String>],
+    ) -> Result<Json> {
         self.execute_with(
             COMMAND,
-            || std::borrow::Cow::Owned(json!({"sheet":sheet,"range":range.a1(),"contents":contents})),
-            |session, _| apply(session, sheet, range, contents),
+            || std::borrow::Cow::Owned(json!({"sheet":sheet,"range":range.a1(),"contents":contents,"formats":formats})),
+            |session, _| apply(session, sheet, range, contents, formats),
         )
     }
 }
@@ -148,17 +158,56 @@ pub(crate) fn run(session: &mut Session, p: &Json) -> Result<Json> {
         };
         contents.push(content);
     }
-    apply(session, sheet, range, &contents)
+    let formats = match p.get("formats") {
+        None => Vec::new(),
+        Some(Json::Array(raw)) if raw.len() <= MAX_CONTENT_CELLS => {
+            let mut formats = Vec::with_capacity(raw.len());
+            let mut bytes = 0usize;
+            for format in raw {
+                let format = match format {
+                    Json::Null => None,
+                    Json::String(s) if s.len() <= 4096 => Some(s),
+                    _ => return Err(bad("invalid number format")),
+                };
+                bytes = bytes.saturating_add(format.map_or(0, |s| s.len()));
+                if bytes > MAX_CONTENT_BYTES {
+                    return Err(bad("format payload exceeds budget"));
+                }
+                formats.push(format.cloned());
+            }
+            formats
+        }
+        _ => return Err(bad("invalid formats")),
+    };
+    apply(session, sheet, range, &contents, &formats)
 }
 
-fn apply(session: &mut Session, sheet: usize, range: RangeRef, contents: &[CellContent]) -> Result<Json> {
+fn apply(session: &mut Session, sheet: usize, range: RangeRef, contents: &[CellContent], formats: &[Option<String>]) -> Result<Json> {
     validate(range, contents)?;
+    if !formats.is_empty() && formats.len() != contents.len() {
+        return Err(bad("format shape mismatch"));
+    }
+    let mut bytes = 0usize;
+    for format in formats.iter().flatten() {
+        bytes = bytes.saturating_add(format.len());
+        if format.len() > 4096 || bytes > MAX_CONTENT_BYTES {
+            return Err(bad("format payload exceeds budget"));
+        }
+    }
     if session.doc()?.wb.sheet(sheet).is_none() {
         return Err(bad("worksheet not found"));
     }
+    if formats.iter().any(Option::is_some) {
+        cmd::refuse_unless_allowed(session, sheet, "Formatting", |p| p.format_cells)?;
+    }
     cmd::edit(session, |cx| {
-        for (at, content) in range.iter().zip(contents) {
+        for (index, (at, content)) in range.iter().zip(contents).enumerate() {
             let style = cx.wb.sheet(sheet).map(|s| s.style_id(at)).unwrap_or_default();
+            let style = if let Some(Some(format)) = formats.get(index) {
+                cx.wb.styles.derive(style, |s| s.num_fmt = gridcraft_model::NumFmt::new(format))
+            } else {
+                style
+            };
             let cell = match content {
                 CellContent::Value(value) => Cell { value: value.clone(), formula: None, style },
                 CellContent::Formula(text) => {

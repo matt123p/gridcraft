@@ -74,7 +74,7 @@ fn range(b: &mut Bridge, s: &mut Session, address: &str) -> ObjectRef {
     object(call(b, s, r, InvokeKind::Call, "Range", vec![text(address)]))
 }
 fn error(reply: Reply, number: i32) {
-    assert!(matches!(reply,Reply::Error(e) if e.number==number));
+    assert!(matches!(&reply,Reply::Error(e) if e.number==number), "expected {number}: {reply:?}");
 }
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
@@ -101,7 +101,7 @@ fn qualified_objects_named_arguments_and_error_handlers() -> R {
     let mut s = session();
     run(
         &mut s,
-        "Option Explicit\nSub Main()\nDim ws As Object\nSet ws = ThisWorkbook.Worksheets(1)\nws.Cells(Column:=2, Row:=3).Value2 = 42\nOn Error Resume Next\nws.NoSuchMember\nRange(\"A1\").Value2 = Err.Number\nEnd Sub\n",
+        "Option Explicit\nSub Main()\nDim ws As Object\nSet ws = ThisWorkbook.Worksheets(1)\nws.Cells(ColumnIndex:=2, RowIndex:=3).Value2 = 42\nOn Error Resume Next\nws.NoSuchMember\nRange(\"A1\").Value2 = Err.Number\nEnd Sub\n",
     )?;
     assert_eq!(value(&s, "B3"), CellValue::Number(42.0));
     assert_eq!(value(&s, "A1"), CellValue::Number(438.0));
@@ -181,7 +181,8 @@ fn range_endpoint_validation_preserves_identity_and_budgets() -> R {
     {
         error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![Value::Object(bad), text("A1")]), 91);
     }
-    error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![text("A1"), text("XFD1048576")]), 7);
+    let whole = object(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![text("A1"), text("XFD1048576")]));
+    error(call(&mut b, &mut s, whole, InvokeKind::Get, "Value2", vec![]), 7);
     error(call(&mut b, &mut s, ws, InvokeKind::Call, "Range", vec![text("A1"), Value::Null]), 94);
     error(call(&mut b, &mut s, block, InvokeKind::Let, "Row", vec![Value::Long(1)]), 438);
     error(call(&mut b, &mut s, block, InvokeKind::Get, "Parent", vec![Value::Long(1)]), 450);
@@ -207,21 +208,26 @@ fn unsupported_excel_declarations_are_diagnosed() -> R {
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
-fn collections_are_real_objects_and_remaining_cells_gaps_are_explicit() -> R {
+fn collections_and_optional_cells_indexes_are_real_objects() -> R {
     let mut s = session();
     let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
     let app = root(&mut b, &mut s);
     let collection = object(call(&mut b, &mut s, app, InvokeKind::Get, "Worksheets", vec![]));
     let count = i32::try_from(s.doc()?.wb.sheets.len())?;
     assert_eq!(complete(call(&mut b, &mut s, collection, InvokeKind::Get, "Count", vec![])), Value::Long(count));
-    error(call(&mut b, &mut s, app, InvokeKind::Get, "Cells", vec![]), 449);
-    error(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1)]), 449);
-    error(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1), text("B")]), 13);
+    let whole = object(call(&mut b, &mut s, app, InvokeKind::Get, "Cells", vec![]));
+    assert_eq!(complete(call(&mut b, &mut s, whole, InvokeKind::Get, "CountLarge", vec![])), Value::Double(17_179_869_184.0));
+    error(call(&mut b, &mut s, whole, InvokeKind::Get, "Count", vec![]), 6);
+    let one = object(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1)]));
+    assert_eq!(complete(call(&mut b, &mut s, one, InvokeKind::Get, "Address", vec![])), text("$A$1"));
+    let two = object(call(&mut b, &mut s, app, InvokeKind::Call, "Cells", vec![Value::Long(1), text("B")]));
+    assert_eq!(complete(call(&mut b, &mut s, two, InvokeKind::Get, "Address", vec![])), text("$B$1"));
     let r = range(&mut b, &mut s, "A1:B2");
-    error(call(&mut b, &mut s, r, InvokeKind::Get, "Rows", vec![]), 438);
+    let rows = object(call(&mut b, &mut s, r, InvokeKind::Get, "Rows", vec![]));
+    assert_eq!(complete(call(&mut b, &mut s, rows, InvokeKind::Get, "Count", vec![])), Value::Long(2));
     let item = object(call(&mut b, &mut s, r, InvokeKind::Call, "Item", vec![Value::Long(1)]));
     assert_eq!(complete(call(&mut b, &mut s, item, InvokeKind::Get, "Address", vec![])), text("$A$1"));
-    error(call(&mut b, &mut s, r, InvokeKind::Get, "Address", vec![Value::Boolean(false)]), 450);
+    assert_eq!(complete(call(&mut b, &mut s, r, InvokeKind::Get, "Address", vec![Value::Boolean(false)])), text("$A1:$B2"));
     Ok(())
 }
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
@@ -302,10 +308,10 @@ fn scalar_tags_literal_text_and_errors_roundtrip() -> R {
         (Value::Long(42), Value::Double(42.0)),
         (Value::Currency(12345), Value::Double(1.2345)),
         (Value::Date(45000.5), Value::Double(45000.5)),
-        (text("00123"), text("00123")),
-        (text("=1+2"), text("=1+2")),
-        (text("'quoted"), text("'quoted")),
-        (text(""), text("")),
+        (text("00123"), Value::Double(123.0)),
+        (text("=1+2"), Value::Double(3.0)),
+        (text("'quoted"), text("quoted")),
+        (text(""), Value::Empty),
         (Value::CvErr(2007), Value::CvErr(2007)),
     ] {
         let r = range(&mut b, &mut s, "A1");
@@ -355,9 +361,11 @@ fn negative_calls_have_exact_errors_and_no_writes() -> R {
     }
     error(call(&mut b, &mut s, r, InvokeKind::Set, "Value2", vec![text("x")]), 13);
     error(call(&mut b, &mut s, root, InvokeKind::Call, "Cells", vec![Value::Long(0), Value::Long(1)]), 1004);
-    error(call(&mut b, &mut s, root, InvokeKind::Call, "Range", vec![text("A:A")]), 7);
-    error(call(&mut b, &mut s, root, InvokeKind::Call, "Range", vec![text("Sheet1!A1")]), 1004);
-    error(call(&mut b, &mut s, r, InvokeKind::Call, "Delete", vec![]), 438);
+    let column = object(call(&mut b, &mut s, root, InvokeKind::Call, "Range", vec![text("A:A")]));
+    error(call(&mut b, &mut s, column, InvokeKind::Get, "Value2", vec![]), 7);
+    let qualified = object(call(&mut b, &mut s, root, InvokeKind::Call, "Range", vec![text("Sheet1!A1")]));
+    assert_eq!(qualified, r);
+    error(call(&mut b, &mut s, r, InvokeKind::Call, "Delete", vec![]), 1004);
     let foreign = ObjectRef { host: root.host + 1, ..r };
     error(call(&mut b, &mut s, foreign, InvokeKind::Get, "Value", vec![]), 91);
     assert_eq!(*before, *s.doc()?.wb);
@@ -365,8 +373,8 @@ fn negative_calls_have_exact_errors_and_no_writes() -> R {
 }
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
-fn document_switch_close_and_topology_change_cancel_execution() -> R {
-    for change in 0..3 {
+fn closing_code_owner_cancels_execution() -> R {
+    for change in 1..2 {
         let mut s = session();
         let (mut b, mut ide) = setup(&s, "Sub Main()\nDim i As Long\nFor i = 1 To 100000\nCells(1,1).Value2 = i\nNext i\nEnd Sub\n")?;
         b.dispatch(&mut s, &mut ide, Action::Run)?;

@@ -136,7 +136,7 @@ pub fn before_command(app: &mut SheetApp, id: &str) -> Result<()> {
     if matches!(id, "file.close" | "window.close" | "app.quit")
         && let Some(editor) = app.vba.as_mut()
     {
-        if editor.ide.modules.iter().any(|m| m.dirty()) {
+        if editor.ide.modules.iter().any(|m| m.dirty()) || editor.ide.has_modified_forms() {
             return Err("Save VBA source or explicitly discard it with vba.close before closing the workbook.".into());
         }
         if editor.ide.enabled(Action::Reset) {
@@ -624,7 +624,7 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
                 Ok(())
             }
             HostRequest::ConfirmClose => {
-                if editor.ide.modules.iter().any(|m| m.dirty()) {
+                if editor.ide.modules.iter().any(|m| m.dirty()) || editor.ide.has_modified_forms() {
                     editor.confirm_close = true;
                     if editor.ide.enabled(Action::Reset) {
                         editor.bridge.dispatch(&mut app.session, &mut editor.ide, Action::Reset).map_err(error)

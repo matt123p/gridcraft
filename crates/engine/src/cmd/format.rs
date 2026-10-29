@@ -233,6 +233,10 @@ fn with(p: &Json, key: &str, v: Json) -> Json {
 pub(crate) fn apply_style(s: &mut Session, p: &Json, f: impl Fn(&mut Style)) -> Result<Json> {
     let sheet = target_sheet(s, p)?;
     let ranges = target_ranges(s, p)?;
+    apply_style_to(s, sheet, &ranges, f)
+}
+
+pub(crate) fn apply_style_to(s: &mut Session, sheet: usize, ranges: &[gridcraft_core::RangeRef], f: impl Fn(&mut Style)) -> Result<Json> {
     let guarded = s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.protection.is_some());
     if s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.protection.as_ref().is_some_and(|pr| !pr.format_cells)) {
         return Err(EngineError::Other("The cell or chart you're trying to change is on a protected sheet.".into()));
@@ -251,7 +255,7 @@ pub(crate) fn apply_style(s: &mut Session, p: &Json, f: impl Fn(&mut Style)) -> 
             };
         }
         let mut cache: std::collections::HashMap<StyleId, StyleId> = std::collections::HashMap::new();
-        for r in &ranges {
+        for r in ranges {
             let full_rows = r.is_full_rows();
             let full_cols = r.is_full_cols();
             if full_rows || full_cols {

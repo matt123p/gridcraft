@@ -300,13 +300,15 @@ fn check_push_off_sheet(s: &Session, sheet: usize, axis: Axis, at: u32, count: u
 
 fn insert_lines(s: &mut Session, p: &Json, axis: Axis) -> Result<Json> {
     let (at, count) = lines(s, p, axis)?;
+    apply_insert_lines(s, target_sheet(s, p)?, at, count, axis)
+}
+fn apply_insert_lines(s: &mut Session, sheet: usize, at: u32, count: u32, axis: Axis) -> Result<Json> {
     let limit = if axis == Axis::Rows { MAX_ROWS } else { MAX_COLS };
     if at.checked_add(count).is_none_or(|end| end > limit) {
         let cmd = if axis == Axis::Rows { "home.insertRows" } else { "home.insertColumns" };
         return Err(bad(cmd, "the inserted lines would extend past the end of the worksheet"));
     }
-    check_lines_protection(s, p, axis, at, count, true)?;
-    let sheet = target_sheet(s, p)?;
+    check_lines_protection_on(s, sheet, axis, at, count, true)?;
     check_push_off_sheet(s, sheet, axis, at, count, limit)?;
     let out = edit(s, |cx| {
         let name = cx.wb.sheet(sheet).map(|s| s.name.clone()).unwrap_or_default();
@@ -364,10 +366,12 @@ fn delete_areas(s: &Session, p: &Json, axis: Axis) -> Result<Vec<(u32, u32)>> {
 
 fn delete_lines(s: &mut Session, p: &Json, axis: Axis) -> Result<Json> {
     let areas = delete_areas(s, p, axis)?;
+    apply_delete_lines(s, target_sheet(s, p)?, areas, axis)
+}
+fn apply_delete_lines(s: &mut Session, sheet: usize, areas: Vec<(u32, u32)>, axis: Axis) -> Result<Json> {
     for &(at, count) in &areas {
-        check_lines_protection(s, p, axis, at, count, false)?;
+        check_lines_protection_on(s, sheet, axis, at, count, false)?;
     }
-    let sheet = target_sheet(s, p)?;
     let out = edit(s, |cx| {
         let name = cx.wb.sheet(sheet).map(|s| s.name.clone()).unwrap_or_default();
         cx.protection_checked = true;
@@ -500,16 +504,21 @@ fn insert_cells(s: &mut Session, p: &Json) -> Result<Json> {
     let shift = str_param(p, "shift").unwrap_or("down");
     let r = target_range(s, p)?;
     match shift {
-        "row" | "entireRow" => return insert_lines(s, &json!({"rows": format!("{}:{}", r.start.row + 1, r.end.row + 1)}), Axis::Rows),
-        "column" | "entireColumn" => return insert_lines(s, &json!({"cols": RangeRef::cols(r.start.col, r.end.col).a1()}), Axis::Cols),
+        "row" | "entireRow" => return apply_insert_lines(s, target_sheet(s, p)?, r.start.row, r.height(), Axis::Rows),
+        "column" | "entireColumn" => return apply_insert_lines(s, target_sheet(s, p)?, r.start.col, r.width(), Axis::Cols),
         _ => {}
     }
-    let e = Edit::InsertCells { axis: if shift == "right" { Axis::Cols } else { Axis::Rows }, range: r };
-    let sheet = target_sheet(s, p)?;
+    apply_insert_cells(s, target_sheet(s, p)?, r, shift == "right")
+}
+fn apply_insert_cells(s: &mut Session, sheet: usize, r: RangeRef, right: bool) -> Result<Json> {
+    let e = Edit::InsertCells { axis: if right { Axis::Cols } else { Axis::Rows }, range: r };
     if let Some(sh) = s.doc()?.wb.sheet(sheet) {
+        if sh.is_protected() {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
         check_table_shift(sh, &e)?;
         // Refuse to push data off the sheet: cells in the last `width`/`height` positions would be dropped.
-        let doomed = if shift == "right" {
+        let doomed = if right {
             RangeRef::new(CellRef::new(r.start.row, r.start.col.max(MAX_COLS.saturating_sub(r.width()))), CellRef::new(r.end.row, MAX_COLS - 1))
         } else {
             RangeRef::new(CellRef::new(r.start.row.max(MAX_ROWS.saturating_sub(r.height())), r.start.col), CellRef::new(MAX_ROWS - 1, r.end.col))
@@ -518,7 +527,6 @@ fn insert_cells(s: &mut Session, p: &Json) -> Result<Json> {
             return Err(EngineError::Other("To prevent possible loss of data, Excel cannot shift nonblank cells off of the worksheet.".into()));
         }
     }
-    let right = shift == "right";
     let out = edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         if right {
@@ -540,16 +548,20 @@ fn delete_cells(s: &mut Session, p: &Json) -> Result<Json> {
     let shift = str_param(p, "shift").unwrap_or("up");
     let r = target_range(s, p)?;
     match shift {
-        "row" | "entireRow" => return delete_lines(s, &json!({"rows": format!("{}:{}", r.start.row + 1, r.end.row + 1)}), Axis::Rows),
-        "column" | "entireColumn" => return delete_lines(s, &json!({"cols": RangeRef::cols(r.start.col, r.end.col).a1()}), Axis::Cols),
+        "row" | "entireRow" => return apply_delete_lines(s, target_sheet(s, p)?, vec![(r.start.row, r.height())], Axis::Rows),
+        "column" | "entireColumn" => return apply_delete_lines(s, target_sheet(s, p)?, vec![(r.start.col, r.width())], Axis::Cols),
         _ => {}
     }
-    let e = Edit::DeleteCells { axis: if shift == "left" { Axis::Cols } else { Axis::Rows }, range: r };
-    let sheet = target_sheet(s, p)?;
+    apply_delete_cells(s, target_sheet(s, p)?, r, shift == "left")
+}
+fn apply_delete_cells(s: &mut Session, sheet: usize, r: RangeRef, left: bool) -> Result<Json> {
+    let e = Edit::DeleteCells { axis: if left { Axis::Cols } else { Axis::Rows }, range: r };
     if let Some(sh) = s.doc()?.wb.sheet(sheet) {
+        if sh.is_protected() {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
         check_table_shift(sh, &e)?;
     }
-    let left = shift == "left";
     let out = edit(s, |cx| {
         let name = cx.wb.sheet(sheet).map(|s| s.name.clone()).unwrap_or_default();
         {
@@ -733,7 +745,9 @@ fn edit_doc<R>(d: &mut crate::DocState, f: impl FnOnce(&mut Ctx) -> Result<R>) -
 /// Sheet protection for inserting or deleting rows/columns: the protection must allow it, and
 /// deleted lines must not hold locked cells.
 fn check_lines_protection(s: &Session, p: &Json, axis: Axis, at: u32, count: u32, insert: bool) -> Result<()> {
-    let sheet = target_sheet(s, p)?;
+    check_lines_protection_on(s, target_sheet(s, p)?, axis, at, count, insert)
+}
+fn check_lines_protection_on(s: &Session, sheet: usize, axis: Axis, at: u32, count: u32, insert: bool) -> Result<()> {
     let wb = &s.doc()?.wb;
     let Some(sh) = wb.sheet(sheet) else { return Ok(()) };
     let Some(pr) = &sh.protection else { return Ok(()) };
@@ -819,11 +833,15 @@ fn delete_sheet(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn rename_sheet(s: &mut Session, p: &Json) -> Result<Json> {
+    let i = target_sheet(s, p)?;
+    let name = str_param(p, "name").ok_or_else(|| bad("sheet.rename", "missing `name`"))?;
+    rename_sheet_native(s, i, name)
+}
+pub(crate) fn rename_sheet_native(s: &mut Session, i: usize, name: &str) -> Result<Json> {
     if s.doc()?.wb.protected_structure {
         return Err(EngineError::Other("The workbook is protected and cannot be changed.".into()));
     }
-    let i = target_sheet(s, p)?;
-    let Some(name) = str_param(p, "name").map(|n| n.trim().to_string()) else { return Err(bad("sheet.rename", "missing `name`")) };
+    let name = name.trim().to_string();
     s.doc()?.wb.check_sheet_name(&name, Some(i)).map_err(EngineError::Other)?;
     edit(s, |cx| {
         let old = cx.wb.sheet(i).map(|s| s.name.clone()).unwrap_or_default();
@@ -884,6 +902,7 @@ fn move_sheet(s: &mut Session, p: &Json) -> Result<Json> {
         let Some(src) = cx.wb.sheets.get(i).cloned() else { return Err(bad("sheet.move", "no such sheet")) };
         if copy {
             let mut sh = (*src).clone();
+            sh.identity = Default::default();
             let base = sh.name.clone();
             // `Name (2)`: the name is shortened so the suffix fits in Excel's 31 characters.
             let name = (2..)
@@ -1140,4 +1159,19 @@ pub(crate) fn check_table_shift(sh: &Sheet, e: &Edit) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Typed structural command body shared by native hosts and command envelopes.
+pub(crate) fn structure(s: &mut Session, sheet: usize, r: RangeRef, operation: crate::StructuralEdit) -> Result<Json> {
+    use crate::StructuralEdit::*;
+    match operation {
+        InsertRows => apply_insert_lines(s, sheet, r.start.row, r.height(), Axis::Rows),
+        InsertColumns => apply_insert_lines(s, sheet, r.start.col, r.width(), Axis::Cols),
+        DeleteRows => apply_delete_lines(s, sheet, vec![(r.start.row, r.height())], Axis::Rows),
+        DeleteColumns => apply_delete_lines(s, sheet, vec![(r.start.col, r.width())], Axis::Cols),
+        InsertDown => apply_insert_cells(s, sheet, r, false),
+        InsertRight => apply_insert_cells(s, sheet, r, true),
+        DeleteUp => apply_delete_cells(s, sheet, r, false),
+        DeleteLeft => apply_delete_cells(s, sheet, r, true),
+    }
 }
