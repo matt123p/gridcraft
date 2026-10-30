@@ -140,6 +140,9 @@ pub struct PhoneticString {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Workbook {
+    /// VBA identity from workbook `workbookPr/@codeName`, when present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_name: Option<String>,
     pub sheets: Vec<Arc<Sheet>>,
     pub names: Vec<DefinedName>,
     pub styles: StyleTable,
@@ -262,6 +265,7 @@ impl Workbook {
     /// A new workbook with one sheet, "Sheet1".
     pub fn new() -> Workbook {
         Workbook {
+            code_name: None,
             sheets: vec![Arc::new(Sheet::new("Sheet1"))],
             names: vec![],
             styles: StyleTable::default(),

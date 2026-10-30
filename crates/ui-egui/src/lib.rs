@@ -550,7 +550,15 @@ impl SheetApp {
             return r;
         }
         let before = self.session.active_window();
+        #[cfg(feature = "vba")]
+        let event_params = params.clone();
         let r = self.session.run(id, params);
+        #[cfg(feature = "vba")]
+        if r.is_ok() {
+            if let Ok(result) = &r {
+                vba::after_engine_command(self, id, &event_params, result);
+            }
+        }
         if id.starts_with("file.") && self.session.active_window() != before {
             // File › New or Open from the Backstage view: the window it was in goes back to its sheet.
             self.backstage = None;
@@ -1271,15 +1279,18 @@ impl SheetApp {
                 .active()
                 .and_then(|d| d.wb.sheet(ed.sheet))
                 .is_some_and(|sh| sh.cell(ed.cell).is_none_or(|c| c.formula.is_none() && c.value == gridcraft_engine::core::Value::Empty));
-        let r = if unchanged {
-            Ok(json!({}))
-        } else if fill_selection {
-            self.session.run("range.fill", json!({"input": text}))
+        let (event_id, event_params) = if fill_selection {
+            ("range.fill", json!({"input": text}))
         } else {
-            self.session.run("cell.set", json!({"cell": ed.cell.a1(), "input": text, "array": array}))
+            ("cell.set", json!({"cell": ed.cell.a1(), "input": text, "array": array}))
         };
+        let r = if unchanged { Ok(json!({})) } else { self.session.run(event_id, event_params.clone()) };
         match r {
-            Ok(_) => {
+            Ok(result) => {
+                #[cfg(feature = "vba")]
+                if !unchanged {
+                    vba::after_engine_command(self, event_id, &event_params, &result);
+                }
                 if dr != 0 || dc != 0 {
                     self.move_after_enter(dr, dc);
                 }

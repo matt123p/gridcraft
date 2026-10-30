@@ -1,6 +1,6 @@
 # Optional tiny-vba integration
 
-Updated 2026-10-29. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
+Updated 2026-10-30. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
 The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
 members, remaining mismatches and stages toward running existing workbooks
@@ -114,8 +114,8 @@ stays literal. Formula explicitly parses leading `=` even in Text cells.
 Address implements its five optional arguments and A1/R1C1, relative and external
 forms. Live NumberFormat, Font Bold/Italic/Name/Size/Color and Interior.Color use
 bounded protected native commands. Calculation settings and Calculate have real
-engine effects. Unsupported settings/members refuse explicitly; the catalogue
-marks ScreenUpdating/EnableEvents unsupported. See the
+engine effects. Unsupported settings/members refuse explicitly; ScreenUpdating
+remains unsupported, while `EnableEvents` has the bounded M5 behavior below. See the
 [M4 contract and acceptance](vba-m4-identity-values-and-members.md) for exact
 boundaries, immutable dependency pin and executable evidence.
 
@@ -133,20 +133,23 @@ host-free code. Every tick and every late-bound host invocation rechecks trust
 and document identity. Script trust does not grant VBA consent or change file
 provenance. There is no automatic open-event execution.
 
-Each run uses a spanning engine undo group, retained through break/step/resume.
-Completion, error, reset and close finalize successful writes as one undo entry.
-Errors/stop do not roll back prior successful effects. No mutable workbook borrow
-survives a host call or tick. Document close/switch or sheet topology changes cancel
-the execution and invalidate the bridge. Reopen the editor to bind new references.
-The host performs no asynchronous operations, so there are no outstanding wait
-tokens to drain. The generic interpreter wait/callback contract remains available.
+Each macro/event batch uses a spanning engine undo group, retained through
+break/step/resume. Completion and failure finalize successful writes as one undo
+entry; failures do not roll back earlier effects. Reset, close and trust revocation
+cancel queued callbacks. No mutable workbook borrow survives a host call or tick.
+The bridge remaps retained sheet references by stable sheet identity after topology
+changes; deleted or stale owners fail explicitly. Switching away from the workbook
+bound to this editor cancels active execution/event delivery.
 
-Worksheet model objects lack a session-stable identity; this profile rejects
-observed topology changes rather than retargeting by ordinal. It does not provide
-structural sheet/range mutations, cross-document objects, events/EnableEvents,
-classes/UserForms, full collection/default-member syntax, Office
-binary writeback/signatures or external IO/COM. Import rejects executable class/
-document modules; inert document metadata remains in the preserved package.
+The implemented M5 slice supports inert import of standard, class and document
+modules, explicit trusted Workbook_Open, bounded Worksheet_Change delivery with
+EnableEvents, and the Range-aware worksheet-function surface documented below.
+The shared M2 designer/runtime can run `.tvform` forms through the workbook host;
+forms remain separate exchange files rather than workbook VBA metadata. The profile
+still lacks structural sheet/range mutations, cross-document objects, the complete
+Office event/catalogue surface, VBA binary project writeback/signature handling and
+external IO/COM. This remains a bounded compatibility projection, not general XLSM
+execution.
 
 ## Spreadsheet workflows
 
@@ -222,15 +225,62 @@ estimate, 64 arguments, 65,536 cells per reference, 256 assignments per sheet an
 explicit supported CVErr values retain their worksheet errors.
 
 UDFs cannot invoke workbook operations, prompts or asynchronous host calls.
-This profile requires inputs as arguments: Range objects, Application.Caller,
-Application.Volatile, workbook reads inside functions, persistent UDF state,
-cross-workbook/add-in registration and explicit interior omitted arguments are
-not supported. Reference arguments are values, not Excel Range objects. Consent
+The accepted M5 profile passes arguments declared `Range` or `Object` as read-only host Range
+objects. `Variant` and scalar parameters keep their normal value/array coercion while
+the calc bridge retains the original reference provenance. The profile also supports
+`Application.Caller`, `Application.Volatile`, workbook value reads and persistent
+project state. The read-only caller/range context exposes Value/Value2,
+Address, Row/Column, Count, Worksheet, Offset and Resize; worksheet Name/CodeName
+and parent workbook CodeName are readable. Cross-workbook/add-in registration and
+explicit interior omitted arguments remain unsupported. Consent
 is rechecked/revocable; closing the editor project or invalidating its document
 disables registered functions. Reopening stored source is inert; Apply or explicit
 consent re-registers it. Replaced/undone source cannot execute a stale compiled
-version: apply the desired source again. Sheet-name topology changes invalidate
-the editor, which must be reopened; shape-owned assignments survive sheet renames.
+version: apply the desired source again. Sheet handles follow stable identities
+through supported topology changes; deleted owners/references fail instead of
+retargeting by ordinal. Authored acceptance confirms Caller/Row/Column, Address,
+Offset/Resize and Date/Currency `Value` typing versus numeric `Value2`; Currency
+coercion retains four decimal places. Shape-owned assignments survive sheet renames.
+
+`Worksheet_Change` currently covers VBA Range writes and native `cell.set`,
+`range.setContents`, `range.setValues`, `range.fill`, contents clear, Clear All,
+cut/paste, AutoFill, Series fill, directional fills, Flash Fill, sorting, removing
+duplicates and Text to Columns. Text to Columns reports its committed output range
+to the host event hook. Formats-only paste/fill operations are suppressed.
+The reviewed native mutation list is covered by authored event-source tests, including
+cell-editor commit, direct-control edits and pointer drag-cut delivery for both committed ranges.
+Format-only operations and no-op duplicate removal do not queue events.
+If a native edit commits but the bounded event queue is full, the edit remains
+committed and GridCraft reports that the event could not be queued. A VBA Range
+write checks the event budget before mutating and refuses before the write.
+If a callback fails, remaining callbacks in the queued event batch are cancelled;
+successful writes already made remain in the grouped undo step. Reset, close and
+trust revocation also cancel queued callbacks before releasing the host.
+M5 document-event integration is accepted for the declared profile. Workbook and worksheet code names
+are imported inertly; `vba.workbookOpen` explicitly queues `Workbook_Open` after
+host authorization, including from Design mode without first running a separate macro.
+The IDE creates a verified idle session and delivers the handler through its normal
+debugger path. Worksheet callbacks scope
+unqualified Range/Cells/Rows/Columns construction to the owner sheet without
+changing active selection. `Me.Range` and declared sheet/workbook members dispatch
+through the captured live host owner; unsupported members still fail explicitly.
+GridCraft's embedded IDE imports `.tvform` files through File → Import File (also
+available as the `vba.importSource` UI command) and runs the selected Label/TextBox/
+CommandButton profile through tiny-vba's shared form designer/runtime. TextBox and
+button callbacks use the workbook bridge; authored integration evidence covers cell
+writes and modal completion/close without a parked wait token. This does not add Office
+binary UserForm resources or workbook VBA project persistence for forms.
+Event notifications enter a FIFO queue and are delivered only after the current
+invocation/callback reaches a boundary; callback writes append later events instead
+of re-entering VBA. `EnableEvents = False` suppresses new notifications and discards
+the queued remainder; setting it True resumes future notifications. Each event chain
+is capped at 256 queued/delivered events. Reset/close/trust revocation and callback
+failure discard the remaining queue; an event is removed before dispatch and is never
+retried. A pause retains the undelivered tail until resume or cancellation.
+The complete scenario status and exact evidence are tracked in tiny-vba's
+[M5 acceptance map](../../tiny-vba/docs/m5-acceptance.md). The profile does not claim
+complete Excel compatibility: unsupported catalogue members, structural mutations,
+binary form resources and VBA project writeback remain outside scope.
 
 Buttons use original GridCraft shapes with inert `on_action` metadata.
 They implement the documented click/Assign Macro workflow, not Office Form Control
@@ -311,8 +361,8 @@ structural command coverage; see the M3 acceptance report for validation and gap
 
 The M3 dependency update includes the shared M2 class/form editor. Current workbook
 source persistence explicitly refuses classes/forms before effects; export them
-separately. Dirty design state blocks implicit close. Full workbook form storage
-and document/event integration remain M6/M5 work.
+separately. Dirty design state blocks implicit close. Workbook form storage remains
+outside this profile; M5 document/event execution is partially implemented below.
 
 2026-10-29: M4 adds stable document/sheet ownership, dynamic active roots, typed
 Value conversion, Address arguments and live formatting/calculation. The shared getter prerequisite is published and pinned by immutable Git revision;

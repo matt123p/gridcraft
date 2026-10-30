@@ -172,6 +172,55 @@ fn moving_a_selection_keeps_move_and_still_moves_cells() {
     assert_eq!(sh.value(CellRef::parse("E5").unwrap()), Value::Number(2.0));
 }
 
+#[cfg(feature = "vba")]
+#[test]
+fn native_drag_cut_delivers_change_events_for_source_and_destination() -> Result<(), Box<dyn std::error::Error>> {
+    let mut h = harness();
+    {
+        let document = h.state_mut().session.doc_mut()?;
+        std::sync::Arc::make_mut(&mut document.wb).sheet_mut(0).ok_or("sheet missing")?.code_name = Some("Sheet1".into());
+    }
+    h.state_mut().run("vba.open", json!({}))?;
+    {
+        let editor = h.state_mut().vba.as_mut().ok_or("editor not opened")?;
+        editor.ide.add_document_module(
+            "Sheet1.cls",
+            "Sheet1",
+            "Attribute VB_Name = \"Sheet1\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nDebug.Print Target.Address\nEnd Sub\n",
+        )?;
+        editor.bridge.configure(&mut editor.ide)?;
+        editor.bridge.consent(true);
+        // Keep the real workbook callback session, while allowing the test's pointer events to
+        // reach the worksheet grid instead of the embedded editor pane.
+        editor.visible = false;
+    }
+    h.state_mut().session.execute("selection.set", json!({"range": "A2:B2"}))?;
+    h.run_steps(2);
+    let r = selection_rect(&h);
+    let start = pos2(r.left() + 10.0, r.top() + 1.0);
+    press(&mut h, start);
+    let target = cell(&h, "D5").center();
+    move_with_cursor(&mut h, target, CursorIcon::Move);
+    move_with_cursor(&mut h, target + vec2(1.0, 0.0), CursorIcon::Move);
+    button(&mut h, target, false);
+    assert_eq!(h.state().grid.drag, Drag::None);
+    for _ in 0..100 {
+        let app = h.state_mut();
+        let editor = app.vba.as_mut().ok_or("editor closed")?;
+        editor.bridge.tick(&mut app.session, &mut editor.ide)?;
+        if editor.ide.output().len() >= 2 {
+            break;
+        }
+    }
+    let editor = h.state().vba.as_ref().ok_or("editor closed")?;
+    assert_eq!(editor.ide.output().as_slice(), &["$A$2:$B$2".to_owned(), "$D$5:$E$5".to_owned()]);
+    let sheet = h.state().session.active().ok_or("workbook missing")?.wb.active().ok_or("sheet missing")?;
+    assert_eq!(sheet.value(CellRef::parse("A2").ok_or("invalid source cell")?), Value::Empty);
+    assert_eq!(sheet.value(CellRef::parse("D5").ok_or("invalid target cell")?), Value::Number(1.0));
+    assert_eq!(sheet.value(CellRef::parse("E5").ok_or("invalid target cell")?), Value::Number(2.0));
+    Ok(())
+}
+
 #[test]
 fn resizing_headers_keeps_the_axis_cursor_when_leaving_the_header() {
     for cols in [true, false] {

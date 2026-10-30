@@ -272,6 +272,25 @@ impl Bridge {
             session.set_application_calculation_mode(mode).map_err(|e| failure(1004, e.to_string()))?;
             return Ok(Value::Empty);
         }
+        if object == Object::Application && member == "enableevents" {
+            if call.kind == InvokeKind::Get {
+                arguments(&call, &[])?;
+                return Ok(Value::Boolean(self.enable_events));
+            }
+            if call.kind != InvokeKind::Let {
+                return Err(failure(13, "EnableEvents requires Let"));
+            }
+            let args = arguments(&call, &["Value"])?;
+            let Value::Boolean(enabled) = vba_runtime::bind(vba_values::ScalarKind::Boolean, required(&args, 0)?).map_err(values::runtime_error)?
+            else {
+                return Err(failure(13, "EnableEvents requires Boolean"));
+            };
+            self.enable_events = enabled;
+            if !enabled {
+                self.pending_events.clear();
+            }
+            return Ok(Value::Empty);
+        }
         if member == "calculate" && matches!(object, Object::Application | Object::Workbook) && call.kind == InvokeKind::Call {
             arguments(&call, &[])?;
             if object == Object::Application {
@@ -292,7 +311,13 @@ impl Bridge {
         }
         match object {
             Object::Application | Object::Workbook if read_kind(call.kind) => {
-                let active = session.doc().map_err(|e| failure(91, e.to_string()))?.sheet_index();
+                let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+                let active = doc.sheet_index();
+                let implicit_sheet = match self.event_owner_sheet {
+                    Some(sheet) if doc.wb.sheet(sheet).is_some() => sheet,
+                    Some(_) => return Err(failure(91, "worksheet event owner was deleted")),
+                    None => active,
+                };
                 match member.as_str() {
                     "thisworkbook" | "activeworkbook" if object == Object::Application => {
                         arguments(&call, &[])?;
@@ -324,8 +349,8 @@ impl Bridge {
                             self.collection_item(session, &call)
                         }
                     }
-                    "range" if object == Object::Application => self.construct_range(session, active, None, true, &call),
-                    "cells" | "rows" | "columns" if object == Object::Application => self.invoke_object(session, Object::Sheet(active), call),
+                    "range" if object == Object::Application => self.construct_range(session, implicit_sheet, None, true, &call),
+                    "cells" | "rows" | "columns" if object == Object::Application => self.invoke_object(session, Object::Sheet(implicit_sheet), call),
                     "name" if object == Object::Workbook => {
                         arguments(&call, &[])?;
                         values::vba_text(&session.doc().map_err(|e| failure(91, e.to_string()))?.title)

@@ -2,6 +2,7 @@ use super::*;
 use gridcraft_engine::{
     CellContent,
     core::{CellError, RangeRef, Value as CellValue},
+    model::Workbook,
 };
 use vba_values::{ScalarKind, VbaArray, VbaString};
 
@@ -55,8 +56,12 @@ pub(crate) fn from_cell(value: CellValue) -> HostResult<Value> {
     }
 }
 pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bool, typed: bool) -> HostResult<Value> {
+    let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+    read_workbook(&doc.wb, sheet, range, formula, typed)
+}
+pub(crate) fn read_workbook(workbook: &Workbook, sheet: usize, range: RangeRef, formula: bool, typed: bool) -> HostResult<Value> {
     let (rows, cols) = dimensions(range)?;
-    let sh = session.doc().map_err(|e| failure(91, e.to_string()))?.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+    let sh = workbook.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
     let mut values = Vec::with_capacity(rows * cols);
     let mut payload = 0usize;
     for at in range.iter() {
@@ -70,10 +75,9 @@ pub(crate) fn read(session: &Session, sheet: usize, range: RangeRef, formula: bo
             from_cell(sh.value(at))?
         };
         let value = if typed && let Value::Double(number) = value {
-            let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
-            let format = gridcraft_engine::numfmt::NumberFormat::parse(doc.wb.styles.get(sh.style_id(at)).num_fmt.as_str());
+            let format = gridcraft_engine::numfmt::NumberFormat::parse(workbook.styles.get(sh.style_id(at)).num_fmt.as_str());
             if format.is_date() {
-                let number = if doc.wb.date_system == gridcraft_engine::core::date::DateSystem::D1904 {
+                let number = if workbook.date_system == gridcraft_engine::core::date::DateSystem::D1904 {
                     number + 1462.0
                 } else if (0.0..60.0).contains(&number) {
                     number + 1.0

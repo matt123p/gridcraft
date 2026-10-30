@@ -2699,7 +2699,7 @@ fn interact(app: &mut SheetApp, ui: &mut egui::Ui, resp: &egui::Response, geo: &
             Drag::Move { to: Some(to), .. } => {
                 let src = sel.current();
                 if to != src.start {
-                    let _ = app.session.run("edit.cut", json!({"range": src.a1()}));
+                    let _ = app.run("edit.cut", json!({"range": src.a1()}));
                     let _ = app.run("edit.paste", json!({"at": to.a1()}));
                 }
             }

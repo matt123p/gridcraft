@@ -9,12 +9,12 @@ use gridcraft_engine::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::{
-    Arc,
+    Arc, Mutex,
     atomic::{AtomicBool, Ordering},
 };
 use vba_compiler::{CompileOptions, compile_modules};
 use vba_syntax::{ModuleKind, ProcedureKind, Visibility};
-use vba_values::{ScalarKind, VbaArray};
+use vba_values::{ObjectRef, ScalarKind, VbaArray};
 use vba_vm::{HostBinding, Limits, Outcome, ReturnValue};
 
 pub const PROJECT_KEY: &str = "vba_source";
@@ -122,19 +122,28 @@ impl Project {
 }
 
 /// Consent can be revoked while a provider is retained by an undo/recalc snapshot.
-#[derive(Debug)]
 pub struct Functions {
     remaining: AtomicU64,
     programs: BTreeMap<String, vba_ir::VerifiedProgram>,
+    reference_parameters: BTreeMap<String, Vec<bool>>,
+    states: Mutex<BTreeMap<String, vba_vm::ProjectState>>,
     binding: BTreeMap<String, ObjectRef>,
     identity: u64,
+    document: u64,
+    objects: Arc<types::Objects>,
     source: String,
     pub allowed: Arc<AtomicBool>,
+}
+impl std::fmt::Debug for Functions {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.debug_struct("Functions").field("function_count", &self.programs.len()).field("identity", &self.identity).finish_non_exhaustive()
+    }
 }
 impl Functions {
     pub fn compile(project: &Project, bridge: &Bridge, permitted: bool) -> Result<Self> {
         let modules = project.parsed()?;
         let mut programs = BTreeMap::new();
+        let mut reference_parameters = BTreeMap::new();
         let mut compiled_bytes = 0usize;
         for (ordinal, entry) in project.entries()?.into_iter().filter(|e| e.function).enumerate() {
             if ordinal >= 256 {
@@ -156,6 +165,14 @@ impl Functions {
                         .map(|p| (i, p))
                 })
                 .ok_or_else(|| diagnostic("function disappeared"))?;
+            reference_parameters.insert(
+                entry.name.to_ascii_uppercase(),
+                procedure
+                    .parameters
+                    .iter()
+                    .map(|parameter| parameter.ty.as_ref().is_some_and(|ty| matches!(ty.spelling.to_ascii_lowercase().as_str(), "range" | "object")))
+                    .collect(),
+            );
             if procedure.parameters.len() > 64 {
                 return Err(diagnostic("worksheet function argument budget exceeded"));
             }
@@ -202,27 +219,160 @@ impl Functions {
         Ok(Self {
             remaining: AtomicU64::new(1_000_000),
             programs,
+            reference_parameters,
+            states: Mutex::new(BTreeMap::new()),
             binding: bridge.roots(),
             identity: bridge.identity,
+            document: bridge.doc,
+            objects: bridge.objects.clone(),
             source: serde_json::to_string(project).map_err(diagnostic)?,
             allowed: Arc::new(AtomicBool::new(permitted)),
         })
     }
 }
-struct ReadOnly(u64);
-impl Host for ReadOnly {
-    fn identity(&self) -> u64 {
-        self.0
+struct ReadOnly<'a> {
+    identity: u64,
+    document: u64,
+    objects: Arc<types::Objects>,
+    workbook: &'a Workbook,
+    caller: ObjectRef,
+    volatile: Arc<AtomicBool>,
+}
+impl ReadOnly<'_> {
+    fn intern_object(&self, object: Object) -> HostResult<Value> {
+        let object = if object == Object::Application { object } else { Object::Document(self.document, Box::new(object)) };
+        let handle = self.objects.intern(object)?;
+        Ok(Value::Object(ObjectRef { host: self.identity, object: handle as u64, generation: self.document }))
     }
-    fn invoke(&mut self, _: HostCall) -> Reply {
-        Reply::Error(failure(1004, "worksheet functions cannot invoke workbook operations"))
+    fn intern_range(&self, sheet: usize, range: ranges::Range) -> HostResult<Value> {
+        self.intern_object(Object::Range(sheet, range))
+    }
+}
+impl Host for ReadOnly<'_> {
+    fn identity(&self) -> u64 {
+        self.identity
+    }
+    fn invoke(&mut self, call: HostCall) -> Reply {
+        let complete = |value| Reply::Complete(Completion { value, writes: Vec::new() });
+        let result = (|| {
+            if call.target.host != self.identity || call.target.generation != self.document {
+                return Err(failure(91, "stale worksheet-function object"));
+            }
+            let object = self.objects.get(call.target)?;
+            let object = match object {
+                Object::Document(document, object) if document == self.document => *object,
+                Object::Document(..) => return Err(failure(91, "foreign worksheet-function object")),
+                object => object,
+            };
+            let member = call.member.to_ascii_uppercase();
+            match object {
+                Object::Application if call.kind == InvokeKind::Get && member == "CALLER" => Ok(Value::Object(self.caller)),
+                Object::Application if call.kind == InvokeKind::Call && member == "VOLATILE" => {
+                    if call.arguments.len() > 1 {
+                        return Err(failure(450, "Volatile takes at most one argument"));
+                    }
+                    let volatile = call
+                        .arguments
+                        .first()
+                        .map(|argument| vba_runtime::condition(&argument.value))
+                        .transpose()
+                        .map_err(|error| values::runtime_error(error))?
+                        .unwrap_or(true);
+                    self.volatile.store(volatile, Ordering::Release);
+                    Ok(Value::Empty)
+                }
+                Object::Range(sheet, range) if call.kind == InvokeKind::Get && matches!(member.as_str(), "VALUE" | "VALUE2") => {
+                    let [range] = range.areas.as_slice() else {
+                        return Err(failure(1004, "multi-area UDF Range reads are unsupported"));
+                    };
+                    values::read_workbook(self.workbook, sheet, *range, false, member == "VALUE")
+                }
+                Object::Range(sheet, range) if call.kind == InvokeKind::Call && matches!(member.as_str(), "OFFSET" | "RESIZE") => {
+                    let names = if member == "OFFSET" { &["RowOffset", "ColumnOffset"][..] } else { &["RowSize", "ColumnSize"][..] };
+                    let args = objects::arguments(&call, names)?;
+                    let number = |index| args.get(index).filter(|value| !matches!(value, Value::Missing)).map(objects::numeric_index).transpose();
+                    let result = if member == "OFFSET" {
+                        range.offset(i64::from(number(0)?.unwrap_or(0)), i64::from(number(1)?.unwrap_or(0)))?
+                    } else {
+                        range.resize(number(0)?, number(1)?)?
+                    };
+                    self.intern_range(sheet, result)
+                }
+                Object::Range(_, range) if call.kind == InvokeKind::Get && member == "ADDRESS" => {
+                    objects::arguments(&call, &[])?;
+                    let address = range
+                        .areas
+                        .iter()
+                        .map(|area| {
+                            let cell = |at: gridcraft_engine::core::CellRef| {
+                                format!("${}${}", gridcraft_engine::core::col_to_letters(at.col), at.row.saturating_add(1))
+                            };
+                            if area.is_single() { cell(area.start) } else { format!("{}:{}", cell(area.start), cell(area.end)) }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    values::vba_text(&address)
+                }
+                Object::Range(sheet, _) if call.kind == InvokeKind::Get && matches!(member.as_str(), "WORKSHEET" | "PARENT") => {
+                    objects::arguments(&call, &[])?;
+                    self.intern_object(Object::Sheet(sheet))
+                }
+                Object::Range(_, range) if call.kind == InvokeKind::Get && member == "COUNT" => {
+                    objects::arguments(&call, &[])?;
+                    let count = range.count()?;
+                    Ok(Value::Long(i32::try_from(count).map_err(|_| failure(6, "Range.Count overflow"))?))
+                }
+                Object::Range(_, range) if call.kind == InvokeKind::Get && member == "COUNTLARGE" => {
+                    objects::arguments(&call, &[])?;
+                    Ok(Value::Double(range.count()? as f64))
+                }
+                Object::Sheet(sheet) if call.kind == InvokeKind::Get && member == "NAME" => {
+                    objects::arguments(&call, &[])?;
+                    let name = &self.workbook.sheet(sheet).ok_or_else(|| failure(91, "worksheet is gone"))?.name;
+                    values::vba_text(name)
+                }
+                Object::Sheet(sheet) if call.kind == InvokeKind::Get && member == "CODENAME" => {
+                    objects::arguments(&call, &[])?;
+                    let code_name = self
+                        .workbook
+                        .sheet(sheet)
+                        .and_then(|sheet| sheet.code_name.as_deref())
+                        .ok_or_else(|| failure(438, "worksheet has no code name"))?;
+                    values::vba_text(code_name)
+                }
+                Object::Sheet(_) if call.kind == InvokeKind::Get && member == "PARENT" => {
+                    objects::arguments(&call, &[])?;
+                    self.intern_object(Object::Workbook)
+                }
+                Object::Workbook if call.kind == InvokeKind::Get && member == "CODENAME" => {
+                    objects::arguments(&call, &[])?;
+                    let code_name = self.workbook.code_name.as_deref().ok_or_else(|| failure(438, "workbook has no code name"))?;
+                    values::vba_text(code_name)
+                }
+                Object::Range(sheet, range) if call.kind == InvokeKind::Get && member == "ROW" => {
+                    let _ = self.workbook.sheet(sheet).ok_or_else(|| failure(91, "worksheet is gone"))?;
+                    let Some(area) = range.areas.first() else { return Err(failure(1004, "empty Range")) };
+                    Ok(Value::Long(i32::try_from(area.start.row + 1).map_err(|_| failure(7, "row overflow"))?))
+                }
+                Object::Range(sheet, range) if call.kind == InvokeKind::Get && member == "COLUMN" => {
+                    let _ = self.workbook.sheet(sheet).ok_or_else(|| failure(91, "worksheet is gone"))?;
+                    let Some(area) = range.areas.first() else { return Err(failure(1004, "empty Range")) };
+                    Ok(Value::Long(i32::try_from(area.start.col + 1).map_err(|_| failure(7, "column overflow"))?))
+                }
+                _ => Err(failure(1004, "worksheet functions cannot invoke workbook operations")),
+            }
+        })();
+        match result {
+            Ok(value) => complete(value),
+            Err(error) => Reply::Error(error),
+        }
     }
     fn resume(&mut self, _: u64) -> Reply {
         Reply::Error(failure(1004, "worksheet functions cannot wait"))
     }
     fn cancel(&mut self, _: u64) {}
 }
-fn argument(value: &CellValue) -> HostResult<Value> {
+fn argument_fn(value: &CellValue) -> HostResult<Value> {
     if let CellValue::Array(a) = value {
         if a.rows.checked_mul(a.cols).is_none_or(|n| n > MAX_CELLS) {
             return Err(failure(7, "function argument too large"));
@@ -270,18 +420,26 @@ impl CustomFunctions for Functions {
         self.programs.contains_key(&name.to_ascii_uppercase())
     }
     #[allow(deprecated)] // fetch_update retains compatibility with the workspace MSRV.
-    fn call(&self, workbook: &Workbook, name: &str, args: &[CellValue]) -> Option<CellValue> {
+    fn call(
+        &self,
+        workbook: &Workbook,
+        name: &str,
+        context: gridcraft_engine::calc::CustomFunctionContext,
+        args: &[gridcraft_engine::calc::CustomFunctionArgument],
+    ) -> Option<gridcraft_engine::calc::CustomFunctionResult> {
         let program = self.programs.get(&name.to_ascii_uppercase())?;
-        let fail = || Some(CellValue::Error(CellError::Value));
+        let reference_parameters = self.reference_parameters.get(&name.to_ascii_uppercase())?;
+        let fail = || Some(gridcraft_engine::calc::CustomFunctionResult { value: CellValue::Error(CellError::Value), volatile: false });
         if !self.allowed.load(Ordering::Acquire) || stash::get(workbook, PROJECT_KEY).as_deref() != Some(&self.source) {
-            return Some(CellValue::Error(CellError::Name));
+            return Some(gridcraft_engine::calc::CustomFunctionResult { value: CellValue::Error(CellError::Name), volatile: false });
         }
         if args.len() > 64 {
             return fail();
         }
         // Check native callers as well as the formula evaluator before allocating UTF-16 arrays.
         let mut payload = 0usize;
-        for value in args {
+        for argument in args {
+            let value = &argument.value;
             let data = match value {
                 CellValue::Array(a) => a.data.as_slice(),
                 v => std::slice::from_ref(v),
@@ -299,9 +457,35 @@ impl CustomFunctions for Functions {
                 }
             }
         }
-        let Ok(mut arguments) = args.iter().map(argument).collect::<HostResult<Vec<_>>>() else {
+        let mut arguments = Vec::new();
+        if arguments.try_reserve(args.len()).is_err() {
             return fail();
-        };
+        }
+        for (index, argument) in args.iter().enumerate() {
+            let expects_reference = reference_parameters.get(index).copied().unwrap_or(false);
+            let value = if expects_reference && !argument.references.is_empty() {
+                if argument.references.len() > 64 || argument.references.iter().any(|area| area.sheet != argument.references[0].sheet) {
+                    return fail();
+                }
+                let areas = argument.references.iter().map(|area| area.range).collect();
+                let range = ranges::Range { areas, unit: ranges::Unit::Cells };
+                if range.validate().is_err() {
+                    return fail();
+                }
+                let sheet = argument.references[0].sheet;
+                let object = Object::Document(self.document, Box::new(Object::Range(sheet, range)));
+                let Ok(handle) = self.objects.intern(object) else {
+                    return fail();
+                };
+                Value::Object(ObjectRef { host: self.identity, object: handle as u64, generation: self.document })
+            } else {
+                let Ok(value) = argument_fn(&argument.value) else {
+                    return fail();
+                };
+                value
+            };
+            arguments.push(value);
+        }
         if arguments.iter().map(Value::payload_bytes).fold(0usize, usize::saturating_add) > 8 * 1024 * 1024 {
             return fail();
         }
@@ -314,10 +498,31 @@ impl CustomFunctions for Functions {
             return fail();
         };
         let limits = Limits { instructions: 100_000, slice: 4096, payload: 8 * 1024 * 1024, depth: 64, ..Default::default() };
-        let Ok(mut vm) = vba_vm::Session::new(program.clone(), 1, arguments, Some(binding), limits) else {
+        let type_resolver: Arc<dyn vba_foreign::ObjectTypeResolver> = self.objects.clone();
+        let Ok(mut vm) = vba_vm::Session::new_with_type_resolver(program.clone(), 1, arguments, Some(binding), limits, Some(type_resolver)) else {
             return fail();
         };
-        let mut host = ReadOnly(self.identity);
+        let saved_state = self.states.lock().ok().and_then(|states| states.get(&name.to_ascii_uppercase()).cloned());
+        if let Some(state) = saved_state
+            && vm.restore_project(state).is_err()
+        {
+            return fail();
+        }
+        let caller_range = ranges::Range::from(gridcraft_engine::core::RangeRef::cell(context.caller));
+        let caller = Object::Document(self.document, Box::new(Object::Range(context.sheet, caller_range)));
+        let Ok(caller_handle) = self.objects.intern(caller) else {
+            return fail();
+        };
+        let caller = ObjectRef { host: self.identity, object: caller_handle as u64, generation: self.document };
+        let volatile = Arc::new(AtomicBool::new(false));
+        let mut host = ReadOnly {
+            identity: self.identity,
+            document: self.document,
+            objects: self.objects.clone(),
+            workbook,
+            caller,
+            volatile: volatile.clone(),
+        };
         // A single bounded synchronous invocation; no engine borrow or host mutation is possible.
         for _ in 0..26 {
             let quota = self.remaining.load(Ordering::Acquire).min(4096) as u32;
@@ -335,7 +540,15 @@ impl CustomFunctions for Functions {
             match outcome {
                 Ok(Outcome::Yielded) => {}
                 Ok(Outcome::Completed(ReturnValue::Function(value))) => {
-                    return Some(returned(&value).unwrap_or(CellValue::Error(CellError::Value)));
+                    if let Ok(state) = vm.project_state()
+                        && let Ok(mut states) = self.states.lock()
+                    {
+                        states.insert(name.to_ascii_uppercase(), state);
+                    }
+                    return Some(gridcraft_engine::calc::CustomFunctionResult {
+                        value: returned(&value).unwrap_or(CellValue::Error(CellError::Value)),
+                        volatile: volatile.swap(false, Ordering::AcqRel),
+                    });
                 }
                 _ => {
                     let _ = vm.cancel(&mut host);

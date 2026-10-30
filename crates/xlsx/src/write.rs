@@ -344,6 +344,9 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
     let file_version = crate::passthrough::workbook_elements(wb, "fileVersion");
     w.push_str(if file_version.is_empty() { "<fileVersion appName=\"gridcraft\"/>" } else { &file_version });
     w.push_str("<workbookPr");
+    if let Some(code_name) = &wb.code_name {
+        let _ = write!(w, " codeName=\"{}\"", crate::xml::esc_attr(code_name));
+    }
     match wb.show_objects {
         ShowObjects::All => {}
         ShowObjects::Placeholders => w.push_str(" showObjects=\"placeholders\""),

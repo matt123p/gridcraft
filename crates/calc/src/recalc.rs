@@ -52,6 +52,7 @@ pub type Key = (usize, CellRef);
 struct Node {
     areas: Vec<Area>,
     dynamic: bool,
+    volatile_udf: bool,
 }
 
 /// Ranges wider than this many columns go to the per-sheet wide index instead of per-column ones.
@@ -253,7 +254,7 @@ impl Graph {
             self.wide_deps.entry(s).or_default().insert(r.start.row, r.end.row, (r.start.col, r.end.col, k));
             self.unsettled_wide.insert(s);
         }
-        if node.dynamic {
+        if node.dynamic || node.volatile_udf {
             self.dynamic.insert(k);
         }
         self.nodes.insert(k, node);
@@ -402,6 +403,7 @@ struct PassHost<'a> {
     now: f64,
     cycle: bool,
     cycles: Vec<Key>,
+    udf_volatility: HashMap<Key, bool>,
     depth: usize,
     /// A formula needed at [`MAX_NESTED`] levels deep: the evaluations in progress are abandoned
     /// and it is calculated first.
@@ -455,6 +457,7 @@ impl<'a> PassHost<'a> {
             now,
             cycle: false,
             cycles: vec![],
+            udf_volatility: HashMap::default(),
             depth: 0,
             suspend: None,
             waiting: HashSet::default(),
@@ -771,8 +774,15 @@ impl Host for PassHost<'_> {
     fn has_custom_function(&self, name: &str) -> bool {
         self.custom_functions.as_ref().is_some_and(|f| f.contains(name))
     }
-    fn custom_function(&mut self, name: &str, args: &[Value]) -> Option<Value> {
-        self.custom_functions.as_ref()?.call(self.wb, name, args)
+    fn custom_function(
+        &mut self,
+        name: &str,
+        context: crate::CustomFunctionContext,
+        args: &[crate::CustomFunctionArgument],
+    ) -> Option<crate::CustomFunctionResult> {
+        let result = self.custom_functions.as_ref()?.call(self.wb, name, context, args)?;
+        self.udf_volatility.entry((context.sheet, context.caller)).and_modify(|volatile| *volatile |= result.volatile).or_insert(result.volatile);
+        Some(result)
     }
     fn workbook(&self) -> &Workbook {
         self.wb
@@ -1022,7 +1032,7 @@ impl Calc {
                     && let Some(e) = f.expr()
                 {
                     let (areas, dynamic) = precedents(wb, si, &e);
-                    self.graph.insert((si, c), Node { areas, dynamic });
+                    self.graph.insert((si, c), Node { areas, dynamic, volatile_udf: false });
                     if cell.value == Value::Error(CellError::Circ) {
                         circ.push((si, c));
                     }
@@ -1100,7 +1110,7 @@ impl Calc {
             match formula.and_then(|f| f.expr()) {
                 Some(e) => {
                     let (areas, dynamic) = precedents(wb, k.0, &e);
-                    self.graph.insert(k, Node { areas, dynamic });
+                    self.graph.insert(k, Node { areas, dynamic, volatile_udf: false });
                 }
                 None => {
                     self.graph.remove(k);
@@ -1235,7 +1245,7 @@ impl Calc {
             let now = self.now();
             let mut rng = self.rng;
             let tp = prof_now();
-            let (results, spills, cycles) = {
+            let (results, spills, cycles, udf_volatility) = {
                 let mut host = PassHost::new(wb, &exprs, &mut rng, now);
                 host.custom_functions = self.custom_functions.clone();
                 host.iterate = wb.calc.iterative;
@@ -1248,8 +1258,18 @@ impl Calc {
                         eprintln!("  iterative calculation: {} passes over {} formulas", passes, host.tainted.len());
                     }
                 }
-                (host.results, host.spills, host.cycles)
+                (host.results, host.spills, host.cycles, host.udf_volatility)
             };
+            for (key, volatile) in udf_volatility {
+                if let Some(node) = self.graph.nodes.get_mut(&key) {
+                    node.volatile_udf = volatile;
+                    if node.dynamic || volatile {
+                        self.graph.dynamic.insert(key);
+                    } else {
+                        self.graph.dynamic.remove(&key);
+                    }
+                }
+            }
             self.rng = rng;
             if std::env::var_os("GRIDCRAFT_PROFILE").is_some() {
                 eprintln!("  eval {} formulas {:.1} ms", results.len(), prof_now() - tp);

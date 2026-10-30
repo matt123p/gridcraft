@@ -218,6 +218,7 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<(Workbook, ReadReport), IoError> {
 
     // Workbook properties.
     if let Some(p) = wb_xml.child("workbookPr") {
+        wb.code_name = p.attr("codeName").map(str::to_string);
         if p.flag("date1904", false) {
             cx.date_system = DateSystem::D1904;
         }

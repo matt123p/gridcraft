@@ -13,11 +13,12 @@ mod types;
 mod values;
 pub mod worksheet;
 
+use gridcraft_engine::core::RangeRef;
 use gridcraft_engine::{GroupToken, Session};
 use objects::Object;
-use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::collections::{BTreeMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, RwLock};
 use vba_foreign::{Completion, ForeignError, HostCall, InvokeKind, Reply};
 pub use vba_ide::{self, Action, Host, Ide, Mode, ObjectRef, Value};
 use vba_ide::{ApiMember, Diagnostic, Import};
@@ -27,6 +28,7 @@ type HostResult<T> = std::result::Result<T, ForeignError>;
 static NEXT_HOST: AtomicU64 = AtomicU64::new(1);
 pub const MAX_OBJECTS: usize = 8192;
 pub const MAX_CELLS: usize = 65_536;
+const MAX_QUEUED_EVENTS: usize = 256;
 pub const DEMO: &str = "Option Explicit\nPublic Sub Main()\n    Dim i As Long\n    For i = 1 To 10\n        Cells(i, 1).Value2 = i\n    Next i\n    Range(\"B1\").Formula = \"=SUM(A1:A10)\"\nEnd Sub\n";
 
 fn diagnostic(e: impl std::fmt::Display) -> Diagnostic {
@@ -46,6 +48,11 @@ pub struct Bridge {
     objects: Arc<types::Objects>,
     group: BTreeMap<u64, GroupToken>,
     consent: bool,
+    enable_events: bool,
+    pending_events: VecDeque<(String, String, Vec<Value>)>,
+    event_work: usize,
+    pub(crate) event_owner_sheet: Option<usize>,
+    document_code_names: Arc<RwLock<std::collections::BTreeSet<String>>>,
     closed: bool,
     find: search::FindState,
     scan_work: usize,
@@ -66,6 +73,11 @@ impl Bridge {
             objects: Arc::new(types::Objects::new(identity, doc.uid, doc.sheet_index())),
             group: BTreeMap::new(),
             consent: false,
+            enable_events: true,
+            pending_events: VecDeque::new(),
+            event_work: 0,
+            event_owner_sheet: None,
+            document_code_names: Arc::new(RwLock::new(std::collections::BTreeSet::new())),
             closed: false,
             find: search::FindState::default(),
             scan_work: 0,
@@ -110,6 +122,9 @@ impl Bridge {
         }
         let mapping: Vec<_> = self.sheets.get(&doc.uid).into_iter().flatten().map(|old| current.iter().position(|id| id.same(old))).collect();
         self.objects.remap_sheets(doc.uid, &mapping)?;
+        if let Some(owner) = self.event_owner_sheet {
+            self.event_owner_sheet = Some(mapping.get(owner).copied().flatten().unwrap_or(usize::MAX));
+        }
         self.context = doc.uid;
         self.sheets.insert(doc.uid, current);
         Ok(())
@@ -144,6 +159,12 @@ impl Bridge {
         Ok(Value::Object(self.reference(index)))
     }
     pub fn configure(&self, ide: &mut Ide) -> Result<()> {
+        if let Ok(mut names) = self.document_code_names.write() {
+            names.clear();
+            names.extend(ide.modules.iter().filter_map(|module| {
+                (module.kind == vba_ide::ModuleKind::Document).then(|| module.code_name.clone()).flatten().map(|name| name.to_ascii_lowercase())
+            }));
+        }
         ide.configure_host(self.imports(), self.roots(), catalog())?;
         ide.configure_reference_bindings(types::references()?)?;
         ide.configure_type_resolver(Some(self.objects.clone()))
@@ -184,12 +205,113 @@ impl Bridge {
         if self.group.is_empty() {
             self.scan_work = 0;
             self.match_work = 0;
+            if self.pending_events.is_empty() {
+                self.event_work = 0;
+            }
         }
         self.ensure_group(session, self.doc)?;
         Ok(())
     }
-    /// Decode source without running it or modifying the package. Only standard modules
-    /// are executable in this profile; class/document modules are refused explicitly.
+    fn cancel_pending_events(&mut self) {
+        self.pending_events.clear();
+        self.event_work = 0;
+        self.event_owner_sheet = None;
+    }
+    fn reset_event_budget_if_idle(&mut self) {
+        if self.group.is_empty() && self.pending_events.is_empty() {
+            self.event_work = 0;
+        }
+    }
+    fn change_owner(&self, session: &Session, sheet: usize) -> HostResult<Option<String>> {
+        if !self.enable_events {
+            return Ok(None);
+        }
+        let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
+        let Some(code_name) = doc.wb.sheet(sheet).and_then(|sheet| sheet.code_name.as_deref()) else {
+            return Ok(None);
+        };
+        let known = self.document_code_names.read().map_err(|_| failure(91, "document code-name registry unavailable"))?;
+        Ok(known.contains(&code_name.to_ascii_lowercase()).then(|| code_name.to_string()))
+    }
+    fn document_owner_object(&mut self, session: &Session, code_name: &str) -> HostResult<Value> {
+        let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
+        if doc.uid != self.doc {
+            return Err(failure(91, "document event owner is not in the bound workbook"));
+        }
+        self.context = doc.uid;
+        let object = if doc.wb.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(code_name)) {
+            Object::Workbook
+        } else {
+            let sheet = doc
+                .wb
+                .sheets
+                .iter()
+                .position(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(code_name)))
+                .ok_or_else(|| failure(91, "document code name no longer identifies a workbook object"))?;
+            Object::Sheet(sheet)
+        };
+        self.intern(object)
+    }
+    fn preflight_change(&mut self, session: &Session, sheet: usize) -> HostResult<Option<String>> {
+        let Some(code_name) = self.change_owner(session, sheet)? else {
+            return Ok(None);
+        };
+        self.reset_event_budget_if_idle();
+        if self.event_work >= MAX_QUEUED_EVENTS || self.pending_events.len() >= MAX_QUEUED_EVENTS {
+            return Err(failure(28, "worksheet event budget exceeded"));
+        }
+        Ok(Some(code_name))
+    }
+    fn queue_change(&mut self, code_name: String, sheet: usize, range: ranges::Range) -> HostResult<()> {
+        if self.group.is_empty() && self.pending_events.is_empty() {
+            self.event_work = 0;
+        }
+        if self.pending_events.len() >= MAX_QUEUED_EVENTS || self.event_work >= MAX_QUEUED_EVENTS {
+            return Err(failure(28, "worksheet event budget exceeded"));
+        }
+        let target = self.intern(Object::Range(sheet, range))?;
+        self.pending_events.try_reserve(1).map_err(|_| failure(7, "worksheet event queue allocation"))?;
+        self.pending_events.push_back((code_name, "Worksheet_Change".into(), vec![target]));
+        self.event_work = self.event_work.saturating_add(1);
+        Ok(())
+    }
+    pub fn notify_sheet_change(&mut self, session: &Session, sheet: usize, range: RangeRef) -> Result<()> {
+        if !self.current(session) || !self.permitted(session) {
+            return Ok(());
+        }
+        let Some(code_name) = self.preflight_change(session, sheet).map_err(|error| diagnostic(error.description))? else {
+            return Ok(());
+        };
+        self.queue_change(code_name, sheet, range.into()).map_err(|error| diagnostic(error.description))
+    }
+    /// Queue Workbook_Open only after the embedding has explicitly authorized execution.
+    /// Opening or decoding a package never calls this method automatically.
+    pub fn queue_workbook_open(&mut self, session: &Session) -> Result<()> {
+        if !self.current(session) {
+            return Err(diagnostic("Workbook_Open can only target the bound workbook"));
+        }
+        self.check(session).map_err(|error| diagnostic(error.description))?;
+        let doc = session.doc().map_err(diagnostic)?;
+        let code_name = doc.wb.code_name.as_deref().ok_or_else(|| diagnostic("workbook has no VBA code name"))?;
+        let registered = self
+            .document_code_names
+            .read()
+            .map_err(|_| diagnostic("document code-name registry unavailable"))?
+            .contains(&code_name.to_ascii_lowercase());
+        if !registered {
+            return Err(diagnostic("workbook code name has no imported document module"));
+        }
+        self.reset_event_budget_if_idle();
+        if self.pending_events.len() >= MAX_QUEUED_EVENTS || self.event_work >= MAX_QUEUED_EVENTS {
+            return Err(diagnostic("document event budget exceeded"));
+        }
+        self.pending_events.try_reserve(1).map_err(|_| diagnostic("document event queue allocation"))?;
+        self.pending_events.push_back((code_name.into(), "Workbook_Open".into(), vec![]));
+        self.event_work = self.event_work.saturating_add(1);
+        Ok(())
+    }
+    /// Decode VBA source without executing it or modifying the package. Document code names
+    /// must match the workbook/sheet identities preserved by XLSX.
     pub fn import_project(&self, session: &Session) -> Result<Ide> {
         let doc = session.doc().map_err(diagnostic)?;
         if doc.uid != self.doc {
@@ -200,17 +322,24 @@ impl Bridge {
         let mut ide = Ide::new();
         ide.title = format!("{} — VBA source", doc.title);
         for module in project.modules {
-            if module.kind != vba_project::ModuleKind::Standard {
-                // Preserve inert document declarations, but refuse executable class code.
-                if module.source.lines().any(|line| {
-                    let l = line.trim();
-                    !l.is_empty() && !l.starts_with("Attribute ") && !l.starts_with("Option ") && !l.starts_with('\'')
-                }) {
-                    return Err(diagnostic(format!("{}: executable class/document modules are not supported", module.name)));
+            match module.kind {
+                vba_project::ModuleKind::Standard => {
+                    ide.add_module(&format!("{}.bas", module.name), &module.source)?;
                 }
-                continue;
+                vba_project::ModuleKind::Class => {
+                    ide.add_module_with_kind(&format!("{}.cls", module.name), &module.source, vba_ide::ModuleKind::Class)?;
+                }
+                vba_project::ModuleKind::Document => {
+                    let code_name = module.code_name.as_deref().ok_or_else(|| diagnostic("document module has no code name"))?;
+                    let owns_workbook = doc.wb.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(code_name));
+                    let owns_sheet =
+                        doc.wb.sheets.iter().any(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(code_name)));
+                    if !owns_workbook && !owns_sheet {
+                        return Err(diagnostic(format!("{}: code name does not match workbook metadata", module.name)));
+                    }
+                    ide.add_document_module(&format!("{}.cls", module.name), code_name, &module.source)?;
+                }
             }
-            ide.add_module(&format!("{}.bas", module.name), &module.source)?;
         }
         self.configure(&mut ide)?;
         Ok(ide)
@@ -223,6 +352,9 @@ impl Bridge {
         if executes {
             self.begin(session)?;
         }
+        if matches!(action, Action::Reset) {
+            self.cancel_pending_events();
+        }
         let result = ide.dispatch(action, &mut self.host(session));
         if result.is_err() || matches!(action, Action::Reset) {
             self.finish(session)?;
@@ -230,18 +362,50 @@ impl Bridge {
         result
     }
     pub fn tick(&mut self, session: &mut Session, ide: &mut Ide) -> Result<()> {
-        if matches!(ide.mode(), Mode::Running | Mode::Waiting | Mode::Break | Mode::Stale)
-            && let Err(e) = self.check(session)
-        {
+        let active = matches!(ide.mode(), Mode::Running | Mode::Waiting | Mode::Break | Mode::Stale)
+            || matches!(ide.mode(), Mode::Completed | Mode::Design) && !self.pending_events.is_empty();
+        let validation = if active {
+            if session.document(self.doc).is_none() { Err(failure(91, "workbook closed before VBA event delivery")) } else { self.check(session) }
+        } else {
+            Ok(())
+        };
+        if let Err(e) = validation {
             // Cancel while the original host identity is still available; no side effects replay.
             let _ = ide.dispatch(Action::Reset, &mut self.host(session));
+            self.cancel_pending_events();
             self.finish(session)?;
             self.closed = true;
             self.objects.close();
             return Err(diagnostic(e.description));
         }
         let result = ide.tick(&mut self.host(session));
-        if result.is_err() || matches!(ide.mode(), Mode::Completed | Mode::Failed | Mode::Design) {
+        if result.is_ok() && matches!(ide.mode(), Mode::Completed | Mode::Design) {
+            if let Some((code_name, handler, arguments)) = self.pending_events.pop_front() {
+                self.event_owner_sheet = session.doc().ok().and_then(|doc| {
+                    doc.wb.sheets.iter().position(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(&code_name)))
+                });
+                if self.group.is_empty() {
+                    self.ensure_group(session, self.doc)?;
+                }
+                let owner = self.document_owner_object(session, &code_name).map_err(|error| diagnostic(error.description))?;
+                let Value::Object(owner) = owner else { return Err(diagnostic("document owner handle is not an object")) };
+                if let Err(error) = ide.dispatch_document_event_for_owner(&code_name, &handler, arguments, Some(owner), &mut self.host(session)) {
+                    self.cancel_pending_events();
+                    self.finish(session)?;
+                    return Err(error);
+                }
+            }
+        }
+        if result.is_err() || matches!(ide.mode(), Mode::Failed) {
+            self.cancel_pending_events();
+        }
+        if result.is_err()
+            || matches!(ide.mode(), Mode::Failed | Mode::Design)
+            || matches!(ide.mode(), Mode::Completed) && self.pending_events.is_empty()
+        {
+            if self.pending_events.is_empty() {
+                self.event_owner_sheet = None;
+            }
             self.finish(session)?;
         }
         result
@@ -257,6 +421,7 @@ impl Bridge {
     }
     pub fn close(&mut self, session: &mut Session, ide: &mut Ide, discard: bool) -> Result<()> {
         ide.close(&mut self.host(session), discard)?;
+        self.cancel_pending_events();
         self.finish(session)?;
         self.closed = true;
         self.objects.close();
@@ -282,17 +447,31 @@ impl Host for WorkbookHost<'_> {
             if call.target.host != self.bridge.identity || call.target.generation != self.bridge.doc {
                 return Err(failure(91, "stale or foreign object reference"));
             }
+            self.bridge.sync_sheets(self.session)?;
             let object = self.bridge.objects.get(call.target)?;
             let (doc, object) = match object {
                 Object::Document(doc, object) => (doc, *object),
                 object => (self.session.doc().map_err(|_| failure(91, "workbook closed"))?.uid, object),
+            };
+            let mutation = match &object {
+                Object::Range(sheet, range)
+                    if matches!(call.kind, InvokeKind::Let | InvokeKind::Set)
+                        && matches!(call.member.to_ascii_lowercase().as_str(), "value" | "value2" | "formula") =>
+                {
+                    self.bridge.preflight_change(self.session, *sheet)?.map(|code_name| (code_name, *sheet, range.clone()))
+                }
+                Object::Range(sheet, range) if call.kind == InvokeKind::Call && call.member.eq_ignore_ascii_case("ClearContents") => {
+                    self.bridge.preflight_change(self.session, *sheet)?.map(|code_name| (code_name, *sheet, range.clone()))
+                }
+                _ => None,
             };
             let target = self.session.document(doc).ok_or_else(|| failure(91, "workbook closed"))?;
             if !target.trust.allows_code() && !(doc == self.bridge.doc && self.bridge.consent) {
                 return Err(failure(70, "target workbook requires consent"));
             }
             self.bridge.ensure_group(self.session, doc).map_err(|e| failure(7, e.to_string()))?;
-            self.session
+            let result = self
+                .session
                 .with_target(gridcraft_engine::Target::Doc(doc), |session| {
                     self.bridge.sync_sheets(session)?;
                     // Resolve again after sheet topology synchronization.
@@ -302,7 +481,14 @@ impl Host for WorkbookHost<'_> {
                     };
                     self.bridge.invoke_object(session, object, call)
                 })
-                .map_err(|e| failure(91, e.to_string()))?
+                .map_err(|e| failure(91, e.to_string()))?;
+            self.bridge.sync_sheets(self.session)?;
+            if result.is_ok()
+                && let Some((code_name, sheet, range)) = mutation
+            {
+                self.bridge.queue_change(code_name, sheet, range)?;
+            }
+            result
         })();
         match result {
             Ok(value) => Reply::Complete(Completion { value, writes: vec![] }),
@@ -320,6 +506,7 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Application", "ActiveCell", "Property Get ActiveCell() As Range"),
         ("Application", "Selection", "Property Get Selection() As Range"),
         ("Application", "Calculation", "Property Calculation As XlCalculation"),
+        ("Application", "EnableEvents", "Property EnableEvents As Boolean"),
         ("Application", "Calculate", "Sub Calculate()"),
         ("Workbook", "Calculate", "Sub Calculate()"),
         ("Worksheet", "Name", "Property Name As String"),
@@ -396,6 +583,6 @@ pub fn catalog() -> Vec<ApiMember> {
         signature: signature.into(),
         supported: true,
     })
-    .chain([("ScreenUpdating", "Property ScreenUpdating As Boolean"), ("EnableEvents", "Property EnableEvents As Boolean")].into_iter().map(|(name, signature)| ApiMember { library: "Excel".into(), owner: "Application".into(), name: name.into(), signature: signature.into(), supported: false }))
+    .chain([("ScreenUpdating", "Property ScreenUpdating As Boolean")].into_iter().map(|(name, signature)| ApiMember { library: "Excel".into(), owner: "Application".into(), name: name.into(), signature: signature.into(), supported: false }))
     .collect()
 }

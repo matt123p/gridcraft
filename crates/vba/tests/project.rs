@@ -113,16 +113,24 @@ fn import_is_inert_preserves_source_and_runs_only_explicit_entry() {
 }
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
-fn executable_document_module_is_refused_without_mutation() {
+fn document_module_import_is_inert_and_code_name_bound() {
     let mut s = Session::new();
     s.new_workbook();
     let bytes = project(true);
-    std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().wb).vba_project = Some(bytes.into());
+    {
+        let document = s.doc_mut().unwrap();
+        let workbook = std::sync::Arc::make_mut(&mut document.wb);
+        workbook.sheet_mut(0).unwrap().code_name = Some("Module1".into());
+        workbook.vba_project = Some(bytes.clone().into());
+    }
     let b = Bridge::new(&s).unwrap();
-    let before = s.doc().unwrap().wb.clone();
-    let Err(error) = b.import_project(&s) else { panic!("expected refusal") };
-    assert!(error.message.contains("class/document"), "{error}");
-    assert_eq!(*before, *s.doc().unwrap().wb);
+    let ide = b.import_project(&s).unwrap();
+    assert_eq!(ide.mode(), Mode::Design);
+    assert_eq!(ide.modules.len(), 1);
+    assert_eq!(ide.modules[0].code_name.as_deref(), Some("Module1"));
+    assert_eq!(s.doc().unwrap().undo.len(), 0);
+    assert!(s.doc().unwrap().wb.sheet(0).unwrap().value(gridcraft_engine::cell(0, 0)).is_empty());
+    assert_eq!(s.doc().unwrap().wb.vba_project.as_deref().unwrap().as_slice(), bytes);
 }
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]

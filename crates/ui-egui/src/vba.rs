@@ -117,6 +117,7 @@ pub fn commands(app: &SheetApp) -> Vec<Json> {
         ("vba.apply", "Save VBA Source to Workbook", "{}", None),
         ("vba.entries", "VBA Procedures", "{}", None),
         ("vba.invoke", "Run Assigned Macro", "{entry: string}", None),
+        ("vba.workbookOpen", "Run Workbook_Open Event", "{}", None),
         ("vba.assign", "Assign Macro", "{entry: string, id?: shape, at?: cell, caption?: string}", None),
         ("vba.pin", "Assign Toolbar Macro", "{entry: string, remove?: bool}", None),
         ("vba.designMode", "Design Mode", "{on: bool}", None),
@@ -144,6 +145,104 @@ pub fn before_command(app: &mut SheetApp, id: &str) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Capture supported cell/range content edits after the engine commits them. VBA-authored
+/// writes queue events at the native host boundary instead, avoiding dispatch before commit.
+pub fn after_engine_command(app: &mut SheetApp, id: &str, params: &Json, result: &Json) {
+    if !matches!(
+        id,
+        "cell.set"
+            | "range.setContents"
+            | "range.setValues"
+            | "range.fill"
+            | "edit.clearContents"
+            | "edit.clearAll"
+            | "edit.cut"
+            | "edit.paste"
+            | "edit.pasteSpecial"
+            | "edit.autoFill"
+            | "edit.fillDown"
+            | "edit.fillRight"
+            | "edit.fillUp"
+            | "edit.fillLeft"
+            | "edit.fillSeries"
+            | "edit.flashFill"
+            | "data.flashFill"
+            | "data.sortAscending"
+            | "data.sortDescending"
+            | "data.sort"
+            | "data.removeDuplicates"
+            | "data.textToColumns"
+    ) {
+        return;
+    }
+    if id == "edit.pasteSpecial"
+        && params.get("link").and_then(Json::as_bool).is_none_or(|link| !link)
+        && params
+            .get("what")
+            .and_then(Json::as_str)
+            .is_some_and(|what| matches!(what, "formats" | "comments" | "notes" | "validation" | "columnWidths"))
+    {
+        return;
+    }
+    if id == "edit.autoFill" && params.get("mode").and_then(Json::as_str).is_some_and(|mode| mode.eq_ignore_ascii_case("formats")) {
+        return;
+    }
+    if id == "data.removeDuplicates" && result.get("removed").and_then(Json::as_u64) == Some(0) {
+        return;
+    }
+    let Some(editor) = app.vba.as_mut() else { return };
+    if !editor.bridge.current(&app.session) {
+        return;
+    }
+    let Ok(doc) = app.session.doc() else { return };
+    let default_sheet = doc.wb.active_sheet();
+    let sheet = match params.get("sheet") {
+        Some(Json::Number(number)) => number.as_u64().and_then(|index| usize::try_from(index).ok()),
+        Some(Json::String(name)) => doc.wb.sheet_index(name),
+        None | Some(Json::Null) => Some(default_sheet),
+        _ => None,
+    };
+    let Some(sheet) = sheet.filter(|index| *index < doc.wb.sheets.len()) else { return };
+    let target = if id == "cell.set" {
+        params.get("cell").and_then(Json::as_str).and_then(gridcraft_engine::core::CellRef::parse).map(gridcraft_engine::core::RangeRef::cell)
+    } else if matches!(id, "edit.paste" | "edit.pasteSpecial")
+        && let Some(pasted) = result.get("pasted").and_then(Json::as_str).and_then(gridcraft_engine::core::RangeRef::parse)
+    {
+        Some(pasted)
+    } else if id == "edit.paste"
+        && let (Some(rows), Some(cols)) = (result.get("rows").and_then(Json::as_u64), result.get("cols").and_then(Json::as_u64))
+        && rows > 0
+        && cols > 0
+    {
+        let start =
+            params.get("at").and_then(Json::as_str).and_then(gridcraft_engine::core::CellRef::parse).unwrap_or_else(|| doc.selection.current().start);
+        let row_offset = i64::try_from(rows.saturating_sub(1)).ok();
+        let col_offset = i64::try_from(cols.saturating_sub(1)).ok();
+        row_offset.zip(col_offset).map(|(row_offset, col_offset)| {
+            let end = start.offset_clamped(row_offset, col_offset);
+            gridcraft_engine::core::RangeRef::new(start, end)
+        })
+    } else if id == "edit.autoFill" {
+        params.get("target").and_then(Json::as_str).and_then(gridcraft_engine::core::RangeRef::parse)
+    } else if id == "data.textToColumns" {
+        result.get("range").and_then(Json::as_str).and_then(gridcraft_engine::core::RangeRef::parse)
+    } else {
+        params
+            .get("range")
+            .and_then(Json::as_str)
+            .and_then(gridcraft_engine::core::RangeRef::parse)
+            .or_else(|| {
+                params.get("at").and_then(Json::as_str).and_then(gridcraft_engine::core::CellRef::parse).map(gridcraft_engine::core::RangeRef::cell)
+            })
+            .or_else(|| Some(doc.selection.current()))
+    };
+    if let Some(target) = target
+        && let Err(error) = editor.bridge.notify_sheet_change(&app.session, sheet, target)
+    {
+        editor.ide.message(error.to_string());
+    }
 }
 
 /// UI-only commands are also reachable through SheetApp::run/control, with no dialogs.
@@ -213,6 +312,12 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
         app.vba = Some(editor);
         return Ok(json!({"opened":true,"executed":false}));
     }
+    if id == "vba.importSource" {
+        let mut editor = app.vba.take().ok_or("VBA editor is not open")?;
+        let imported = import_source(app, &mut editor.ide);
+        app.vba = Some(editor);
+        return imported.map(|imported| json!({"imported":imported}));
+    }
     if matches!(id, "vba.invoke" | "vba.assign" | "vba.pin" | "vba.entries" | "vba.designMode") && app.vba.is_none() {
         if id == "vba.invoke" {
             let doc = app.session.doc().map_err(error)?;
@@ -230,6 +335,11 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
     }
     let editor = app.vba.as_mut().ok_or("VBA editor is not open")?;
     match id {
+        "vba.workbookOpen" => {
+            editor.bridge.queue_workbook_open(&app.session).map_err(error)?;
+            editor.visible = true;
+            return Ok(json!({"queued":true,"executed":false}));
+        }
         "vba.status" => {
             return Ok(
                 json!({"mode":editor.ide.mode().label(),"separateWindow":editor.separate_window,"visible":editor.visible,"output":editor.ide.output(),"diagnostics":editor.ide.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>()}),
@@ -639,7 +749,7 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
                 save_source(app, &name, &text).and_then(|saved| if saved { editor.ide.mark_saved(id, revision).map_err(error) } else { Ok(()) })
             }
             HostRequest::Export { name, text } => save_source(app, &name, &text).map(|_| ()),
-            HostRequest::Import => import_source(app, &mut editor.ide),
+            HostRequest::Import => import_source(app, &mut editor.ide).map(|_| ()),
         };
         if let Err(e) = result {
             editor.ide.message(e);
@@ -688,14 +798,14 @@ fn save_source(app: &SheetApp, name: &str, text: &str) -> Result<bool> {
     }
     Err("No source export service is available.".into())
 }
-fn import_source(app: &SheetApp, ide: &mut Ide) -> Result<()> {
+fn import_source(app: &SheetApp, ide: &mut Ide) -> Result<bool> {
     let Some(pick) = &app.services.pick_open else { return Err("Use vba.open with source text to import VBA in this host.".into()) };
-    let Some(path) = pick() else { return Ok(()) };
+    let Some(path) = pick() else { return Ok(false) };
     let bytes = read_source(&path)?;
     let text = String::from_utf8(bytes).map_err(error)?;
     let name = std::path::Path::new(&path).file_name().and_then(|n| n.to_str()).ok_or("invalid module name")?;
-    ide.add_module(name, &text).map_err(error)?;
-    Ok(())
+    ide.import_source_file(name, &text).map_err(error)?;
+    Ok(true)
 }
 
 #[cfg(not(target_arch = "wasm32"))]

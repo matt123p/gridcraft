@@ -951,6 +951,7 @@ fn text_to_columns(s: &mut Session, p: &Json) -> Result<Json> {
     let consecutive = bool_param(p, "treatConsecutive").unwrap_or(false);
     let quote = str_param(p, "textQualifier").and_then(|q| q.chars().next()).unwrap_or('"');
     let dest = cell_param_on(s, p, "destination", sheet)?.unwrap_or(r.start);
+    let mut output_end = dest;
     edit(s, |cx| {
         let Some(sh) = cx.wb.sheet(sheet) else { return Ok(()) };
         let mut out: Vec<(CellRef, String)> = Vec::new();
@@ -976,6 +977,7 @@ fn text_to_columns(s: &mut Session, p: &Json) -> Result<Json> {
             }
         }
         for (c, t) in out {
+            output_end = CellRef::new(output_end.row.max(c.row), output_end.col.max(c.col));
             let cell = super::edit::input_to_cell(&t, sheet, c, &mut cx.wb).unwrap_or(None);
             let shm = cx.sheet_mut(sheet)?;
             match cell {
@@ -988,7 +990,7 @@ fn text_to_columns(s: &mut Session, p: &Json) -> Result<Json> {
         }
         Ok(())
     })?;
-    ok()
+    Ok(json!({"range": RangeRef::new(dest, output_end).a1()}))
 }
 
 fn split_delimited(text: &str, delims: &[char], consecutive: bool, quote: char) -> Vec<String> {

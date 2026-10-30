@@ -72,6 +72,9 @@ pub struct Sheet {
     #[serde(skip)]
     pub identity: SheetIdentity,
     pub name: String,
+    /// VBA document-module identity from worksheet `sheetPr/@codeName`, when present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_name: Option<String>,
     /// The `sheetId` the file gave the sheet, written back on save so that what refers to the
     /// sheet by its id keeps finding it; 0 for a sheet the file did not have. Not in JSON.
     #[serde(skip)]
@@ -167,6 +170,7 @@ impl Sheet {
         Sheet {
             identity: SheetIdentity::default(),
             name: name.into(),
+            code_name: None,
             file_id: 0,
             cells: CellStore::new(),
             cell_pictures: BTreeMap::new(),

@@ -435,6 +435,10 @@ fn direct(app: &mut SheetApp, id: &str, p: &Json, via_app: bool) -> Result<Json,
     }
     let guard = app.session.enter_target(target).map_err(|e| e.to_string())?;
     let r = app.session.run(id, params);
+    #[cfg(feature = "vba")]
+    if let Ok(result) = &r {
+        crate::vba::after_engine_command(app, id, p, result);
+    }
     app.session.leave_target(guard);
     r
 }

@@ -29,11 +29,11 @@ refusal test proves a clear boundary, not compatibility with the rejected source
 | Range values | Format-derived Date/Currency Value versus numeric Value2; scalar/1-based 2D reads; lower-bound-aware array cropping/error fill or scalar broadcast | No RangeValueDataType, Formula2/FormulaR1C1; fictitious Excel leap-day Date is refused |
 | Value conversion | Typed native atomic values/formats, known CVErrs, General input/formula conversion and literal Text-format strings | en-US engine conversion profile; no universal locale compatibility; invalid UTF-16/unknown errors and inexact oversized integers refuse |
 | ClearContents/Address | Undoable native clearing/structure; Address optional/named A1/R1C1, absolute/mixed/relative/external forms | External owner title/sheet supported; saved filesystem path/closed external references remain outside profile; M3 structural limits retained |
-| Implicit roots | Application, ThisWorkbook, active workbook/sheet/cell/selection, collections, Range/Cells/Rows/Columns | Fresh getter resolution at source access; captured results retain identity; no document code-name binding yet |
-| Language and references | Standard-module subset, Object/Variant late binding, explicit properties and registered Excel Application/Workbook/Worksheet/Range/Worksheets/Sheets nominal types, defaults and For Each | The supplied reference snapshot is a bounded adapter profile, not a complete Excel typelib/COM loader. Document codenames, broader collections, classes/UserForms and unregistered Excel types remain unsupported |
-| Project import | Inert read-only standard-module extraction; original VBA bytes preserved | Executable workbook/worksheet/class modules reject import; no Workbook_Open/Worksheet_Change event dispatch, controls/forms designer or P-code execution. Source edits do not rewrite vbaProject.bin or signatures |
-| Worksheet UDFs | Public standard-module functions, value-only arguments/results, recalculation/spill and bounded execution | Reference arguments are value arrays, not Range objects; no Caller/Volatile, persistent UDF state or host access. Thus Range-typed/context-sensitive Excel UDFs do not work unchanged |
-| Buttons/toolbars | Explicit public no-argument Sub assignment; inert DrawingML macro association and GridCraft toolbar metadata | Not full Excel Forms/ActiveX/control/event/CommandBars/Ribbon object models; no UserForm execution |
+| Implicit roots | Application, ThisWorkbook, active workbook/sheet/cell/selection, collections, Range/Cells/Rows/Columns | Fresh getter resolution at source access; worksheet event calls scope unqualified Range construction to the code-name owner, and `Me` forwards through the captured live document owner. Unsupported catalogue members still refuse |
+| Language and references | Standard-module subset, Object/Variant late binding, explicit properties and registered Excel Application/Workbook/Worksheet/Range/Worksheets/Sheets nominal types, defaults and For Each | The supplied reference snapshot is a bounded adapter profile, not a complete Excel typelib/COM loader. Broader collections, classes/UserForms and unregistered Excel types remain unsupported |
+| Project import | Inert read-only standard/class/document-module extraction; original VBA bytes preserved | The declared M5 event profile is accepted: Workbook_Open is explicit, Worksheet_Change ordering/lifecycle and reviewed native edit sources are tested, and document `Me` dispatch binds to live workbook/sheet objects. Unsupported members still refuse. Source edits do not rewrite vbaProject.bin or signatures |
+| Worksheet UDFs | Public standard-module functions, direct Range reference arguments, read-only Range values, Caller/Volatile, persistent project state, tested Date/Currency `Value` versus numeric `Value2`, and bounded execution | The declared M5 UDF profile is accepted against authored GridCraft workbook state; context-dependent document roots and cross-workbook/add-in registration remain unsupported |
+| Buttons/toolbars/forms | Explicit public no-argument Sub assignment; inert DrawingML macro association; `.tvform` Label/TextBox/CommandButton runtime through the embedded IDE and workbook host | Not Office binary UserForm resources, ActiveX/control/CommandBars/Ribbon object models or workbook form persistence |
 | Lifetime/resources | Per-target consent, document UIDs, stable sheet tokens, per-document undo groups and M3 resource bounds | External structural edits/undo invalidate saved coordinates with 1004; deleted sheets/closed documents refuse instead of retargeting |
 
 The catalogue describes this implemented projection for completion. It is not an
@@ -72,16 +72,17 @@ format/Clippy, assets/layers and browser compilation).
 ## Stages toward unchanged workbooks
 
 M1 registered types, defaults and selected collection workflows are implemented;
-see the acceptance reports. Remaining stages:
+see the acceptance reports. M5 document modules, events and Range-aware UDFs are
+accepted for the declared profile; see [the M5 evidence](../../tiny-vba/docs/m5-acceptance.md).
+Remaining stages:
 
 M3 range/worksheet and M4 identity/value/member implementations are described in
 [M3 acceptance](vba-m3-ranges-and-worksheets.md) and
 [M4 acceptance](vba-m4-identity-values-and-members.md). M4 uses the published immutable tiny-vba dependency; no local path override remains.
 
-3. Integrate document modules/codenames and events with defined ordering,
-   EnableEvents, cancellation and recursion budgets; then Range-aware UDFs and
-   control events. Coordinate reusable language work in tiny-vba and Office
-   behavior in GridCraft, retaining separate repositories.
+3. Expand application-specific support beyond the accepted M5 profile. Coordinate
+   reusable language work in tiny-vba and Office behavior in GridCraft, retaining
+   separate repositories.
 4. Select a reviewed, licensed workbook corpus with declared dependencies and
    independently established expected results. Report load/compile/run/save
    results separately, including source-byte identity, exact value/error tags,

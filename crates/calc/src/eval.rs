@@ -82,7 +82,12 @@ pub trait Host {
         false
     }
     /// Optional application-owned functions. No document mutation is exposed.
-    fn custom_function(&mut self, _name: &str, _args: &[Value]) -> Option<Value> {
+    fn custom_function(
+        &mut self,
+        _name: &str,
+        _context: crate::CustomFunctionContext,
+        _args: &[crate::CustomFunctionArgument],
+    ) -> Option<crate::CustomFunctionResult> {
         None
     }
     fn workbook(&self) -> &Workbook;
@@ -912,6 +917,10 @@ impl<'h> Evaluator<'h> {
                             return err(CellError::Value);
                         }
                     }
+                    let references = match &ev {
+                        Ev::R(areas) => areas.clone(),
+                        _ => Vec::new(),
+                    };
                     let value = self.deref(ev);
                     let data = match &value {
                         Value::Array(a) => a.data.as_slice(),
@@ -931,10 +940,13 @@ impl<'h> Evaluator<'h> {
                     if bytes > 8 * 1024 * 1024 {
                         return err(CellError::Value);
                     }
-                    values.push(value);
+                    values.push(crate::CustomFunctionArgument { value, references });
                 }
-                if let Some(value) = self.host.custom_function(name, &values) {
-                    return Ev::V(value);
+                if let Some(result) = self.host.custom_function(name, crate::CustomFunctionContext { sheet: self.sheet, caller: self.at }, &values) {
+                    if result.volatile {
+                        self.host.note_volatile();
+                    }
+                    return Ev::V(result.value);
                 }
             }
             // A defined name holding a LAMBDA, or a LET-bound lambda.
@@ -2005,7 +2017,6 @@ pub fn precedents(wb: &Workbook, sheet: usize, e: &Expr) -> (Vec<Area>, bool) {
             dynamic = true
         }
         Expr::Name(_) | Expr::Struct(_) => dynamic = true,
-        Expr::Call(n, _) if gridcraft_functions::lookup(n).is_none() && !is_special(n) => dynamic = true,
         // A range ending in a function's result (`A1:INDEX(B1:B9,n)`) covers the cells between
         // the references inside it, not only those references.
         Expr::Binary(BinOp::Range, a, b) if !matches!((&**a, &**b), (Expr::Ref(_), Expr::Ref(_))) => {
