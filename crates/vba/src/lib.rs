@@ -159,6 +159,16 @@ impl Bridge {
         Ok(Value::Object(self.reference(index)))
     }
     pub fn configure(&self, ide: &mut Ide) -> Result<()> {
+        self.configure_with_workbook(ide, None)
+    }
+    /// Declare the open workbook's document context: implicit `Me` members per
+    /// document module (derived from the supported catalogue), instance types for
+    /// completion and result types for host globals. Metadata only; code aids stay
+    /// read-only and never invoke host members.
+    pub fn configure_document(&self, ide: &mut Ide, wb: &gridcraft_model::Workbook) -> Result<()> {
+        self.configure_with_workbook(ide, Some(wb))
+    }
+    fn configure_with_workbook(&self, ide: &mut Ide, wb: Option<&gridcraft_model::Workbook>) -> Result<()> {
         if let Ok(mut names) = self.document_code_names.write() {
             names.clear();
             names.extend(ide.modules.iter().filter_map(|module| {
@@ -167,7 +177,38 @@ impl Bridge {
         }
         ide.configure_host(self.imports(), self.roots(), catalog())?;
         ide.configure_reference_bindings(types::references()?)?;
-        ide.configure_type_resolver(Some(self.objects.clone()))
+        ide.configure_type_resolver(Some(self.objects.clone()))?;
+        let Some(wb) = wb else {
+            return Ok(());
+        };
+        let supported = |owner: &str| {
+            let mut names: Vec<String> =
+                catalog().iter().filter(|item| item.supported && item.owner == owner).map(|item| item.name.clone()).collect();
+            names.sort_by_key(|name| name.to_ascii_lowercase());
+            names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+            names
+        };
+        let mut document_members = BTreeMap::new();
+        let mut document_types = BTreeMap::new();
+        if let Some(code) = wb.code_name.as_deref() {
+            let key = code.to_ascii_lowercase();
+            document_members.insert(key.clone(), supported("Workbook"));
+            document_types.insert(key, "Workbook".into());
+        }
+        for sheet in &wb.sheets {
+            let Some(code) = sheet.code_name.as_deref() else {
+                continue;
+            };
+            let key = code.to_ascii_lowercase();
+            document_members.insert(key.clone(), supported("Worksheet"));
+            document_types.insert(key, "Worksheet".into());
+        }
+        ide.configure_document_context(
+            document_members,
+            document_types,
+            Self::HOST_GLOBAL_TYPES.iter().map(|(name, ty)| (name.to_string(), ty.to_string())).collect(),
+        )?;
+        Ok(())
     }
     pub(crate) fn roots(&self) -> BTreeMap<String, ObjectRef> {
         BTreeMap::from([
@@ -196,6 +237,21 @@ impl Bridge {
         }
         imports
     }
+    /// Declared result type of each host global for read-only completion metadata.
+    const HOST_GLOBAL_TYPES: &'static [(&'static str, &'static str)] = &[
+        ("Application", "Application"),
+        ("ThisWorkbook", "Workbook"),
+        ("ActiveWorkbook", "Workbook"),
+        ("ActiveSheet", "Worksheet"),
+        ("ActiveCell", "Range"),
+        ("Selection", "Range"),
+        ("Worksheets", "Worksheets"),
+        ("Sheets", "Sheets"),
+        ("Range", "Range"),
+        ("Cells", "Range"),
+        ("Rows", "Range"),
+        ("Columns", "Range"),
+    ];
     /// Consent applies only to this editor/document instance. It never changes provenance.
     pub fn consent(&mut self, allow: bool) {
         self.consent = allow;
@@ -341,7 +397,7 @@ impl Bridge {
                 }
             }
         }
-        self.configure(&mut ide)?;
+        self.configure_with_workbook(&mut ide, Some(doc.wb.as_ref()))?;
         Ok(ide)
     }
     pub fn host<'a>(&'a mut self, session: &'a mut Session) -> WorkbookHost<'a> {
@@ -379,21 +435,22 @@ impl Bridge {
             return Err(diagnostic(e.description));
         }
         let result = ide.tick(&mut self.host(session));
-        if result.is_ok() && matches!(ide.mode(), Mode::Completed | Mode::Design) {
-            if let Some((code_name, handler, arguments)) = self.pending_events.pop_front() {
-                self.event_owner_sheet = session.doc().ok().and_then(|doc| {
-                    doc.wb.sheets.iter().position(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(&code_name)))
-                });
-                if self.group.is_empty() {
-                    self.ensure_group(session, self.doc)?;
-                }
-                let owner = self.document_owner_object(session, &code_name).map_err(|error| diagnostic(error.description))?;
-                let Value::Object(owner) = owner else { return Err(diagnostic("document owner handle is not an object")) };
-                if let Err(error) = ide.dispatch_document_event_for_owner(&code_name, &handler, arguments, Some(owner), &mut self.host(session)) {
-                    self.cancel_pending_events();
-                    self.finish(session)?;
-                    return Err(error);
-                }
+        if result.is_ok()
+            && matches!(ide.mode(), Mode::Completed | Mode::Design)
+            && let Some((code_name, handler, arguments)) = self.pending_events.pop_front()
+        {
+            self.event_owner_sheet = session.doc().ok().and_then(|doc| {
+                doc.wb.sheets.iter().position(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(&code_name)))
+            });
+            if self.group.is_empty() {
+                self.ensure_group(session, self.doc)?;
+            }
+            let owner = self.document_owner_object(session, &code_name).map_err(|error| diagnostic(error.description))?;
+            let Value::Object(owner) = owner else { return Err(diagnostic("document owner handle is not an object")) };
+            if let Err(error) = ide.dispatch_document_event_for_owner(&code_name, &handler, arguments, Some(owner), &mut self.host(session)) {
+                self.cancel_pending_events();
+                self.finish(session)?;
+                return Err(error);
             }
         }
         if result.is_err() || matches!(ide.mode(), Mode::Failed) {

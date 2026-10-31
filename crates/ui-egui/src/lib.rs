@@ -1291,6 +1291,8 @@ impl SheetApp {
                 if !unchanged {
                     vba::after_engine_command(self, event_id, &event_params, &result);
                 }
+                #[cfg(not(feature = "vba"))]
+                let _ = result;
                 if dr != 0 || dc != 0 {
                     self.move_after_enter(dr, dc);
                 }

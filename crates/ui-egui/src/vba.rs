@@ -293,6 +293,10 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             ide
         };
         ide.title = format!("VBAProject ({})", app.session.doc().map_err(error)?.title);
+        // Document context is metadata only, but it must see the live workbook's
+        // code names so worksheet modules resolve implicit Me members and the IDE
+        // completes host objects without ever invoking them.
+        bridge.configure_document(&mut ide, &app.session.doc().map_err(error)?.wb).map_err(error)?;
         let mut editor = Editor {
             ide,
             bridge,

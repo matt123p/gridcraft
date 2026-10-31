@@ -276,7 +276,7 @@ impl Host for ReadOnly<'_> {
                         .first()
                         .map(|argument| vba_runtime::condition(&argument.value))
                         .transpose()
-                        .map_err(|error| values::runtime_error(error))?
+                        .map_err(values::runtime_error)?
                         .unwrap_or(true);
                     self.volatile.store(volatile, Ordering::Release);
                     Ok(Value::Empty)

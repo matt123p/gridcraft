@@ -1,10 +1,10 @@
 # M6 integration evidence: GridCraft
 
-Updated 2026-10-30. This records the GridCraft portion of tiny-vba M6. M6.1's
+Updated 2026-10-31. This records the GridCraft portion of tiny-vba M6. M6.1's
 Word object profile belongs to WordCraft; this document checks GridCraft against
-the shared-editor and real-workbook portions of M6. GridCraft remains on
-`feat/m5-document-events-udfs`; the tiny-vba dependencies are pinned to
-`98c7038a297ca9453c01d7e4a5530e8fc8865a10` (the merged M5 API).
+the shared-editor and real-workbook portions of M6. GridCraft is on
+`feat/tiny-vba-integration`; the tiny-vba dependencies are pinned to
+`da8e14938028a956749712676c742c92fb30c362` (the M6 shared API).
 
 ## Status
 
@@ -38,3 +38,36 @@ import, and return routing. Source import is inert.
 No Excel reference build was exercised for this evidence set. These are authored
 GridCraft contract tests, not Excel compatibility observations. See
 [`vba.md`](vba.md) for the bounded object profile and compatibility limits.
+
+## Module-context conformance and completion update (2026-10-31)
+
+GridCraft completed its M6.7 acceptance on the shared tiny-vba revision
+`da8e14938028a956749712676c742c92fb30c362` (the M6 resolution/With/implicit-member
+API, immutable Git pin, no path override). The adapter declares each document
+module's implicit `Me` members from the supported catalogue (`Bridge::configure_document`,
+keyed by live workbook code names: worksheet modules get the Worksheet catalogue members,
+`ThisWorkbook` gets the Workbook members) and declares host-global result types and
+document instance types for the shared IDE's read-only completion.
+
+The specifications' unshadowed module-kind binding and live host-global consultation
+cases now run as authored workflows against real workbook state in
+`crates/vba/tests/context_resolution.rs` (four tests, native; wasm-bindgen targets
+included):
+
+- worksheet-module bare `Range` writes the module's own sheet while a different
+  sheet is active; bare `ActiveSheet` in the same handler resolves live;
+- `ThisWorkbook`-module bare `Range` follows the active sheet while
+  `Me.Worksheets("Data")` and `Me.Name` stay on the project workbook;
+- pausing a worksheet event, activating another sheet and moving the selection
+  externally, then resuming, proves per-invocation consultation of live state and
+  that bare `Range` in the worksheet module never follows the active sheet;
+- declared host globals and call-shaped receivers (`ThisWorkbook.`, `Range("A1").`,
+  `Worksheets("Data").`, `Sheet1.`) complete through the shared editor with zero
+  host dispatch and no cell writes.
+
+The adapter test suite passes 74 native tests (`cargo test -p gridcraft-vba`);
+`vba_events` (5), `vba_forms` (1) and `vba` (21) UI tests pass with the `vba`
+feature. `Application.Run`, add-ins and chart sheets remain refused/NOT_RUN in
+tiny-vba's [M6.5 check](../../../tiny-vba/docs/m6-context-resolution-check.md);
+Microsoft Excel reference observations remain NOT_RUN (no Office session on this
+machine). Package round trips and signatures stay in M7.
