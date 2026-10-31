@@ -28,7 +28,7 @@ The interpreter, debugger, source importer and editor remain in the separate
 revision in Cargo manifests/lockfile. No sibling checkout or copied interpreter
 code is needed. WordCraft can use the same native protocol and revision with its
 own document objects. Workspace-root egui patches select the shared reviewed fork.
-The pin is `22cc845e5ee74a1bcd15eec32cdb8a8f18d316f8`; corpus/reference
+The pin is `98c7038a297ca9453c01d7e4a5530e8fc8865a10`; corpus/reference
 submodules are opt-in and are not fetched by dependency builds.
 
 ## Ownership and commands
