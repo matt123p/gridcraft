@@ -68,7 +68,7 @@ fn project(document: bool) -> Vec<u8> {
     for id in [if document { 0x22 } else { 0x21 }, 0x2b, 0x10] {
         tlv(&mut dir, id, b"");
     }
-    let kind = if document { "Document=Module1/00000000" } else { "Module=Module1" };
+    let kind = if document { "Document=Module1/&H00000000" } else { "Module=Module1" };
     let metadata = format!(
         "ID=\"{{00000000-0000-0000-0000-000000000000}}\"\r\n{kind}\r\nName=\"AuthoredProject\"\r\nCMG={}\r\nDPB={}\r\nGC={}\r\n",
         protection(&[0; 4]),
