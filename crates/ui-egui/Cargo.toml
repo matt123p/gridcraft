@@ -22,7 +22,7 @@ gridcraft-vba = { path = "../vba", optional = true }
 vba-ui-egui = { git = "https://github.com/matt123p/tiny-vba.git", rev = "9eb3e4111d8a78b88b26d22d26571e86efd93871", optional = true }
 # The shared capture slot (`craft_ui::capture`) comes from the one craft-libs revision every
 # craft-libs dependency uses (see the root Cargo.toml).
-craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "b926b5c03e256c86ca10934f58d03f628810b5b7" }
+craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "c5a1cbfb5f9049f9270955caffb5bee5997aebf7" }
 gridcraft-engine = { workspace = true }
 gridcraft-chart = { workspace = true }
 # `monochrome_emoji_fonts` restores the Noto Emoji and emoji-icon faces that 0.37 moved behind
@@ -34,6 +34,7 @@ serde_json = { workspace = true }
 log = { workspace = true }
 image = { workspace = true }
 skrifa = { workspace = true }
+web-time = { workspace = true }
 
 # Linux only, where winit reports no system theme: the desktop portal's light/dark answer (see
 # `desktop_theme.rs`). Already in the tree, with these features, through egui's own

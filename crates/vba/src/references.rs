@@ -1,7 +1,7 @@
 //! Bounded reference grammar: geometry and names, never formula evaluation.
 use super::objects::{arguments, required, string};
 use super::ranges::{Range, Unit};
-use super::*;
+use super::{Bridge, HostCall, HostResult, Object, Session, Value, failure};
 use gridcraft_engine::core::{CellRef, RangeRef, split_sheet};
 
 // Split operators outside quoted worksheet names, including escaped apostrophes.

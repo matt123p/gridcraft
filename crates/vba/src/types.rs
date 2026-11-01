@@ -1,5 +1,5 @@
 //! Excel type definitions stay in GridCraft. tiny-vba sees opaque nominal identities.
-use super::*;
+use super::{HostResult, MAX_OBJECTS, Object, ObjectRef, Ordering, Result, Value, failure, ranges};
 use std::sync::{RwLock, atomic::AtomicBool};
 use vba_foreign::{ObjectTypeResolver, ReferenceConstant, ReferenceLibrary, ReferenceSet, ReferenceType, ReferenceTypeKind};
 use vba_values::NominalType;
@@ -304,7 +304,9 @@ impl ObjectTypeResolver for Objects {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{EXCEL_TYPES_VERSION, NominalType, Objects};
+    use crate::{Object, ObjectRef};
+    use vba_foreign::ObjectTypeResolver;
     #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
     #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
     fn type_queries_use_current_handles_and_shared_store_lifetime() -> std::result::Result<(), Box<dyn std::error::Error>> {

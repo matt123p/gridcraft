@@ -1,7 +1,7 @@
 //! Excel arguments end here; the engine owns protection, movement, undo and recalculation.
 use super::objects::{arguments, numeric_index};
 use super::ranges::Range;
-use super::*;
+use super::{Bridge, HostCall, HostResult, MAX_CELLS, Session, Value, failure};
 use gridcraft_engine::StructuralEdit;
 impl Bridge {
     pub(crate) fn structural(&mut self, session: &mut Session, sheet: usize, range: &Range, call: &HostCall) -> HostResult<Value> {

@@ -1,5 +1,5 @@
 //! Lightweight Excel references; materialization belongs to values, never construction.
-use super::*;
+use super::{HostResult, MAX_OBJECTS, failure};
 use gridcraft_engine::core::{CellRef, MAX_COLS, MAX_ROWS, RangeRef};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Unit {

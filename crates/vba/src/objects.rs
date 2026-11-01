@@ -1,5 +1,5 @@
 use super::ranges::{Range, Unit};
-use super::*;
+use super::{Bridge, HostCall, HostResult, InvokeKind, MAX_OBJECTS, Session, Value, failure, ranges, values};
 use gridcraft_engine::core::RangeRef;
 use vba_foreign::HostArgument;
 
@@ -165,6 +165,10 @@ impl Bridge {
         }
         Ok(Value::Array(array))
     }
+    /// Single dispatcher over the Excel object profile: each branch mirrors one member name or
+    /// object kind. Splitting the ladder into helpers would separate the mapping from VBA's own
+    /// member table, so the size is deliberate.
+    #[allow(clippy::cognitive_complexity)]
     pub(crate) fn invoke_object(&mut self, session: &mut Session, object: Object, call: HostCall) -> HostResult<Value> {
         if let Object::Sheet(s) | Object::Range(s, _) | Object::Areas(s, _) = &object
             && session.doc().map_err(|_| failure(91, "workbook closed"))?.wb.sheet(*s).is_none()

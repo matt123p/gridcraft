@@ -1,6 +1,6 @@
 //! Live formatting objects use the same range identity, protection and command history.
 use super::objects::{arguments, numeric_index, required};
-use super::*;
+use super::{Bridge, HostCall, HostResult, InvokeKind, Session, Value, address, failure, ranges, values};
 use gridcraft_engine::{StyleChange, model::Style};
 impl Bridge {
     fn styles<'a>(&self, session: &'a Session, sheet: usize, range: &ranges::Range) -> HostResult<Vec<&'a Style>> {

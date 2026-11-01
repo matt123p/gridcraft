@@ -11,7 +11,8 @@ use gridcraft_vba::{
 use serde_json::json;
 use std::sync::{Arc, atomic::Ordering};
 type R = Result<(), Box<dyn std::error::Error>>;
-fn setup(source: &str) -> Result<(Session, Project, Arc<Functions>, Bridge), Box<dyn std::error::Error>> {
+type Setup = (Session, Project, Arc<Functions>, Bridge);
+fn setup(source: &str) -> Result<Setup, Box<dyn std::error::Error>> {
     let mut s = Session::new();
     s.new_workbook();
     let b = Bridge::new(&s)?;
