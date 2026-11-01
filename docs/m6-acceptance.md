@@ -101,7 +101,7 @@ implemented by displaying stored invocation metadata. Fresh Excel observations
 remain NOT_RUN because no Office installation/session is available.
 
 The final shared pin is published revision
-`d40a283699ce0eb0e998493d3443731622050b3c` in manifests and Cargo.lock, with no
+`f680441be2f56249ed88f3e0db3fc8c5489a10d3` in manifests and Cargo.lock, with no
 local Cargo override. All 75 adapter tests pass against that Git source. Full
 `cargo xtask ci` passes all ten stages with the cached optional craft-fonts
 checkout, resolving the earlier font-dependent acceptance failures. The optional
@@ -111,3 +111,8 @@ Final optional-feature checks: all 21 VBA UI workflows pass (including the two
 macro/shape-context regressions); strict Clippy passes; the VBA-enabled web host
 checks on wasm32-unknown-unknown. The WASM build reports a pre-existing
 backstage Modified enum dead-code warning; it succeeds.
+
+2026-11-01 language fix: the shared pin now includes implicit/explicit scalar
+Variant For counters. This removes the reported CopyIngredients counter-type
+diagnostic in the shared compiler; existing positive integral literal-Step
+limits and separate Office host-member coverage still apply.
