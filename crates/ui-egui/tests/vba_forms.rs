@@ -9,7 +9,7 @@ use gridcraft_vba::vba_ide::{
     forms::{Bounds, Control, ControlKind, Form},
 };
 use serde_json::json;
-use std::{fs, path::PathBuf};
+use std::fs;
 use vba_ui_egui::{Command, FormCommand};
 
 type R = Result<(), Box<dyn std::error::Error>>;
@@ -51,7 +51,7 @@ fn imported_tvform_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R
         tab_order: vec![1, 2],
     };
     let archive = form_archive::encode(&form, source)?;
-    let path = PathBuf::from(std::env::temp_dir()).join(format!("gridcraft-m5-form-{}.tvform", std::process::id()));
+    let path = std::env::temp_dir().join(format!("gridcraft-m5-form-{}.tvform", std::process::id()));
     fs::write(&path, archive.as_bytes())?;
     let picked = path.clone();
     let services = Services { pick_open: Some(Box::new(move || Some(picked.to_string_lossy().into_owned()))), ..Default::default() };

@@ -554,10 +554,8 @@ impl SheetApp {
         let event_params = params.clone();
         let r = self.session.run(id, params);
         #[cfg(feature = "vba")]
-        if r.is_ok() {
-            if let Ok(result) = &r {
-                vba::after_engine_command(self, id, &event_params, result);
-            }
+        if let Ok(result) = &r {
+            vba::after_engine_command(self, id, &event_params, result);
         }
         if id.starts_with("file.") && self.session.active_window() != before {
             // File › New or Open from the Backstage view: the window it was in goes back to its sheet.
