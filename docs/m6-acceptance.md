@@ -71,3 +71,15 @@ feature. `Application.Run`, add-ins and chart sheets remain refused/NOT_RUN in
 tiny-vba's [M6.5 check](../../../tiny-vba/docs/m6-context-resolution-check.md);
 Microsoft Excel reference observations remain NOT_RUN (no Office session on this
 machine). Package round trips and signatures stay in M7.
+
+## Gate environment note (2026-10-31)
+
+`cargo xtask ci` passes every stage in this checkout except two pre-existing
+`interaction` UI tests (`column_autocomplete_folds_case_beyond_ascii`,
+`language_switch_renders_the_ribbon_and_persists`) that render glyphs (ẞ, ẻ) only
+the optional `craft-fonts` checkout provides; `CRAFT_FONTS_DIR` is not available on
+this machine and both tests fail identically on the pre-M6 commit, so they are
+environment-blocked, not regressions. Verified here: i18n-report, fmt, strict
+Clippy, the workspace test suite with those two tests skipped (all others pass,
+including the 4 new `context_resolution` workflows and 847 UI interaction tests),
+doctests, assets, layers, parity, keytips and the wasm gate.
