@@ -733,6 +733,9 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let mut closed = false;
     for request in editor.ide.take_requests() {
         let result: Result<()> = match request {
+            HostRequest::RenameDocument { .. } => {
+                Err("Workbook component identities are host-owned; code-name changes require a project writeback contract.".into())
+            }
             HostRequest::ReturnToHost => {
                 editor.visible = false;
                 Ok(())

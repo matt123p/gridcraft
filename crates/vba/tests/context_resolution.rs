@@ -159,3 +159,32 @@ fn worksheet_event_globals_consult_live_state_resumed_after_activation() -> R {
     assert_eq!(other.value(CellRef::new(0, 0)), Value::Empty);
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn recorded_metadata_and_blank_workbook_component_preserve_source_and_real_cell_effects() -> R {
+    let mut session = Session::new();
+    session.new_workbook();
+    std::sync::Arc::make_mut(&mut session.doc_mut()?.wb).code_name = Some("ThisWorkbook".into());
+    let header = "Attribute VB_Name = \"ThisWorkbook\"\r\nAttribute VB_PredeclaredId = True\r\nAttribute VB_Base = \"host-owned\"\r\n";
+    let source = "Attribute VB_Name = \"Recorded\"\r\nPublic Sub Macro2()\r\nAttribute Macro2.VB_ProcData.VB_Invoke_Func = \" \\n14\"\r\nRange(\"A1\").Value2=42\r\nEnd Sub\r\n";
+    let mut ide = Ide::new();
+    let document = ide.add_document_module("ThisWorkbook.cls", "ThisWorkbook", header)?;
+    ide.add_module("Recorded.bas", source)?;
+    let mut bridge = Bridge::new(&session)?;
+    bridge.configure_document(&mut ide, &session.doc()?.wb)?;
+    let component = ide.modules.iter().find(|module| module.id == document).ok_or("document component")?;
+    assert_eq!(component.component_name(), "ThisWorkbook");
+    assert!(gridcraft_vba::vba_ide::editor_text(&component.text).is_empty());
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::new(0, 0)), Value::Empty, "import is inert");
+    bridge.consent(true);
+    ide.entry = "Macro2".into();
+    bridge.dispatch(&mut session, &mut ide, gridcraft_vba::Action::Run)?;
+    tick_until(&mut bridge, &mut session, &mut ide, Mode::Completed)?;
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::new(0, 0)), Value::Number(42.0));
+    assert_eq!(ide.active_module().ok_or("source")?.text, source);
+    assert_eq!(ide.modules.iter().find(|module| module.id == document).ok_or("component")?.text, header);
+    session.execute("edit.undo", json!({}))?;
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::new(0, 0)), Value::Empty);
+    Ok(())
+}

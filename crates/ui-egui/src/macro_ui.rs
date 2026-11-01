@@ -358,6 +358,13 @@ pub fn open_dialog(app: &mut SheetApp, params: &Json) -> Dialog {
     let name = params["name"].as_str().map(str::to_string).or(first).or_else(|| names.first().map(|m| m.0.clone())).unwrap_or_default();
     let doc = app.session.active().map_or(0, |d| d.uid);
     let mut d = Dialog::custom("macros", "Macros", json!({"name": name, "kind": "macro", "doc": doc}));
+    // Preserve the VBA picker's selected entry and shape assignment context.
+    #[cfg(feature = "vba")]
+    for key in ["macro", "shape", "assign"] {
+        if let Some(value) = params.get(key) {
+            d.values.insert(key.into(), value.clone());
+        }
+    }
     d.result = app.session.run("view.macros", json!({})).ok();
     d
 }

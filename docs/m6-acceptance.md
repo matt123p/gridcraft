@@ -83,3 +83,31 @@ environment-blocked, not regressions. Verified here: i18n-report, fmt, strict
 Clippy, the workspace test suite with those two tests skipped (all others pass,
 including the 4 new `context_resolution` workflows and 847 UI interaction tests),
 doctests, assets, layers, parity, keytips and the wasm gate.
+
+## Attribute/code-view completion audit (2026-11-01)
+
+The additional real-workbook `context_resolution` workflow imports an
+attribute-only ThisWorkbook component, checks blank projected code and its code
+name, then executes an independently authored Macro2 with the exact recorded
+`VB_ProcData.VB_Invoke_Func` attribute. Import is inert, execution needs consent,
+A1 becomes 42, raw source remains byte-identical and one workbook undo restores
+the original cell. All five context-resolution workflows pass against the local
+shared implementation. Full adapter/CI results are tracked in tiny-vba's `docs/m6-acceptance.md`.
+
+Document code-name rename requests refuse explicitly: imported host identities
+remain read-only until binary project writeback is designed. The shared raw
+metadata inspector is read-only; Excel Macro Options/shortcut policy is not
+implemented by displaying stored invocation metadata. Fresh Excel observations
+remain NOT_RUN because no Office installation/session is available.
+
+The final shared pin is published revision
+`d40a283699ce0eb0e998493d3443731622050b3c` in manifests and Cargo.lock, with no
+local Cargo override. All 75 adapter tests pass against that Git source. Full
+`cargo xtask ci` passes all ten stages with the cached optional craft-fonts
+checkout, resolving the earlier font-dependent acceptance failures. The optional
+VBA Macros dialog also preserves its selected entry and shape-assignment context.
+
+Final optional-feature checks: all 21 VBA UI workflows pass (including the two
+macro/shape-context regressions); strict Clippy passes; the VBA-enabled web host
+checks on wasm32-unknown-unknown. The WASM build reports a pre-existing
+backstage Modified enum dead-code warning; it succeeds.

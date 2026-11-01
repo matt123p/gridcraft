@@ -14,8 +14,8 @@ use super::{
 
 mod tabs;
 
-use tabs::{activate, delete_sheet, hide_sheet, insert_sheet, move_sheet, rename_sheet, step_sheet, tab_color, unhide_sheet};
 pub(crate) use tabs::rename_sheet_native;
+use tabs::{activate, delete_sheet, hide_sheet, insert_sheet, move_sheet, rename_sheet, step_sheet, tab_color, unhide_sheet};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
