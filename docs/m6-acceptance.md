@@ -116,3 +116,9 @@ backstage Modified enum dead-code warning; it succeeds.
 Variant For counters. This removes the reported CopyIngredients counter-type
 diagnostic in the shared compiler; existing positive integral literal-Step
 limits and separate Office host-member coverage still apply.
+
+M6 sign-off update (2026-11-01): the owner accepted the tested M6 integration
+profile and moved fresh Microsoft Excel/Word comparison to tiny-vba M8.5. These
+observations remain NOT_RUN; they no longer block M7 unchanged-document/package
+work. This scheduling decision does not change the supported host profile or
+claim a new Office observation. See tiny-vba ADR 0032.
