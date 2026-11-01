@@ -1,6 +1,6 @@
 # Optional tiny-vba integration
 
-Updated 2026-10-30. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
+Updated 2026-11-01. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
 The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
 members, remaining mismatches and stages toward running existing workbooks
@@ -144,6 +144,10 @@ bound to this editor cancels active execution/event delivery.
 The implemented M5 slice supports inert import of standard, class and document
 modules, explicit trusted Workbook_Open, bounded Worksheet_Change delivery with
 EnableEvents, and the Range-aware worksheet-function surface documented below.
+Real Excel-authored packages decode: the MS-OVBA PROJECT stream's document-module
+cookie is read in its specified `&H` + 8-hex-digit form (a user-supplied workbook,
+`Food.xlsm`, previously refused, now imports its standard and document modules
+inertly with `vbaProject.bin` preserved byte-for-byte on save).
 The shared M2 designer/runtime can run `.tvform` forms through the workbook host;
 forms remain separate exchange files rather than workbook VBA metadata. The profile
 still lacks structural sheet/range mutations, cross-document objects, the complete
