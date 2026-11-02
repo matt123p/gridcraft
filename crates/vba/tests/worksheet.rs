@@ -46,6 +46,19 @@ fn worksheet_arguments_dependencies_and_builtins() -> R {
     }
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn worksheet_udf_calls_shared_strcomp_with_binary_vba_result() -> R {
+    let (mut s, _, _, _bridge) = setup(
+        "Public Function NameOrder(ByVal leftText As String, ByVal rightText As String) As Long\nNameOrder = StrComp(leftText, rightText)\nEnd Function\n",
+    )?;
+    s.execute("cell.set", json!({"cell":"A1","input":"=NameOrder(\"A\",\"a\")"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"=NameOrder(\"a\",\"B\")"}))?;
+    assert_eq!(cell(&s, "A1"), Value::Number(-1.0));
+    assert_eq!(cell(&s, "A2"), Value::Number(1.0));
+    Ok(())
+}
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn functions_return_exact_cell_types_and_reference_values() -> R {

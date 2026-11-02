@@ -505,6 +505,13 @@ impl CustomFunctions for Functions {
         let Ok(mut vm) = vba_vm::Session::new_with_type_resolver(program.clone(), 1, arguments, Some(binding), limits, Some(type_resolver)) else {
             return fail();
         };
+        let Ok(intrinsic_context) = vba_vm::IntrinsicContextConfig::new("invariant".into(), "Gregorian".into(), "UTF-16".into(), usize::BITS as u8)
+        else {
+            return fail();
+        };
+        if vm.set_string_comparison_service(Arc::new(vba_runtime::BinaryStringComparisonService), intrinsic_context).is_err() {
+            return fail();
+        }
         let saved_state = self.states.lock().ok().and_then(|states| states.get(&name.to_ascii_uppercase()).cloned());
         if let Some(state) = saved_state
             && vm.restore_project(state).is_err()
