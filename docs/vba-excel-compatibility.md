@@ -1,12 +1,19 @@
 # Excel VBA source compatibility audit
 
-Reviewed 2026-10-29 against public Microsoft Learn documentation and the actual
+Reviewed 2026-11-02 against public Microsoft Learn documentation and the actual
 `gridcraft-vba` adapter and the tiny-vba Git revision pinned in its manifest/lockfile.
 Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
 Target: existing Excel workbook source
 running unchanged. **That target is not met.** `GridCraft.Excel.v1` is a bounded
 standard-module profile; it must not be advertised as an identical Excel object
 model or general XLSM execution support.
+
+For the documentation-led audit of the **entire Excel object-model surface**
+and Luna's implementation packets, use the
+[object-model implementation plan](vba-object-model-implementation-plan.md)
+and [pinned 5,996-page inventory](vba-object-model-inventory.json).
+That workstream covers methods, properties, events, collections and enums;
+VBA built-ins and worksheet-function implementations are separate surfaces.
 
 This audit checks every exposed dispatch branch, imports, catalogue, typed value
 conversion, source import and worksheet-function path. It is not an exhaustive
@@ -19,9 +26,9 @@ refusal test proves a clear boundary, not compatibility with the rejected source
 
 | Area | Implemented behavior | Difference affecting unchanged source |
 |---|---|---|
-| Application | Code-owner ThisWorkbook; dynamic ActiveWorkbook/Sheet/Cell/Selection, collections/ranges; Calculation and Calculate | No Workbooks, WorksheetFunction/Evaluate or event model. ScreenUpdating/EnableEvents are explicitly unsupported |
+| Application | Code-owner ThisWorkbook; dynamic ActiveWorkbook/Sheet/Cell/Selection, collections/ranges; Calculation, Calculate, EnableEvents and narrow Goto | Workbooks and general WorksheetFunction/Evaluate remain absent. ScreenUpdating is unsupported; events are limited to the declared open/change profile |
 | Workbook | Name, Application/Parent, ActiveSheet, Worksheets/Sheets collection objects and indexed access | Range/Cells/ThisWorkbook/ActiveWorkbook now correctly rejected on Workbook; Open/Save/Close, Names, paths and other workbook members absent |
-| Worksheet | Stable identity, read/write Name through native rename, Application/Parent, Range/Cells/Rows/Columns/UsedRange | No CodeName roots, Activate/Select or Names collection; deleted sheets fail with 91 |
+| Worksheet | Stable identity, read/write Name through native rename, Application/Parent, Range/Cells/Rows/Columns/UsedRange, document CodeName bindings, narrow Activate/Select/Paste | Names collection, lifecycle methods and general sheet grouping remain absent; deleted sheets fail with 91 |
 | Range construction | Lightweight A1/full-row/full-column references, bounding endpoints, relative Range.Range, Offset/Resize, quoted qualification, reference names, disjoint unions/intersections | No computed/external/3-D/structured references; overlapping areas refused; reference-only names use bounded local/workbook lookup |
 | Cells | Whole-sheet/cell collection, zero/one/two indexes, column letters, Item names and VBA coercion | Dynamic unqualified root; concrete assigned objects retain ownership; reference construction does not materialize cells |
 | Collections | Actual Worksheets/Sheets roots, Count, Item(index/name), default Item and bounded For Each; typed collection variables and Parent/Application | Add/mutation and multi-index selection remain absent. Both collections expose the worksheet kinds GridCraft actually supports; chart/macro sheets are not fabricated |
@@ -30,7 +37,7 @@ refusal test proves a clear boundary, not compatibility with the rejected source
 | Value conversion | Typed native atomic values/formats, known CVErrs, General input/formula conversion and literal Text-format strings | en-US engine conversion profile; no universal locale compatibility; invalid UTF-16/unknown errors and inexact oversized integers refuse |
 | ClearContents/Address | Undoable native clearing/structure; Address optional/named A1/R1C1, absolute/mixed/relative/external forms | External owner title/sheet supported; saved filesystem path/closed external references remain outside profile; M3 structural limits retained |
 | Implicit roots | Application, ThisWorkbook, active workbook/sheet/cell/selection, collections, Range/Cells/Rows/Columns | Fresh getter resolution at source access; worksheet event calls scope unqualified Range construction to the code-name owner, and `Me` forwards through the captured live document owner. Unsupported catalogue members still refuse |
-| Language and references | Standard-module subset, Object/Variant late binding, explicit properties and registered Excel Application/Workbook/Worksheet/Range/Worksheets/Sheets nominal types, defaults and For Each | The supplied reference snapshot is a bounded adapter profile, not a complete Excel typelib/COM loader. Broader collections, classes/UserForms and unregistered Excel types remain unsupported |
+| Language and references | Selected Office host bindings, Object/Variant late binding, registered Excel nominal types, defaults and For Each | This is a bounded Excel adapter projection, not a complete typelib/COM loader. Shared-language classes/forms support does not establish the corresponding Excel object-model or binary-control support |
 | Project import | Inert read-only standard/class/document-module extraction; original VBA bytes preserved | The declared M5 event profile is accepted: Workbook_Open is explicit, Worksheet_Change ordering/lifecycle and reviewed native edit sources are tested, and document `Me` dispatch binds to live workbook/sheet objects. Unsupported members still refuse. Source edits do not rewrite vbaProject.bin or signatures |
 | Worksheet UDFs | Public standard-module functions, direct Range reference arguments, read-only Range values, Caller/Volatile, persistent project state, tested Date/Currency `Value` versus numeric `Value2`, and bounded execution | The declared M5 UDF profile is accepted against authored GridCraft workbook state; context-dependent document roots and cross-workbook/add-in registration remain unsupported |
 | Buttons/toolbars/forms | Explicit public no-argument Sub assignment; inert DrawingML macro association; `.tvform` Label/TextBox/CommandButton runtime through the embedded IDE and workbook host | Not Office binary UserForm resources, ActiveX/control/CommandBars/Ribbon object models or workbook form persistence |
@@ -43,6 +50,38 @@ M3 range/navigation/structural coverage is recorded in [M3 acceptance](vba-m3-ra
 M4 identity/value/member coverage and immutable dependency pin are recorded in [M4 acceptance](vba-m4-identity-values-and-members.md).
 
 ## Corrections made during this audit
+
+2026-11-02: added explicit same-workbook Range destinations for
+[`Application.Goto`](https://learn.microsoft.com/en-us/office/vba/api/excel.application.goto),
+including inactive-sheet activation, multi-area selection, active-cell ownership
+and named arguments. `crates/vba/tests/ranges.rs` covers the parenthesized Range
+expression from the reported navigation pattern and negative argument paths.
+Scroll=True, omitted-reference history, string/procedure destinations and
+cross-workbook navigation remain outside this profile.
+
+2026-11-02: the reported `Selection.Copy` failure is corrected alongside the
+following worksheet/range Select and Worksheet.Paste calls. Range.Copy without
+Destination uses the engine clipboard; paste without Destination (Link omitted
+or False) preserves cells, rebased formulas and formatting within one workbook.
+Worksheet.Activate and Select with Replace omitted/True are supported.
+Range.Select requires an active worksheet. The implementation delegates workbook
+effects to `edit.copy`, `selection.set`, `sheet.activate` and `edit.paste`;
+the adapter validates arguments, caps copied/pasted cells at 65,536 and queues
+Worksheet_Change only after successful mutation. No system clipboard API is used.
+Evidence: `crates/vba/tests/clipboard.rs` covers the unchanged recorded sequence
+with two populated meal slots, formula/style fidelity, one macro undo,
+snapshot retention over pause/resume, tiled paste callback targets, protection,
+empty clipboard and explicit refusals. Destination arguments, Link=True,
+sheet grouping, multi-area/cut/foreign-workbook clipboard pastes remain outside
+this profile. Semantics follow public [Range.Copy](https://learn.microsoft.com/en-us/office/vba/api/excel.range.copy),
+[Worksheet.Paste](https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.paste)
+and [cell selection](https://learn.microsoft.com/en-us/office/vba/excel/concepts/cells-and-ranges/selecting-and-activating-cells)
+documentation. No Food.xlsm execution or fresh Excel oracle result is claimed.
+
+Remaining execution limit observed during this work: populating all 20 meal
+slots in the 4x5/40-column test exhausts the shared IDE's 1,024 host-call budget.
+Next is a host-configurable bounded IDE execution budget, retaining explicit
+resource failures and testing the fully populated loop before claiming support.
 
 Workbook no longer inherits Application-only Range, Cells, ThisWorkbook or
 ActiveWorkbook. Application/Parent links retain object identity across supported
