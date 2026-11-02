@@ -27,6 +27,9 @@ pub(crate) fn references() -> Result<ReferenceSet> {
                     "XlInsertShiftDirection",
                     "XlDeleteShiftDirection",
                     "XlInsertFormatOrigin",
+                    "XlPasteType",
+                    "XlPasteSpecialOperation",
+                    "XlCutCopyMode",
                 ]
                 .into_iter()
                 .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Enum }),
@@ -56,6 +59,25 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             ("xlShiftToLeft", -4159),
             ("xlFormatFromLeftOrAbove", 0),
             ("xlFormatFromRightOrBelow", 1),
+            ("xlPasteAll", -4104),
+            ("xlPasteAllExceptBorders", 7),
+            ("xlPasteAllMergingConditionalFormats", 14),
+            ("xlPasteAllUsingSourceTheme", 13),
+            ("xlPasteColumnWidths", 8),
+            ("xlPasteComments", -4144),
+            ("xlPasteFormats", -4122),
+            ("xlPasteFormulas", -4123),
+            ("xlPasteFormulasAndNumberFormats", 11),
+            ("xlPasteValidation", 6),
+            ("xlPasteValues", -4163),
+            ("xlPasteValuesAndNumberFormats", 12),
+            ("xlPasteSpecialOperationAdd", 2),
+            ("xlPasteSpecialOperationDivide", 5),
+            ("xlPasteSpecialOperationMultiply", 4),
+            ("xlPasteSpecialOperationNone", -4142),
+            ("xlPasteSpecialOperationSubtract", 3),
+            ("xlCopy", 1),
+            ("xlCut", 2),
         ]
         .into_iter()
         .map(|(name, n)| ReferenceConstant {
@@ -71,6 +93,24 @@ pub(crate) fn references() -> Result<ReferenceSet> {
                     "xlNext" | "xlPrevious" => "XlSearchDirection",
                     "xlShiftDown" | "xlShiftToRight" => "XlInsertShiftDirection",
                     "xlShiftUp" | "xlShiftToLeft" => "XlDeleteShiftDirection",
+                    "xlPasteAll"
+                    | "xlPasteAllExceptBorders"
+                    | "xlPasteAllMergingConditionalFormats"
+                    | "xlPasteAllUsingSourceTheme"
+                    | "xlPasteColumnWidths"
+                    | "xlPasteComments"
+                    | "xlPasteFormats"
+                    | "xlPasteFormulas"
+                    | "xlPasteFormulasAndNumberFormats"
+                    | "xlPasteValidation"
+                    | "xlPasteValues"
+                    | "xlPasteValuesAndNumberFormats" => "XlPasteType",
+                    "xlPasteSpecialOperationAdd"
+                    | "xlPasteSpecialOperationDivide"
+                    | "xlPasteSpecialOperationMultiply"
+                    | "xlPasteSpecialOperationNone"
+                    | "xlPasteSpecialOperationSubtract" => "XlPasteSpecialOperation",
+                    "xlCopy" | "xlCut" => "XlCutCopyMode",
                     _ => "XlInsertFormatOrigin",
                 }
                 .into(),

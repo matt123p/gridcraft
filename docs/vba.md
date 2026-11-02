@@ -25,16 +25,27 @@ copies and paste footprints are capped at 65,536 cells, retain formulas/styles,
 obey sheet protection and share the macro undo group. Paste queues the existing
 Worksheet_Change callback with its full footprint. Worksheet.Activate and
 Select with Replace omitted/True are supported; Range.Select requires the active
-sheet. Copy/Paste Destination arguments, linked pastes, grouped sheets,
-multi-area clipboard operations, cut buffers and cross-workbook pastes explicitly
-refuse. No system clipboard access is introduced.
+sheet. `Range.Copy Destination` now copies a bounded single-area range directly
+to a Range in the current workbook, including another worksheet, while preserving
+formulas/styles and delivering the destination Worksheet_Change callback.
+`Worksheet.Paste Destination` targets one Range in the current workbook and
+activates that destination worksheet. `Range.Cut` and `Application.CutCopyMode`
+stage bounded same-workbook moves; a rejected overlapping move leaves the source
+untouched. Linked pastes, grouped sheets, multi-area clipboard operations, Cut
+Destination and cross-workbook pastes explicitly refuse.
+`Range.PasteSpecial` supports the engine-backed XlPasteType subset, arithmetic
+operations, SkipBlanks and Transpose, using Excel's documented enum values;
+source-theme and conditional-format merge modes explicitly refuse.
+No system clipboard access is introduced.
 
 This is not complete recorded-macro support. The shared IDE currently limits an
 invocation to 1,024 host calls; the 4x5/40-column ingredient loop exceeds that
 limit when every meal slot is populated. The authored clipboard regression uses
 two populated slots at opposite corners, and does not establish full Food.xlsm
-execution. Next: expose a configurable, bounded host-call budget through the
-shared IDE and choose a workbook-host budget with acceptance tests.
+execution. tiny-vba now has an unpinned configurable bounded execution-limit
+change and a pause/resume budget regression. After that shared revision is
+published and pinned, GridCraft still needs to choose its host-call budget and
+test full bounded macro completion.
 
 The editor shows a blocked notice until workbook trust or explicit session consent
 permits execution. Click **Allow VBA for this editor session**, then Run or Into.

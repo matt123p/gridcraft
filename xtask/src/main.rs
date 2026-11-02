@@ -13,6 +13,8 @@ mod layers;
 #[cfg_attr(not(feature = "engine"), allow(dead_code))]
 mod parity;
 mod stats;
+#[cfg(feature = "vba-audit")]
+mod vba_audit;
 mod version;
 
 use std::path::{Path, PathBuf};
@@ -34,6 +36,7 @@ commands:
                   write docs/parity-checklist.md from gridcraft_engine::catalog (implemented vs missing ids)
   keytips [--check]
                   regenerate crates/ui-egui/src/keytips/generated.rs from keytips.json (--check: fail if stale)
+  vba-audit       verify the committed Excel object-model inventory against the pinned local docs archive (requires --features vba-audit)
   version [set X.Y.Z[-pre]]
                   print or set the workspace version ([workspace.package] in Cargo.toml)
   stats [--exact] count tests and lines per crate (--exact: ask the test harness via `-- --list`)
@@ -54,6 +57,7 @@ fn main() -> ExitCode {
         Some("stats") => stats::run(&root(), rest.contains(&"--exact")),
         Some("parity") => parity::run(&root(), &rest),
         Some("keytips") => keytips::run(&root(), &rest),
+        Some("vba-audit") => cmd_vba_audit(),
         Some("ico") => ico::run(&rest),
         Some("version") => version::run(&root(), &rest),
         Some("-h" | "--help" | "help") | None => {
@@ -68,6 +72,17 @@ fn main() -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::FAILURE
         }
+    }
+}
+
+fn cmd_vba_audit() -> Result<(), String> {
+    #[cfg(feature = "vba-audit")]
+    {
+        vba_audit::run(&root())
+    }
+    #[cfg(not(feature = "vba-audit"))]
+    {
+        Err("vba-audit requires optional dependencies; run `cargo run -p xtask --features vba-audit -- vba-audit`".into())
     }
 }
 

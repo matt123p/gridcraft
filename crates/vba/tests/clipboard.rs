@@ -114,10 +114,10 @@ fn clipboard_refusals_preserve_cells_selection_and_previous_copy() -> R {
         ("Sheets(\"Ingredients\").Paste", 1004.),
         ("Sheets(\"Ingredients\").Select Replace:=False", 1004.),
         ("Range(\"A1\").Select False", 450.),
-        ("Range(\"A1\").Copy Destination:=Range(\"B1\")", 1004.),
         ("Columns(1).Copy", 7.),
         ("Range(\"A1,C1\").Copy", 1004.),
-        ("ActiveSheet.Paste Destination:=Range(\"B1\")", 1004.),
+        ("Range(\"A1:A2\").Cut\nActiveSheet.Paste Destination:=Range(\"A2\")", 1004.),
+        ("ActiveSheet.Paste Destination:=1", 13.),
         ("ActiveSheet.Paste Link:=True", 1004.),
         ("ActiveSheet.Paste Unknown:=True", 448.),
         ("Range(\"XFD1048576\").Select\nActiveSheet.Paste", 1004.),
@@ -132,7 +132,238 @@ fn clipboard_refusals_preserve_cells_selection_and_previous_copy() -> R {
         assert_eq!(value(&s, 0, 0, 1)?, Value::Empty);
         assert_eq!(s.doc()?.sheet_index(), 0);
         assert_eq!(s.clipboard.as_ref().ok_or("copy")?.range.a1(), "A1:A2");
+        if statement.contains(".Cut") {
+            assert!(s.clipboard.as_ref().is_some_and(|clipboard| clipboard.cut));
+        }
     }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_copy_destination_pastes_a_bounded_snapshot_to_another_sheet() -> R {
+    let source = r#"Sub Main()
+Range("A1:A2").Copy Destination:=Sheets("Ingredients").Range("D2")
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"17"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"=A1+6"}))?;
+    s.execute("home.bold", json!({"range":"A1:A2","on":true}))?;
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(1).ok_or("ingredients")?.code_name = Some("IngredientsCode".into());
+    ide.add_document_module(
+        "Ingredients.cls",
+        "IngredientsCode",
+        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+    )?;
+    b.configure_document(&mut ide, &s.doc()?.wb)?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 1, 1, 3)?, Value::Number(17.));
+    assert_eq!(value(&s, 1, 2, 3)?, Value::Number(23.));
+    assert_eq!(
+        s.doc()?.wb.sheet(1).ok_or("ingredients")?.cell(CellRef::new(2, 3)).and_then(|cell| cell.formula.as_ref()).map(|f| f.text.as_str()),
+        Some("D2+6")
+    );
+    assert!(s.doc()?.wb.styles.get(s.doc()?.wb.sheet(1).ok_or("ingredients")?.style_id(CellRef::new(1, 3))).font.bold);
+    assert_eq!(value(&s, 1, 0, 25)?, Value::Text("$D$2:$D$3".into()));
+    assert_eq!(s.doc()?.sheet_index(), 1);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn worksheet_paste_destination_uses_the_range_and_changes_active_sheet() -> R {
+    let source = r#"Sub Main()
+Range("A1:A2").Copy
+ActiveSheet.Paste Destination:=Sheets("Ingredients").Range("D2")
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"first"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"second"}))?;
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(1).ok_or("ingredients")?.code_name = Some("IngredientsCode".into());
+    ide.add_document_module(
+        "Ingredients.cls",
+        "IngredientsCode",
+        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+    )?;
+    b.configure_document(&mut ide, &s.doc()?.wb)?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 1, 1, 3)?, Value::Text("first".into()));
+    assert_eq!(value(&s, 1, 2, 3)?, Value::Text("second".into()));
+    assert_eq!(value(&s, 1, 0, 25)?, Value::Text("$D$2:$D$3".into()));
+    assert_eq!(s.doc()?.sheet_index(), 1);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_paste_special_binds_excel_enum_values_and_operations() -> R {
+    let source = r#"Sub Main()
+Range("A1").Copy
+Range("B1").PasteSpecial Paste:=xlPasteValues, Operation:=xlPasteSpecialOperationMultiply
+Range("A2").Copy
+Range("B2").PasteSpecial xlPasteValues
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"3"}))?;
+    s.execute("cell.set", json!({"cell":"B1","input":"4"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"=1+2"}))?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 0, 0, 1)?, Value::Number(12.));
+    assert_eq!(value(&s, 0, 1, 1)?, Value::Number(3.));
+    assert!(s.doc()?.wb.sheet(0).ok_or("menu")?.cell(CellRef::new(1, 1)).and_then(|cell| cell.formula.as_ref()).is_none());
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_paste_special_refuses_unimplemented_modes_before_mutation() -> R {
+    let source = r#"Sub Main()
+Range("A1").Copy
+On Error Resume Next
+Range("B1").PasteSpecial Paste:=xlPasteAllUsingSourceTheme
+Range("C1") = Err.Number
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"source"}))?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 0, 0, 1)?, Value::Empty);
+    assert_eq!(value(&s, 0, 0, 2)?, Value::Number(1004.));
+    assert_eq!(s.clipboard.as_ref().ok_or("clipboard")?.range.a1(), "A1");
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_paste_special_transposes_and_skips_blank_source_cells() -> R {
+    let source = r#"Sub Main()
+Range("A1:B2").Copy
+Range("D1:E2").PasteSpecial Paste:=xlPasteValues, SkipBlanks:=True, Transpose:=True
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    for (cell, input) in [("A1", "1"), ("A2", "3"), ("B2", "4"), ("D1", "9"), ("E1", "7"), ("D2", "8"), ("E2", "6")] {
+        s.execute("cell.set", json!({"cell":cell,"input":input}))?;
+    }
+    run(&mut s, &mut b, &mut ide)?;
+    for (cell, expected) in [(CellRef::new(0, 3), 1.), (CellRef::new(0, 4), 3.), (CellRef::new(1, 3), 8.), (CellRef::new(1, 4), 4.)] {
+        assert_eq!(s.doc()?.wb.sheet(0).ok_or("menu")?.value(cell), Value::Number(expected));
+    }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn application_cut_copy_mode_reports_mode_and_cancels_internal_clipboard() -> R {
+    let source = r#"Sub Main()
+Range("A1").Copy
+Range("B1") = Application.CutCopyMode
+Application.CutCopyMode = xlCut
+Range("C1") = Application.CutCopyMode
+Application.CutCopyMode = False
+Range("D1") = Application.CutCopyMode
+Application.CutCopyMode = True
+Range("E1") = Application.CutCopyMode
+Application.CutCopyMode = False
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"copy me"}))?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 0, 0, 1)?, Value::Number(1.));
+    assert_eq!(value(&s, 0, 0, 2)?, Value::Number(2.));
+    assert_eq!(value(&s, 0, 0, 3)?, Value::Bool(false));
+    assert_eq!(value(&s, 0, 0, 4)?, Value::Number(1.));
+    assert!(s.clipboard.is_none());
+    assert_eq!(value(&s, 0, 0, 0)?, Value::Text("copy me".into()));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_cut_and_worksheet_paste_move_the_source_atomically() -> R {
+    let source = r#"Sub Main()
+Range("A1:A2").Cut
+ActiveSheet.Paste Destination:=Range("D2")
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"17"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"=A1+6"}))?;
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(0).ok_or("menu")?.code_name = Some("MenuCode".into());
+    ide.add_document_module(
+        "Menu.cls",
+        "MenuCode",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+    )?;
+    b.configure_document(&mut ide, &s.doc()?.wb)?;
+    let history = s.doc()?.undo.len();
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 0, 0, 0)?, Value::Empty);
+    assert_eq!(value(&s, 0, 1, 0)?, Value::Empty);
+    assert_eq!(value(&s, 0, 1, 3)?, Value::Number(17.));
+    assert_eq!(value(&s, 0, 2, 3)?, Value::Number(23.));
+    assert_eq!(
+        s.doc()?.wb.sheet(0).ok_or("menu")?.cell(CellRef::new(2, 3)).and_then(|cell| cell.formula.as_ref()).map(|f| f.text.as_str()),
+        Some("D2+6")
+    );
+    assert_eq!(value(&s, 0, 0, 25)?, Value::Text("$A$1:$A$2,$D$2:$D$3".into()));
+    assert_eq!(s.doc()?.undo.len(), history + 1);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_cut_destination_moves_cells_and_queues_a_change() -> R {
+    let (mut s, mut b, mut ide) = setup("Sub Main()\nRange(\"A1:A2\").Cut Destination:=Range(\"D2\")\nEnd Sub")?;
+    s.execute("cell.set", json!({"cell":"A1","input":"17"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"23"}))?;
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(0).ok_or("menu")?.code_name = Some("MenuCode".into());
+    ide.add_document_module(
+        "Menu.cls",
+        "MenuCode",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nDebug.Print Target.Address\nEnd Sub\n",
+    )?;
+    b.configure_document(&mut ide, &s.doc()?.wb)?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(value(&s, 0, 0, 0)?, Value::Empty);
+    assert_eq!(value(&s, 0, 1, 3)?, Value::Number(17.));
+    assert_eq!(value(&s, 0, 2, 3)?, Value::Number(23.));
+    assert_eq!(ide.output(), &["$A$1:$A$2,$D$2:$D$3"]);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn cross_sheet_cut_paste_queues_source_then_destination_change() -> R {
+    let source = r#"Sub Main()
+Range("A1:A2").Cut
+ActiveSheet.Paste Destination:=Sheets("Ingredients").Range("D2")
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", json!({"cell":"A1","input":"17"}))?;
+    s.execute("cell.set", json!({"cell":"A2","input":"23"}))?;
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(0).ok_or("menu")?.code_name = Some("MenuCode".into());
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(1).ok_or("ingredients")?.code_name = Some("IngredientsCode".into());
+    ide.add_document_module(
+        "Menu.cls",
+        "MenuCode",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nDebug.Print Target.Address\nEnd Sub\n",
+    )?;
+    ide.add_document_module(
+        "Ingredients.cls",
+        "IngredientsCode",
+        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nDebug.Print Target.Address\nEnd Sub\n",
+    )?;
+    b.configure_document(&mut ide, &s.doc()?.wb)?;
+    run(&mut s, &mut b, &mut ide)?;
+    // A completed event handler can leave another queued sheet event; keep ticking until drained.
+    for _ in 0..4 {
+        if ide.output().len() == 2 {
+            break;
+        }
+        b.tick(&mut s, &mut ide)?;
+    }
+    assert_eq!(value(&s, 0, 0, 0)?, Value::Empty);
+    assert_eq!(value(&s, 1, 1, 3)?, Value::Number(17.));
+    assert_eq!(value(&s, 1, 2, 3)?, Value::Number(23.));
+    assert_eq!(ide.output(), &["$A$1:$A$2", "$D$2:$D$3"]);
     Ok(())
 }
 

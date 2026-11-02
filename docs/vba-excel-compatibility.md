@@ -61,19 +61,41 @@ cross-workbook navigation remain outside this profile.
 
 2026-11-02: the reported `Selection.Copy` failure is corrected alongside the
 following worksheet/range Select and Worksheet.Paste calls. Range.Copy without
-Destination uses the engine clipboard; paste without Destination (Link omitted
-or False) preserves cells, rebased formulas and formatting within one workbook.
+Destination uses the engine clipboard; `Range.Copy Destination` pastes a
+single-area source directly to a single-area destination in the current workbook,
+including another worksheet. Paste without Destination (Link omitted or False)
+preserves cells, rebased formulas and formatting within one workbook.
 Worksheet.Activate and Select with Replace omitted/True are supported.
 Range.Select requires an active worksheet. The implementation delegates workbook
 effects to `edit.copy`, `selection.set`, `sheet.activate` and `edit.paste`;
 the adapter validates arguments, caps copied/pasted cells at 65,536 and queues
 Worksheet_Change only after successful mutation. No system clipboard API is used.
+`Worksheet.Paste Destination` also targets one Range in the current workbook,
+activating its worksheet when needed. `Range.Cut` with or without Destination
+stages an internal move; same-workbook paste clears the source only after a valid
+target has been checked, and one Worksheet_Change receives both changed areas
+when they are on the same sheet. `Application.CutCopyMode` reports
+False/xlCopy/xlCut and cancels or stages a bounded selection. Cross-workbook
+clipboard operations remain unsupported. Cut Destination moves a bounded
+single-area source directly to a single-area destination in the current workbook.
+`Range.PasteSpecial` supports the
+native engine's all/formula/value/format/comment/validation/width modes and
+arithmetic, SkipBlanks and Transpose options. Enum IDs and optional arguments
+follow Microsoft's [Range.PasteSpecial](https://learn.microsoft.com/en-us/office/vba/api/excel.range.pastespecial),
+[XlPasteType](https://learn.microsoft.com/en-us/office/vba/api/excel.xlpastetype)
+and [XlPasteSpecialOperation](https://learn.microsoft.com/en-us/office/vba/api/excel.xlpastespecialoperation)
+references. Source-theme and conditional-format merge paste modes remain refused.
 Evidence: `crates/vba/tests/clipboard.rs` covers the unchanged recorded sequence
-with two populated meal slots, formula/style fidelity, one macro undo,
-snapshot retention over pause/resume, tiled paste callback targets, protection,
-empty clipboard and explicit refusals. Destination arguments, Link=True,
-sheet grouping, multi-area/cut/foreign-workbook clipboard pastes remain outside
+with two populated meal slots, both destination forms, Cut/Paste movement and
+event targets, PasteSpecial enum/operation/transpose/skip-blanks paths,
+formula/style fidelity, one macro undo, snapshot retention over pause/resume,
+tiled paste callback targets, protection, empty clipboard and explicit refusals.
+Link=True, sheet grouping,
+multi-area/cut/foreign-workbook clipboard pastes remain outside
 this profile. Semantics follow public [Range.Copy](https://learn.microsoft.com/en-us/office/vba/api/excel.range.copy),
+[Range.Cut](https://learn.microsoft.com/en-us/office/vba/api/excel.range.cut),
+[Application.CutCopyMode](https://learn.microsoft.com/en-us/office/vba/api/excel.application.cutcopymode),
+[XlCutCopyMode](https://learn.microsoft.com/en-us/office/vba/api/excel.xlcutcopymode),
 [Worksheet.Paste](https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.paste)
 and [cell selection](https://learn.microsoft.com/en-us/office/vba/excel/concepts/cells-and-ranges/selecting-and-activating-cells)
 documentation. No Food.xlsm execution or fresh Excel oracle result is claimed.

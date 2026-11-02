@@ -318,6 +318,39 @@ impl Bridge {
             }
             return Ok(Value::Empty);
         }
+        if object == Object::Application && member == "cutcopymode" {
+            if call.kind == InvokeKind::Get {
+                arguments(&call, &[])?;
+                return Ok(match session.clipboard.as_ref() {
+                    Some(clipboard) if clipboard.cut => Value::Long(2),
+                    Some(_) => Value::Long(1),
+                    None => Value::Boolean(false),
+                });
+            }
+            if call.kind != InvokeKind::Let {
+                return Err(failure(13, "CutCopyMode requires Let"));
+            }
+            let args = arguments(&call, &["Value"])?;
+            let value = required(&args, 0)?;
+            let command = match value {
+                Value::Boolean(false) => "edit.clearClipboard",
+                Value::Boolean(true) | Value::Long(1) => "edit.copy",
+                Value::Long(2) => "edit.cut",
+                _ if vba_runtime::bind(vba_values::ScalarKind::Boolean, value).is_ok_and(|v| v == Value::Boolean(false)) => "edit.clearClipboard",
+                _ => return Err(failure(1004, "CutCopyMode accepts False, True, xlCopy or xlCut")),
+            };
+            let params = serde_json::json!({});
+            if command == "edit.clearClipboard" {
+                session.execute(command, params).map_err(|e| failure(1004, e.to_string()))?;
+            } else {
+                let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+                if doc.selection.ranges.len() != 1 || doc.selection.current().count() > super::MAX_CELLS as u64 {
+                    return Err(failure(1004, "CutCopyMode requires one bounded selected area"));
+                }
+                session.execute(command, params).map_err(|e| failure(1004, e.to_string()))?;
+            }
+            return Ok(Value::Empty);
+        }
         if member == "calculate" && matches!(object, Object::Application | Object::Workbook) && call.kind == InvokeKind::Call {
             arguments(&call, &[])?;
             if object == Object::Application {
@@ -457,6 +490,8 @@ impl Bridge {
             Object::Range(sheet, range) => match member.as_str() {
                 "select" if call.kind == InvokeKind::Call => self.select_range(session, sheet, &range, &call),
                 "copy" if call.kind == InvokeKind::Call => self.copy_range(session, sheet, &range, &call),
+                "cut" if call.kind == InvokeKind::Call => self.cut_range(session, sheet, &range, &call),
+                "pastespecial" if call.kind == InvokeKind::Call => self.paste_special(session, sheet, &range, &call),
                 "font" | "interior" if read_kind(call.kind) => {
                     arguments(&call, &[])?;
                     self.intern(Object::Format(sheet, range, member == "font"))

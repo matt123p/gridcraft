@@ -1,7 +1,7 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-02. Status: audit snapshot and implementation handoff; new work
-below is **NOT_STARTED**. Scope is the **third surface only: Excel's VBA object
+Reviewed 2026-11-02. Status: implementation in progress. Scope is the
+**third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
 
@@ -62,11 +62,11 @@ engine implements many more features than this adapter exposes.
 
 | Surface | Current baseline | Missing work |
 |---|---|---|
-| Application | Dynamic workbook/sheet/cell/selection roots; calculation, EnableEvents; explicit same-workbook Range Goto | Workbooks/Windows access, Union/Intersect, general Run/Evaluate/WorksheetFunction, screen/alert/status settings, scheduling, UI and platform APIs; complete Goto variants |
+| Application | Dynamic workbook/sheet/cell/selection roots; calculation, EnableEvents, CutCopyMode; explicit same-workbook Range Goto | Workbooks/Windows access, Union/Intersect, general Run/Evaluate/WorksheetFunction, screen/alert/status settings, scheduling, UI and platform APIs; complete Goto variants |
 | Workbooks/Workbook | Code-owner and active identity, selected properties and worksheet collections | Workbooks collection; Add/Open/Close/Save/SaveAs/SaveCopyAs, windows, names, metadata, links, protection and the remaining documented members |
 | Worksheets/Sheets/Worksheet | Worksheet-only collections, Count/Item/enumeration, name, ranges, UsedRange, narrow Select/Activate/Paste | Add/Copy/Move/Delete and grouping; visibility/CodeName/Index; chartsheets; protection, data/print/drawing objects and remaining members |
-| Range | Selected construction, default access, values/formulas, geometry, areas, offset/resize, End/Find, contents clearing, bounded structural operations and Select/Copy | Cut, Destination variants, PasteSpecial, fills, Replace, SpecialCells, CurrentRegion, merges, formatting breadth, formulas/local/R1C1/dynamic arrays, filtering/sorting and remaining methods/properties |
-| Clipboard | Single-area Copy, same-workbook current-selection Worksheet.Paste, bounded tiling, formula/style preservation, Change callback | Destination forms, Cut, cross-workbook operations, PasteSpecial options, linked paste, multi-area rules, CutCopyMode, CopyPicture/system formats |
+| Range | Selected construction, default access, values/formulas, geometry, areas, offset/resize, End/Find, contents clearing, bounded structural operations, Select/Copy/Cut and a native-backed PasteSpecial subset | Remaining Destination variants, PasteSpecial source-theme/conditional-format modes, fills, Replace, SpecialCells, CurrentRegion, merges, formatting breadth, formulas/local/R1C1/dynamic arrays, filtering/sorting and remaining methods/properties |
+| Clipboard | Single-area Copy/Cut, Range.Copy/Cut Destination, Worksheet.Paste with or without Destination, bounded current-workbook moves/pastes, formula/style preservation, Change callback, CutCopyMode and PasteSpecial type/operation/blank/transpose subset | Cross-workbook operations/consent, Worksheet.PasteSpecial format variants, linked paste, multi-area rules, CopyPicture/system formats |
 | Formatting | NumberFormat; selected Font properties; Interior.Color | Borders, alignment, themes, patterns, remaining font/fill members, Styles, conditional formatting, dimensions and page-facing formatting |
 | Events | Explicit Workbook_Open and bounded Worksheet_Change delivery | Remaining Application/Workbook/Worksheet events, cancellation ByRef, ordering and host UI integration |
 | UDF host | Range-aware arguments, restricted reads, Caller/Volatile context | General WorksheetFunction/Evaluate/Run are not implied by this path; preserve read-only UDF restrictions |
@@ -76,14 +76,14 @@ Inventory status meanings:
 
 | Status | Snapshot pages | Meaning |
 |---|---:|---|
-| `implemented-subset` | 87 | Positive catalogue/dispatch or event evidence; expand option/semantic gaps before claiming completion |
+| `implemented-subset` | 93 | Positive catalogue/dispatch or event evidence; expand option/semantic gaps before claiming completion |
 | `context-only` | 2 | Caller/Volatile on the UDF path, not general macro support |
 | `object-subset` | 10 | An object-page alias for a type represented in the adapter |
-| `not-exposed` | 4,618 | No matching member in the reviewed adapter projection |
+| `not-exposed` | 4,615 | No matching member in the reviewed adapter projection |
 | `object-not-exposed` | 334 | No general projection of this documented object |
 | `formula-bridge-not-exposed` | 390 | WorksheetFunction member pages; bridge work only in this plan |
 | `partial-definition` | 10 | Existing enum type registration; reconcile actual values/aliases |
-| `definition-gap` | 262 | Enum definitions absent from the projection or awaiting reconciliation |
+| `definition-gap` | 259 | Enum definitions absent from the projection or awaiting reconciliation |
 | `reference-triage` | 283 | Standalone/legacy/reference page; reconcile receiver, alias and platform before counting a feature |
 
 No row is marked fully Excel-compatible. The groups overlap conceptually across
@@ -128,8 +128,9 @@ precedence where a member has multiple concerns, and OM20 must resolve the tail.
 
 ## Work packets and order
 
-All packets below are NOT_STARTED except the explicitly described existing
-baseline. Split each packet into small PRs by object family and behavior. Do not
+All packets below remain open; OM00a-1 and selected OM02 clipboard slices are
+implemented as recorded in the progress section, and OM01a is drafted locally.
+Split each packet into small PRs by object family and behavior. Do not
 make one PR containing the whole object model. First finish OM00/OM01, then
 OM02-OM07; continue through the remaining families with their prerequisites.
 OM20 classification starts early and must be complete before final sign-off.
@@ -164,7 +165,7 @@ Record reassignments in the inventory, keeping the original pinned source set.
 
 ### OM00 — inventory and contracts first
 
-Implement a Rust maintenance exporter/checker, preferably `cargo xtask vba-audit`,
+Implement a Rust maintenance exporter/checker, preferably `cargo run -p xtask --features vba-audit -- vba-audit`,
 that reads a locally cached pinned documentation snapshot without fetching at
 build/test time. Reproduce the current page set and provenance. Preserve every
 input page; recognize aliases, legacy Excel Graph topics and enum pages.
@@ -532,11 +533,12 @@ Do not infer broad Excel parity from the absence of runtime error 438.
 
 ## Recommended first Luna assignment
 
-Start with **OM00a + OM01a**: make the metadata inventory reproducible and
-reconcile the current adapter, then expose a bounded host execution policy in the
-shared IDE with tests and a synchronized GridCraft pin. Next do **OM02a**:
-Destination-aware Copy/Cut/Paste and PasteSpecial, including their enums,
-cross-document ownership and negative paths. Then **OM06a** Sort/SortFields plus
+Start by completing **OM00a + OM01a**: extend the offline checker into a
+deterministic semantic exporter and reconcile the adapter, then publish the
+bounded shared IDE policy and select GridCraft's macro budget. The first OM02a
+clipboard slices now cover bounded same-workbook Copy/Cut/Paste and PasteSpecial;
+continue with cross-document consent, remaining documented options, and the rest
+of selection/editing. Then do **OM06a** Sort/SortFields plus
 enum/collation contracts. Keep the rest of this plan as the ordered full-surface
 backlog; do not turn it into a single large implementation change.
 
@@ -549,9 +551,37 @@ backlog; do not turn it into a single large implementation change.
 - Inspected GridCraft object registry/dispatch, clipboard/formatting helpers,
   native edit/sort/file commands and tiny-vba IDE/VM budget construction.
 - Research scope excludes workbook specimens, intrinsic implementations and
-  worksheet-function mathematics. No application code or feature tests were
-  changed for this plan; future packets still need their own verification.
+  worksheet-function mathematics. No application code was changed during the
+  initial audit; the subsequent implementation slices and their tests are listed
+  in the progress section below.
 
 The inventory is an auditable breadth baseline, with explicit uncertainty about
 unreviewed parameter/platform semantics. It is not a claim that all 5,996 pages
 have independently observed Excel behavior or completed implementation designs.
+
+## Implementation progress
+
+- **OM00a-1 — pinned source-page integrity:** implemented as the offline
+  `cargo run -p xtask --features vba-audit -- vba-audit` command. With the ignored local cache at
+  `target/vba-docs-audit/reference.zip`, it verifies the archive SHA256 and
+  documentation commit, rejects duplicate inventory paths, and checks exact
+  equality of all 5,996 Excel API source paths. This is a reproducibility check;
+  it does not yet regenerate semantic classifications or reconcile dispatch.
+- **OM01a — configurable bounded execution limits:** drafted in the shared
+  tiny-vba checkout with input validation and a regression proving the
+  host-call budget remains cumulative through debugger pause/resume. It is not
+  yet published or pinned by GridCraft; GridCraft's macro budget configuration
+  and the remaining OM01 registry/diagnostic work are still outstanding.
+- **OM02a-1 — clipboard and PasteSpecial subset:** implemented for one-area
+  source and destination ranges in the current workbook, including cross-sheet copies.
+  `Range.Cut` with or without Destination and `Application.CutCopyMode` stage same-workbook bounded moves;
+  successful cuts queue source/destination Change targets and overlap refusal
+  preserves source cells. Formula rebasing, styles, selection, cell bounds and
+  callbacks use the native engine path. `Worksheet.Paste Destination` uses the
+  same target behavior. `Range.PasteSpecial` supports engine-backed paste types,
+  arithmetic, SkipBlanks and Transpose; source-theme and conditional-format merge
+  modes refuse. Cross-workbook consent remains open. The
+  14-test clipboard integration suite passes, including callback ordering.
+
+The remaining OM00 inventory schema/exporter and every OM02-OM20 implementation
+requirement remain open. These first slices do not complete a packet.
