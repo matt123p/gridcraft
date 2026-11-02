@@ -211,6 +211,29 @@ impl Bridge {
             _ => {}
         }
         let member = call.member.to_ascii_lowercase();
+        if object == Object::Application && member == "goto" && call.kind == InvokeKind::Call {
+            let args = arguments(&call, &["Reference", "Scroll"])?;
+            // This profile supports explicit Range destinations. Do not silently
+            // accept procedure names, omitted history, or window scrolling.
+            let Value::Object(reference) = required(&args, 0)? else {
+                return Err(failure(1004, "Application.Goto currently requires a Range object"));
+            };
+            let Object::Range(sheet, range) = self.object(session, *reference)? else {
+                return Err(failure(1004, "Application.Goto requires a Range object"));
+            };
+            if let Some(scroll) = args.get(1).filter(|v| !matches!(v, Value::Missing)) {
+                let scroll = vba_runtime::bind(vba_values::ScalarKind::Boolean, scroll).map_err(values::runtime_error)?;
+                if scroll == Value::Boolean(true) {
+                    return Err(failure(1004, "Application.Goto Scroll:=True is not supported"));
+                }
+            }
+            let first = range.first()?;
+            let address = range.areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
+            session
+                .execute("selection.set", serde_json::json!({"sheet":sheet,"range":address,"active":first.start.a1()}))
+                .map_err(|e| failure(1004, e.to_string()))?;
+            return Ok(Value::Empty);
+        }
         if matches!(call.kind, InvokeKind::Let | InvokeKind::Set)
             && matches!(object, Object::Application | Object::Sheet(_))
             && matches!(member.as_str(), "range" | "cells" | "rows" | "columns")
@@ -359,7 +382,7 @@ impl Bridge {
                         arguments(&call, &[])?;
                         values::vba_text(&session.doc().map_err(|e| failure(91, e.to_string()))?.title)
                     }
-                    _ => Err(failure(438, "unsupported Application/Workbook member")),
+                    _ => Err(failure(438, format!("unsupported Application/Workbook member: {}", call.member))),
                 }
             }
             Object::Worksheets | Object::Sheets if read_kind(call.kind) => match member.as_str() {
@@ -374,6 +397,8 @@ impl Bridge {
                 _ => Err(failure(438, "unsupported collection member")),
             },
             Object::Sheet(sheet) if read_kind(call.kind) => match member.as_str() {
+                "select" | "activate" if call.kind == InvokeKind::Call => self.select_sheet(session, sheet, &call),
+                "paste" if call.kind == InvokeKind::Call => self.paste_sheet(session, sheet, &call),
                 "name" => {
                     arguments(&call, &[])?;
                     values::vba_text(
@@ -430,6 +455,8 @@ impl Bridge {
                 _ => Err(failure(438, "unsupported Areas member")),
             },
             Object::Range(sheet, range) => match member.as_str() {
+                "select" if call.kind == InvokeKind::Call => self.select_range(session, sheet, &range, &call),
+                "copy" if call.kind == InvokeKind::Call => self.copy_range(session, sheet, &range, &call),
                 "font" | "interior" if read_kind(call.kind) => {
                     arguments(&call, &[])?;
                     self.intern(Object::Format(sheet, range, member == "font"))

@@ -35,6 +35,55 @@ fn cell(s: &Session, address: &str) -> R<CellValue> {
 }
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn application_goto_activates_the_range_sheet_and_preserves_selection_identity() -> R {
+    let source = r#"Sub Main()
+Dim target As Range
+Set target = ActiveWorkbook.Sheets("Ingredients").Range(Sheets("Ingredients").Cells(2, 3), Sheets("Ingredients").Cells(4, 3))
+Application.Goto (target)
+Selection.Value2 = 17
+ActiveSheet.Range("A1") = ActiveCell.Address
+Application.Goto Scroll:=False, Reference:=Sheets("Sheet1").Range("B2,D4")
+ActiveCell.Value2 = 29
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("home.insertSheet", serde_json::json!({"name":"Ingredients"}))?;
+    s.execute("sheet.activate", serde_json::json!({"sheet":0}))?;
+    run(&mut s, &mut b, &mut ide)?;
+    let ingredients = s.doc()?.wb.sheet(1).ok_or("ingredients sheet")?;
+    for address in ["C2", "C3", "C4"] {
+        assert_eq!(ingredients.value(CellRef::parse(address).ok_or("cell")?), CellValue::Number(17.));
+    }
+    assert_eq!(ingredients.value(CellRef::new(0, 0)), CellValue::Text("$C$2".into()));
+    assert_eq!(s.doc()?.sheet_index(), 0);
+    assert_eq!(s.doc()?.selection.a1(), "B2,D4");
+    assert_eq!(s.doc()?.selection.active, CellRef::new(1, 1));
+    assert_eq!(cell(&s, "B2")?, CellValue::Number(29.));
+    assert_eq!(cell(&s, "D4")?, CellValue::Empty);
+    Ok(())
+}
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn application_goto_refuses_unsupported_forms_without_changing_selection() -> R {
+    for (statement, number) in [
+        ("Application.Goto", 449.),
+        ("Application.Goto Reference:=\"SomeProcedure\"", 1004.),
+        ("Application.Goto Reference:=ActiveSheet", 1004.),
+        ("Application.Goto Reference:=Range(\"B2\"), Scroll:=True", 1004.),
+        ("Application.Goto Reference:=Range(\"B2\"), Scroll:=\"invalid\"", 13.),
+        ("Application.Goto Reference:=Range(\"B2\"), Unknown:=False", 448.),
+        ("Application.Goto Range(\"B2\"), False, False", 450.),
+    ] {
+        let source = format!("Sub Main()\nOn Error Resume Next\n{statement}\nRange(\"A5\") = Err.Number\nEnd Sub");
+        let (mut s, mut b, mut ide) = setup(&source)?;
+        let selection = s.doc()?.selection.clone();
+        run(&mut s, &mut b, &mut ide)?;
+        assert_eq!(cell(&s, "A5")?, CellValue::Number(number), "{statement}");
+        assert_eq!(s.doc()?.selection, selection, "{statement}");
+    }
+    Ok(())
+}
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn lightweight_whole_sheet_and_row_column_collections() -> R {
     let source = r#"Option Explicit
 Sub Main()

@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 mod address;
+mod clipboard;
 mod formatting;
 mod objects;
 mod ranges;
@@ -565,11 +566,17 @@ pub fn catalog() -> Vec<ApiMember> {
     [
         ("Application", "ActiveCell", "Property Get ActiveCell() As Range"),
         ("Application", "Selection", "Property Get Selection() As Range"),
+        ("Application", "Goto", "Sub Goto(Optional Reference As Variant, Optional Scroll As Variant)"),
         ("Application", "Calculation", "Property Calculation As XlCalculation"),
         ("Application", "EnableEvents", "Property EnableEvents As Boolean"),
         ("Application", "Calculate", "Sub Calculate()"),
         ("Workbook", "Calculate", "Sub Calculate()"),
         ("Worksheet", "Name", "Property Name As String"),
+        ("Worksheet", "Select", "Sub Select(Optional Replace As Variant)"),
+        ("Worksheet", "Activate", "Sub Activate()"),
+        ("Worksheet", "Paste", "Sub Paste(Optional Destination As Variant, Optional Link As Variant)"),
+        ("Range", "Select", "Sub Select()"),
+        ("Range", "Copy", "Sub Copy(Optional Destination As Variant)"),
         ("Range", "NumberFormat", "Property NumberFormat As Variant"),
         ("Range", "Font", "Property Get Font() As Font"),
         ("Range", "Interior", "Property Get Interior() As Interior"),

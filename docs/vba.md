@@ -13,6 +13,29 @@ includes `vba`; it adds only native shell presentation, not another interpreter 
 process. Browser builds use `gridcraft-web/vba` and always embed the editor.
 Default application builds keep VBA disabled.
 
+`Application.Goto` accepts an explicit Range in the current workbook, activates
+its worksheet and selects its areas, with the first area's first cell active.
+Positional and named `Reference`/`Scroll` arguments are bound; `Scroll` may be
+omitted or False. String/procedure destinations, omitted-reference history,
+cross-workbook destinations and `Scroll:=True` explicitly fail.
+
+The recorded `Selection.Copy`, `Sheets(...).Select`, `Range.Select`,
+`ActiveSheet.Paste` sequence now uses the native engine clipboard. Single-area
+copies and paste footprints are capped at 65,536 cells, retain formulas/styles,
+obey sheet protection and share the macro undo group. Paste queues the existing
+Worksheet_Change callback with its full footprint. Worksheet.Activate and
+Select with Replace omitted/True are supported; Range.Select requires the active
+sheet. Copy/Paste Destination arguments, linked pastes, grouped sheets,
+multi-area clipboard operations, cut buffers and cross-workbook pastes explicitly
+refuse. No system clipboard access is introduced.
+
+This is not complete recorded-macro support. The shared IDE currently limits an
+invocation to 1,024 host calls; the 4x5/40-column ingredient loop exceeds that
+limit when every meal slot is populated. The authored clipboard regression uses
+two populated slots at opposite corners, and does not establish full Food.xlsm
+execution. Next: expose a configurable, bounded host-call budget through the
+shared IDE and choose a workbook-host budget with acceptance tests.
+
 The editor shows a blocked notice until workbook trust or explicit session consent
 permits execution. Click **Allow VBA for this editor session**, then Run or Into.
 The latest editor message is also shown above the toolbar, so host failures remain
