@@ -169,6 +169,9 @@ impl Bridge {
         self.configure_with_workbook(ide, Some(wb))
     }
     fn configure_with_workbook(&self, ide: &mut Ide, wb: Option<&gridcraft_model::Workbook>) -> Result<()> {
+        let comparison_context =
+            vba_vm::IntrinsicContextConfig::new("invariant".into(), "Gregorian".into(), "UTF-16".into(), usize::BITS as u8).map_err(diagnostic)?;
+        ide.configure_string_comparison_service(Arc::new(vba_runtime::BinaryStringComparisonService), comparison_context).map_err(diagnostic)?;
         if let Ok(mut names) = self.document_code_names.write() {
             names.clear();
             names.extend(ide.modules.iter().filter_map(|module| {

@@ -414,6 +414,16 @@ fn workbook_package_retains_vba_bytes_and_macro_results() -> R {
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn workbook_macro_strcomp_uses_the_configured_binary_provider() -> R {
+    let mut s = session();
+    run(&mut s, "Sub Main()\nRange(\"A1\").Value2 = StrComp(\"A\", \"a\")\nRange(\"A2\").Value2 = StrComp(\"a\", \"B\")\nEnd Sub\n")?;
+    assert_eq!(value(&s, "A1"), CellValue::Number(-1.0));
+    assert_eq!(value(&s, "A2"), CellValue::Number(1.0));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn protection_is_enforced_and_range_payload_is_bounded() -> R {
     let mut s = session();
     s.execute("review.protectSheet", json!({}))?;
