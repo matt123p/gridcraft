@@ -21,7 +21,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
 use vba_foreign::{Completion, ForeignError, HostCall, InvokeKind, Reply};
-pub use vba_ide::{self, Action, Host, Ide, Mode, ObjectRef, Value};
+pub use vba_ide::{self, Action, Host, Ide, Limits, Mode, ObjectRef, Value};
 use vba_ide::{ApiMember, Diagnostic, Import};
 
 pub type Result<T> = std::result::Result<T, Diagnostic>;
@@ -30,6 +30,21 @@ static NEXT_HOST: AtomicU64 = AtomicU64::new(1);
 pub const MAX_OBJECTS: usize = 8192;
 pub const MAX_CELLS: usize = 65_536;
 const MAX_QUEUED_EVENTS: usize = 256;
+/// Per-invocation macro limits for the workbook host. The workbook model and
+/// clipboard already cap individual operations; these limits bound aggregate work.
+pub const MACRO_EXECUTION_LIMITS: Limits = Limits {
+    instructions: 25_000_000,
+    slice: 4096,
+    depth: 128,
+    locations: 4096,
+    stack_entries: 65_536,
+    host_calls: 12_000,
+    host_polls: 100_000,
+    // The VM reserves 64 KiB of reply/snapshot space per host call. Keep this
+    // aggregate cap within the IDE's 1 GiB maximum while allowing recorded loops.
+    payload: 1024 * 1024 * 1024,
+    callbacks: 256,
+};
 pub const DEMO: &str = "Option Explicit\nPublic Sub Main()\n    Dim i As Long\n    For i = 1 To 10\n        Cells(i, 1).Value2 = i\n    Next i\n    Range(\"B1\").Formula = \"=SUM(A1:A10)\"\nEnd Sub\n";
 
 fn diagnostic(e: impl std::fmt::Display) -> Diagnostic {
@@ -170,6 +185,7 @@ impl Bridge {
         self.configure_with_workbook(ide, Some(wb))
     }
     fn configure_with_workbook(&self, ide: &mut Ide, wb: Option<&gridcraft_model::Workbook>) -> Result<()> {
+        ide.configure_execution_limits(MACRO_EXECUTION_LIMITS.clone())?;
         let comparison_context =
             vba_vm::IntrinsicContextConfig::new("invariant".into(), "Gregorian".into(), "UTF-16".into(), usize::BITS as u8).map_err(diagnostic)?;
         ide.configure_string_comparison_service(Arc::new(vba_runtime::BinaryStringComparisonService), comparison_context).map_err(diagnostic)?;

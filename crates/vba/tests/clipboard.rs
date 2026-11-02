@@ -65,27 +65,18 @@ End Sub"#;
         for d in 1..=5 {
             let t = (index - 1) * 5 + d;
             let meal = format!("meal {t}");
-            // Two populated slots exercise both ends of the recorded 4x5 loop;
-            // filling every slot exceeds the shared IDE's 1024 host-call limit.
-            if t == 1 || t == 20 {
-                s.execute("cell.set", json!({"sheet":0,"cell":CellRef::new(d+1,index).a1(),"input":meal}))?;
-            }
+            s.execute("cell.set", json!({"sheet":0,"cell":CellRef::new(d+1,index).a1(),"input":meal}))?;
             for (row, input) in [(0, meal), (1, format!("ingredient {t}")), (2, t.to_string()), (3, format!("={}*2", CellRef::new(2, t - 1).a1()))] {
                 s.execute("cell.set", json!({"sheet":1,"cell":CellRef::new(row,t-1).a1(),"input":input}))?;
             }
         }
     }
     s.execute("home.bold", json!({"sheet":1,"range":"A2:T4","on":true}))?;
-    let history = s.doc()?.undo.len();
     run(&mut s, &mut b, &mut ide)?;
     for index in 1..=4 {
         for d in 1..=5 {
             let t = (index - 1) * 5 + d;
             let row = d * 15 - 5;
-            if t != 1 && t != 20 {
-                assert_eq!(value(&s, 0, row, index)?, Value::Empty);
-                continue;
-            }
             assert_eq!(value(&s, 0, row, index)?, Value::Text(format!("ingredient {t}").into()));
             assert_eq!(value(&s, 0, row + 1, index)?, Value::Number(f64::from(t)));
             assert_eq!(value(&s, 0, row + 2, index)?, Value::Number(f64::from(t * 2)));
@@ -99,7 +90,8 @@ End Sub"#;
         }
     }
     assert_eq!(s.doc()?.sheet_index(), 0);
-    assert_eq!(s.doc()?.undo.len(), history + 1);
+    // The bounded undo stack is full after populating all 100 fixture cells;
+    // one undo must still remove the complete macro's writes as one group.
     s.execute("edit.undo", json!({}))?;
     assert_eq!(value(&s, 0, 10, 1)?, Value::Empty);
     assert_eq!(value(&s, 0, 72, 4)?, Value::Empty);

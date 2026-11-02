@@ -194,11 +194,11 @@ overall compatibility percentage.
 
 ### OM01 — cross-cutting execution and diagnostics
 
-The shared IDE hardcodes `Limits::default()` at normal launch and idle document
-callback creation (`tiny-vba/crates/vba-ide/src/lib.rs`); the VM default currently
-permits 1,024 host calls. Add an explicit host-configurable bounded execution
-policy through the shared IDE, then choose and test GridCraft's macro budget.
-Do not just remove the VM limit or increase every consumer's global defaults.
+The shared IDE now accepts bounded execution limits used at normal launch and
+idle document callback creation (`tiny-vba/crates/vba-ide/src/lib.rs`). GridCraft
+sets a macro profile with a 12,000 host-call cap and 1 GiB payload cap; the VM
+default remains 1,024 host calls for other consumers. Do not remove the VM limit
+or increase every consumer's global defaults.
 Validate configuration, freeze it for a running/paused/waiting session, use it
 on every launch/callback route, and keep inspection/UDF budgets distinct.
 Count work over slices/continuations; a pause must not replenish the budget.
@@ -567,11 +567,12 @@ have independently observed Excel behavior or completed implementation designs.
   documentation commit, rejects duplicate inventory paths, and checks exact
   equality of all 5,996 Excel API source paths. This is a reproducibility check;
   it does not yet regenerate semantic classifications or reconcile dispatch.
-- **OM01a — configurable bounded execution limits:** drafted in the shared
-  tiny-vba checkout with input validation and a regression proving the
-  host-call budget remains cumulative through debugger pause/resume. It is not
-  yet published or pinned by GridCraft; GridCraft's macro budget configuration
-  and the remaining OM01 registry/diagnostic work are still outstanding.
+- **OM01a — configurable bounded execution limits:** published in tiny-vba and
+  pinned by GridCraft. GridCraft configures a bounded macro profile with a larger
+  aggregate payload allowance for host-call snapshots; worksheet UDF execution
+  keeps its separate smaller VM limits. The 20-slot recorded copy loop now runs
+  and is undone as one macro group. Remaining OM01 registry/diagnostic work is
+  still outstanding.
 - **OM02a-1 — clipboard and PasteSpecial subset:** implemented for one-area
   source and destination ranges in the current workbook, including cross-sheet copies.
   `Range.Cut` with or without Destination and `Application.CutCopyMode` stage same-workbook bounded moves;
@@ -581,7 +582,8 @@ have independently observed Excel behavior or completed implementation designs.
   same target behavior. `Range.PasteSpecial` supports engine-backed paste types,
   arithmetic, SkipBlanks and Transpose; source-theme and conditional-format merge
   modes refuse. Cross-workbook consent remains open. The
-  14-test clipboard integration suite passes, including callback ordering.
+  14-test clipboard integration suite passes, including the fully populated
+  20-slot recorded macro and callback ordering.
 
 The remaining OM00 inventory schema/exporter and every OM02-OM20 implementation
 requirement remain open. These first slices do not complete a packet.
