@@ -1,6 +1,6 @@
 # Optional tiny-vba integration
 
-Updated 2026-11-01. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
+Updated 2026-11-02. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
 The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
 members, remaining mismatches and stages toward running existing workbooks
@@ -12,6 +12,11 @@ For an embedded desktop editor, use `--features vba`. The `vba-window` feature
 includes `vba`; it adds only native shell presentation, not another interpreter or
 process. Browser builds use `gridcraft-web/vba` and always embed the editor.
 Default application builds keep VBA disabled.
+
+The editor shows a blocked notice until workbook trust or explicit session consent
+permits execution. Click **Allow VBA for this editor session**, then Run or Into.
+The latest editor message is also shown above the toolbar, so host failures remain
+visible while Locals or another debugger tab is selected.
 
 Developer → Visual Basic or Alt+F11 opens the editor; Macros → Edit selects a
 procedure in it. Enable Developer under File → Options → Customize Ribbon →

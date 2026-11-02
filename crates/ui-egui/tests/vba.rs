@@ -82,6 +82,37 @@ fn file_source_is_inert_until_explicit_consent_and_revoke_recalculates() {
     assert_eq!(cell(&b, "B1"), Value::Error(CellError::Name));
 }
 #[test]
+fn editor_run_and_into_show_consent_failures_without_opening_output() {
+    let mut a = worksheet_app();
+    a.run("vba.apply", json!({})).unwrap();
+    let wb = (*a.session.doc().unwrap().wb).clone();
+    let mut session = Session::new();
+    session.add_document(DocState::new(wb, None, "File".into(), Trust::FromFile));
+    let mut b = common::app(session);
+    b.run("vba.open", json!({})).unwrap();
+    let mut h = common::harness_with(common::builder().with_size(egui::vec2(1440., 900.)), b, 4);
+    h.state_mut().vba.as_mut().unwrap().ide.entry = "Fill".into();
+    let blocked = "VBA is blocked. Click Allow VBA for this editor session to enable Run and Into.";
+    assert!(h.query_by_label(blocked).is_some());
+    for label in [">  Run", "->  Into"] {
+        h.get_by_label(label).click();
+        h.run_steps(3);
+        assert_eq!(h.state().vba.as_ref().unwrap().ide.mode(), Mode::Design);
+        let message = h.state().vba.as_ref().unwrap().ide.messages.last().unwrap();
+        assert!(message.contains("explicit consent"));
+        assert!(h.query_by_label(&format!("VBA: {message}")).is_some());
+    }
+    h.get_by_label("Allow VBA for this editor session").click();
+    h.run_steps(3);
+    assert!(h.query_by_label(blocked).is_none());
+    h.get_by_label("->  Into").click();
+    h.run_steps(3);
+    assert_eq!(h.state().vba.as_ref().unwrap().ide.mode(), Mode::Break, "{:?}", h.state().vba.as_ref().unwrap().ide.messages);
+    h.get_by_label(">  Run").click();
+    h.run_steps(20);
+    assert_eq!(cell(h.state(), "A1"), gridcraft_engine::core::Value::Number(17.));
+}
+#[test]
 fn toolbar_macro_picker_and_developer_controls_are_reachable() {
     let mut a = worksheet_app();
     a.run("vba.return", json!({})).unwrap();

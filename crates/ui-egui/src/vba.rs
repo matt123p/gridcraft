@@ -716,6 +716,16 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
                 commands.push(Command::Action(Action::CloseProject));
             }
         });
+        if !editor.bridge.permitted(&app.session) {
+            ui.label("VBA is blocked. Click Allow VBA for this editor session to enable Run and Into.");
+        }
+        // Host failures can happen before Ide::dispatch, so they only reach the
+        // message log. Keep its latest entry visible even when Locals is selected.
+        if let Some(message) = editor.ide.messages.last() {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(format!("VBA: {message}"));
+            });
+        }
     });
     commands.extend(editor.view.show(ui, &editor.ide, host_theme(theme::Tokens::get(ui.ctx()))));
     for command in commands {
