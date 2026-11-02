@@ -6,6 +6,7 @@ use vba_values::NominalType;
 
 // Adapter profile identity, not a claim about an installed Office typelib version.
 const EXCEL_TYPES_VERSION: &str = "GridCraft.Excel.v1";
+include!("vba_enum_data.rs");
 
 pub(crate) fn references() -> Result<ReferenceSet> {
     ReferenceSet::new(vec![ReferenceLibrary {
@@ -15,109 +16,12 @@ pub(crate) fn references() -> Result<ReferenceSet> {
         types: ["Application", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets", "Areas", "Font", "Interior"]
             .into_iter()
             .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
-            .chain(
-                [
-                    "XlCalculation",
-                    "XlReferenceStyle",
-                    "XlDirection",
-                    "XlFindLookIn",
-                    "XlLookAt",
-                    "XlSearchOrder",
-                    "XlSearchDirection",
-                    "XlInsertShiftDirection",
-                    "XlDeleteShiftDirection",
-                    "XlInsertFormatOrigin",
-                    "XlPasteType",
-                    "XlPasteSpecialOperation",
-                    "XlCutCopyMode",
-                ]
-                .into_iter()
-                .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Enum }),
-            )
+            .chain(EXCEL_ENUM_TYPES.iter().map(|name| ReferenceType { name: (*name).into(), kind: ReferenceTypeKind::Enum }))
             .collect(),
-        constants: [
-            ("xlCalculationAutomatic", -4105),
-            ("xlCalculationManual", -4135),
-            ("xlCalculationSemiautomatic", 2),
-            ("xlA1", 1),
-            ("xlR1C1", -4150),
-            ("xlUp", -4162),
-            ("xlDown", -4121),
-            ("xlToLeft", -4159),
-            ("xlToRight", -4161),
-            ("xlValues", -4163),
-            ("xlFormulas", -4123),
-            ("xlWhole", 1),
-            ("xlPart", 2),
-            ("xlByRows", 1),
-            ("xlByColumns", 2),
-            ("xlNext", 1),
-            ("xlPrevious", 2),
-            ("xlShiftDown", -4121),
-            ("xlShiftToRight", -4161),
-            ("xlShiftUp", -4162),
-            ("xlShiftToLeft", -4159),
-            ("xlFormatFromLeftOrAbove", 0),
-            ("xlFormatFromRightOrBelow", 1),
-            ("xlPasteAll", -4104),
-            ("xlPasteAllExceptBorders", 7),
-            ("xlPasteAllMergingConditionalFormats", 14),
-            ("xlPasteAllUsingSourceTheme", 13),
-            ("xlPasteColumnWidths", 8),
-            ("xlPasteComments", -4144),
-            ("xlPasteFormats", -4122),
-            ("xlPasteFormulas", -4123),
-            ("xlPasteFormulasAndNumberFormats", 11),
-            ("xlPasteValidation", 6),
-            ("xlPasteValues", -4163),
-            ("xlPasteValuesAndNumberFormats", 12),
-            ("xlPasteSpecialOperationAdd", 2),
-            ("xlPasteSpecialOperationDivide", 5),
-            ("xlPasteSpecialOperationMultiply", 4),
-            ("xlPasteSpecialOperationNone", -4142),
-            ("xlPasteSpecialOperationSubtract", 3),
-            ("xlCopy", 1),
-            ("xlCut", 2),
-        ]
-        .into_iter()
-        .map(|(name, n)| ReferenceConstant {
-            name: name.into(),
-            module: Some(
-                match name {
-                    "xlCalculationAutomatic" | "xlCalculationManual" | "xlCalculationSemiautomatic" => "XlCalculation",
-                    "xlA1" | "xlR1C1" => "XlReferenceStyle",
-                    "xlUp" | "xlDown" | "xlToLeft" | "xlToRight" => "XlDirection",
-                    "xlValues" | "xlFormulas" => "XlFindLookIn",
-                    "xlWhole" | "xlPart" => "XlLookAt",
-                    "xlByRows" | "xlByColumns" => "XlSearchOrder",
-                    "xlNext" | "xlPrevious" => "XlSearchDirection",
-                    "xlShiftDown" | "xlShiftToRight" => "XlInsertShiftDirection",
-                    "xlShiftUp" | "xlShiftToLeft" => "XlDeleteShiftDirection",
-                    "xlPasteAll"
-                    | "xlPasteAllExceptBorders"
-                    | "xlPasteAllMergingConditionalFormats"
-                    | "xlPasteAllUsingSourceTheme"
-                    | "xlPasteColumnWidths"
-                    | "xlPasteComments"
-                    | "xlPasteFormats"
-                    | "xlPasteFormulas"
-                    | "xlPasteFormulasAndNumberFormats"
-                    | "xlPasteValidation"
-                    | "xlPasteValues"
-                    | "xlPasteValuesAndNumberFormats" => "XlPasteType",
-                    "xlPasteSpecialOperationAdd"
-                    | "xlPasteSpecialOperationDivide"
-                    | "xlPasteSpecialOperationMultiply"
-                    | "xlPasteSpecialOperationNone"
-                    | "xlPasteSpecialOperationSubtract" => "XlPasteSpecialOperation",
-                    "xlCopy" | "xlCut" => "XlCutCopyMode",
-                    _ => "XlInsertFormatOrigin",
-                }
-                .into(),
-            ),
-            value: Value::Long(n),
-        })
-        .collect(),
+        constants: EXCEL_ENUM_CONSTANTS
+            .iter()
+            .map(|(module, name, n)| ReferenceConstant { name: (*name).into(), module: Some((*module).into()), value: Value::Long(*n) })
+            .collect(),
     }])
 }
 

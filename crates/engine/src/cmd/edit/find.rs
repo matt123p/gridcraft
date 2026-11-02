@@ -1,5 +1,5 @@
 use super::cell::input_to_cell;
-use super::{Cell, CellRef, EngineError, Json, Result, Session, Value, bad, bool_param, edit, json, str_param};
+use super::{Cell, CellRef, EngineError, Json, RangeRef, Result, Session, Value, bad, bool_param, edit, json, str_param};
 
 // ---------------------------------------------------------------- find & replace
 
@@ -114,15 +114,59 @@ pub(super) fn replace(s: &mut Session, p: &Json) -> Result<Json> {
     let whole = bool_param(p, "wholeCell").unwrap_or(false);
     let all = bool_param(p, "all").unwrap_or(true);
     let workbook = str_param(p, "within") == Some("workbook");
+    let scoped_sheet = p.get("sheet").and_then(Json::as_u64).and_then(|i| usize::try_from(i).ok());
+    let sheet_count = s.doc()?.wb.sheets.len();
+    if p.get("sheet").is_some() && scoped_sheet.is_none_or(|i| i >= sheet_count) {
+        return Err(bad("edit.replace", "invalid sheet scope"));
+    }
+    let scoped_range = p
+        .get("range")
+        .and_then(Json::as_str)
+        .map(|range| RangeRef::parse(range).ok_or_else(|| bad("edit.replace", "invalid range scope")))
+        .transpose()?;
+    if scoped_range.is_some() && scoped_sheet.is_none() {
+        return Err(bad("edit.replace", "range scope requires a sheet"));
+    }
     let active = s.doc()?.selection.active;
+    if bool_param(p, "preview").unwrap_or(false) {
+        let doc = s.doc()?;
+        let sheets: Vec<usize> =
+            scoped_sheet.map_or_else(|| if workbook { (0..doc.wb.sheets.len()).collect() } else { vec![doc.wb.active_sheet()] }, |sheet| vec![sheet]);
+        let mut cells = Vec::new();
+        for si in sheets {
+            if let Some(sheet) = doc.wb.sheet(si) {
+                let entries: Vec<_> =
+                    if let Some(range) = scoped_range { sheet.cells.iter_range(range).collect() } else { sheet.cells.iter().collect() };
+                for (cell, _) in entries {
+                    if !all && (si != doc.wb.active_sheet() || cell != active) {
+                        continue;
+                    }
+                    if matches(&sheet.input_text(cell), &what, case, whole) {
+                        cells.push(json!({"sheet":si,"cell":cell.a1()}));
+                    }
+                }
+            }
+        }
+        return Ok(json!({"replaced":cells.len(),"cells":cells}));
+    }
     let n = edit(s, |cx| {
-        let sheets: Vec<usize> = if workbook { (0..cx.wb.sheets.len()).collect() } else { vec![cx.wb.active_sheet()] };
+        let sheets: Vec<usize> =
+            scoped_sheet.map_or_else(|| if workbook { (0..cx.wb.sheets.len()).collect() } else { vec![cx.wb.active_sheet()] }, |sheet| vec![sheet]);
         let mut n = 0;
         for si in sheets {
-            let cells: Vec<(CellRef, String)> =
-                cx.wb.sheet(si).map(|sh| sh.cells.iter().map(|(c, _)| (c, sh.input_text(c))).collect()).unwrap_or_default();
+            let cells: Vec<(CellRef, String)> = cx
+                .wb
+                .sheet(si)
+                .map(|sh| {
+                    if let Some(range) = scoped_range {
+                        sh.cells.iter_range(range).map(|(c, _)| (c, sh.input_text(c))).collect()
+                    } else {
+                        sh.cells.iter().map(|(c, _)| (c, sh.input_text(c))).collect()
+                    }
+                })
+                .unwrap_or_default();
             for (c, text) in cells {
-                if !all && c != active {
+                if !all && (si != cx.wb.active_sheet() || c != active) {
                     continue;
                 }
                 if !matches(&text, &what, case, whole) {

@@ -285,4 +285,123 @@ impl Bridge {
         self.find = state;
         Ok(result)
     }
+
+    pub(crate) fn replace_range(&mut self, session: &mut Session, sheet: usize, range: &Range, call: &HostCall) -> HostResult<Value> {
+        let args = arguments(
+            call,
+            &["What", "Replacement", "LookAt", "SearchOrder", "MatchCase", "MatchByte", "SearchFormat", "ReplaceFormat", "FormulaVersion"],
+        )?;
+        let what = replacement_text(required(&args, 0)?, false)?;
+        let replacement = replacement_text(required(&args, 1)?, true)?;
+        if what.is_empty() {
+            return Err(failure(1004, "Range.Replace What cannot be empty"));
+        }
+        let look_at = args.get(2).filter(|v| !matches!(v, Value::Missing)).map(numeric_index).transpose()?.unwrap_or(2);
+        let search_order = args.get(3).filter(|v| !matches!(v, Value::Missing)).map(numeric_index).transpose()?.unwrap_or(1);
+        if ![1, 2].contains(&look_at) || ![1, 2].contains(&search_order) {
+            return Err(failure(1004, "Range.Replace LookAt or SearchOrder is invalid"));
+        }
+        let match_case = args.get(4).filter(|v| !matches!(v, Value::Missing)).map(boolean).transpose()?.unwrap_or(false);
+        if args.get(5).filter(|v| !matches!(v, Value::Missing)).map(boolean).transpose()?.unwrap_or(false) {
+            return Err(failure(1004, "Range.Replace MatchByte requires double-byte language support"));
+        }
+        for (index, name) in [(6, "SearchFormat"), (7, "ReplaceFormat")] {
+            if args.get(index).filter(|v| !matches!(v, Value::Missing)).map(boolean).transpose()?.unwrap_or(false) {
+                return Err(failure(1004, format!("Range.Replace {name} requires the format search service")));
+            }
+        }
+        if args.get(8).is_some_and(|value| !matches!(value, Value::Missing)) {
+            return Err(failure(1004, "Range.Replace FormulaVersion is not supported"));
+        }
+        let rect = range.rectangle()?;
+        if rect.count() > MAX_CELLS as u64 {
+            return Err(failure(7, "Range.Replace exceeds VBA cell budget"));
+        }
+        let params = serde_json::json!({
+            "what":what,"with":replacement,"wholeCell":look_at == 1,"matchCase":match_case,
+            "all":true,"sheet":sheet,"range":rect.a1()
+        });
+        let preview = session.execute("edit.replace", serde_json::json!({"preview":true,"what":params["what"],"with":params["with"],"wholeCell":params["wholeCell"],"matchCase":params["matchCase"],"all":true,"sheet":sheet,"range":rect.a1()}))
+            .map_err(|error| failure(1004, error.to_string()))?;
+        let changed = preview
+            .get("cells")
+            .and_then(serde_json::Value::as_array)
+            .ok_or_else(|| failure(1004, "replace preview did not return changed cells"))?;
+        if changed.len() > MAX_CELLS {
+            return Err(failure(7, "Range.Replace change target exceeds VBA cell budget"));
+        }
+        if changed.is_empty() {
+            return Ok(Value::Boolean(false));
+        }
+        let event = self.preflight_change(session, sheet)?;
+        let target = if event.is_some() { Some(replace_target(changed)?) } else { None };
+        if let Some(target) = &target {
+            self.intern(Object::Range(sheet, target.clone()))?;
+            self.pending_events.try_reserve(1).map_err(|_| failure(7, "worksheet event queue allocation"))?;
+        }
+        let result = session.execute("edit.replace", params).map_err(|error| failure(1004, error.to_string()))?;
+        if result.get("replaced").and_then(serde_json::Value::as_u64) != Some(changed.len() as u64) {
+            return Err(failure(1004, "Range.Replace result changed after preview"));
+        }
+        if let (Some(owner), Some(target)) = (event, target) {
+            self.queue_change(owner, sheet, target)?;
+        }
+        Ok(Value::Boolean(true))
+    }
+}
+
+fn replacement_text(value: &Value, allow_empty: bool) -> HostResult<String> {
+    match value {
+        Value::Null => Err(failure(94, "invalid use of Null")),
+        Value::Missing => Err(failure(449, "argument not optional")),
+        Value::Nothing | Value::Object(_) | Value::Array(_) => Err(failure(13, "Replace arguments must be scalar values")),
+        Value::Empty if allow_empty => Ok(String::new()),
+        Value::Empty => Err(failure(1004, "Range.Replace What cannot be empty")),
+        _ => match values::content(value, false)? {
+            gridcraft_engine::CellContent::Value(value) => Ok(value.display()),
+            _ => Err(failure(13, "Replace arguments must be scalar values")),
+        },
+    }
+}
+
+fn replace_target(changed: &[serde_json::Value]) -> HostResult<Range> {
+    let mut cells = changed
+        .iter()
+        .map(|entry| {
+            let address = entry.get("cell").and_then(serde_json::Value::as_str).ok_or_else(|| failure(1004, "invalid replace preview cell"))?;
+            CellRef::parse(address).ok_or_else(|| failure(1004, "invalid replace preview address"))
+        })
+        .collect::<HostResult<Vec<_>>>()?;
+    cells.sort_unstable();
+    cells.dedup();
+    let mut areas = Vec::<RangeRef>::new();
+    let mut index = 0;
+    while index < cells.len() {
+        let start = cells[index];
+        let mut end = start;
+        index += 1;
+        while index < cells.len() && cells[index].row == start.row && cells[index].col == end.col + 1 {
+            end = cells[index];
+            index += 1;
+        }
+        areas.push(RangeRef::new(start, end));
+    }
+    areas.sort_by_key(|area| (area.start.col, area.end.col, area.start.row));
+    let mut merged = Vec::<RangeRef>::new();
+    for area in areas {
+        if let Some(previous) = merged.last_mut()
+            && previous.start.col == area.start.col
+            && previous.end.col == area.end.col
+            && previous.end.row.checked_add(1) == Some(area.start.row)
+        {
+            previous.end.row = area.end.row;
+        } else {
+            merged.push(area);
+        }
+    }
+    if merged.len() > 64 {
+        return Err(failure(7, "Range.Replace event target exceeds 64 disjoint areas"));
+    }
+    merged.sort_by_key(|area| (area.start.row, area.start.col));
+    Ok(Range { areas: merged, unit: super::ranges::Unit::Cells })
 }

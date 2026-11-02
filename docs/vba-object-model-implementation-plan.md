@@ -76,11 +76,12 @@ Inventory status meanings:
 
 | Status | Snapshot pages | Meaning |
 |---|---:|---|
-| `implemented-subset` | 93 | Positive catalogue/dispatch or event evidence; expand option/semantic gaps before claiming completion |
+| `implemented-subset` | 98 | Positive catalogue/dispatch or event evidence; expand option/semantic gaps before claiming completion |
 | `context-only` | 2 | Caller/Volatile on the UDF path, not general macro support |
-| `object-subset` | 10 | An object-page alias for a type represented in the adapter |
-| `not-exposed` | 4,615 | No matching member in the reviewed adapter projection |
-| `object-not-exposed` | 334 | No general projection of this documented object |
+| `object-subset` | 9 | An object-page alias for a type represented in the adapter |
+| `not-exposed` | 4,608 | No matching member in the reviewed adapter projection |
+| `platform-service-needed` | 2 | Clipboard image and external-format paste dispatch explicitly refuse until the host services exist |
+| `object-not-exposed` | 335 | No general projection of this documented object |
 | `formula-bridge-not-exposed` | 390 | WorksheetFunction member pages; bridge work only in this plan |
 | `partial-definition` | 10 | Existing enum type registration; reconcile actual values/aliases |
 | `definition-gap` | 259 | Enum definitions absent from the projection or awaiting reconciliation |
@@ -128,8 +129,10 @@ precedence where a member has multiple concerns, and OM20 must resolve the tail.
 
 ## Work packets and order
 
-All packets below remain open; OM00a-1 and selected OM02 clipboard slices are
-implemented as recorded in the progress section, and OM01a is drafted locally.
+OM00's deterministic source and semantic exporter is implemented, OM01a's
+bounded shared IDE policy is published and configured in GridCraft, and selected
+OM02 slices are implemented as recorded in the progress section. OM00, OM01 and
+OM02 remain open because their broader acceptance criteria have not been met.
 Split each packet into small PRs by object family and behavior. Do not
 make one PR containing the whole object model. First finish OM00/OM01, then
 OM02-OM07; continue through the remaining families with their prerequisites.
@@ -139,7 +142,7 @@ OM20 classification starts early and must be complete before final sign-off.
 |---|---:|---|---|
 | OM00 | 272 | Complete inventory, signatures, enum and constant contracts | None |
 | OM01 | Cross-cutting | Host execution policy, member registry and diagnostics | OM00 schema |
-| OM02 | 179 | Selection, clipboard, editing and range operations | OM01 |
+| OM02 | 180 | Selection, clipboard, editing and range operations | OM01 |
 | OM03 | 200 | Application roots, settings, calculation and dispatch | OM01 |
 | OM04 | 268 | Workbook/sheet collections and lifecycle | OM01, OM03 |
 | OM05 | 528 | Formatting, styles and conditional formatting | OM02, OM04 |
@@ -533,12 +536,13 @@ Do not infer broad Excel parity from the absence of runtime error 438.
 
 ## Recommended first Luna assignment
 
-Start by completing **OM00a + OM01a**: extend the offline checker into a
-deterministic semantic exporter and reconcile the adapter, then publish the
-bounded shared IDE policy and select GridCraft's macro budget. The first OM02a
-clipboard slices now cover bounded same-workbook Copy/Cut/Paste and PasteSpecial;
-continue with cross-document consent, remaining documented options, and the rest
-of selection/editing. Then do **OM06a** Sort/SortFields plus
+Continue OM00 with per-member signature, argument-mode/default, property access,
+platform and alias review; the exporter currently records unresolved metadata
+instead of treating it as accepted. Continue OM01 with the shared descriptor,
+source-aware diagnostics and static compatibility report. OM02's bounded same-
+workbook clipboard, linked paste and clearing slices are in place; next cover
+multi-area selection, Find/Replace, SpecialCells/region, fill and remaining
+structural behavior. Then do **OM06a** Sort/SortFields plus
 enum/collation contracts. Keep the rest of this plan as the ordered full-surface
 backlog; do not turn it into a single large implementation change.
 
@@ -561,17 +565,33 @@ have independently observed Excel behavior or completed implementation designs.
 
 ## Implementation progress
 
-- **OM00a-1 — pinned source-page integrity:** implemented as the offline
-  `cargo run -p xtask --features vba-audit -- vba-audit` command. With the ignored local cache at
-  `target/vba-docs-audit/reference.zip`, it verifies the archive SHA256 and
-  documentation commit, rejects duplicate inventory paths, and checks exact
-  equality of all 5,996 Excel API source paths. This is a reproducibility check;
-  it does not yet regenerate semantic classifications or reconcile dispatch.
-- **OM01a — configurable bounded execution limits:** drafted in the shared
-  tiny-vba checkout with input validation and a regression proving the
-  host-call budget remains cumulative through debugger pause/resume. It is not
-  yet published or pinned by GridCraft; GridCraft's macro budget configuration
-  and the remaining OM01 registry/diagnostic work are still outstanding.
+- **OM00a-1 — pinned source-page integrity and deterministic export:** implemented
+  as `cargo run -p xtask --features vba-audit -- vba-audit [--write]`. It verifies
+  the cached archive SHA256 and documentation commit, rejects duplicate paths,
+  checks exact equality of all 5,996 Excel API pages, and deterministically
+  generates `vba-object-model-contracts.json`, typed enum source and an unresolved
+  row report. Current output has 272 enum types and 2,260 typed runtime constants.
+  The source contract retains both same-value `Constants.xlManual` and
+  `XlSortOrder.xlManual` identities, while runtime registration deduplicates the
+  name because tiny-vba's `ReferenceSet` rejects duplicate constant names even
+  across modules. Qualified alias resolution remains outstanding and requires a
+  shared resolver change. The
+  schema 2 exporter records 4,296 argument occurrences: 2,879 required/optional
+  flags and 2,880 types are extracted from parameter tables, with 172 explicit
+  typed defaults extracted from descriptions. Argument mode is marked
+  `NOT_SPECIFIED_IN_SOURCE` where Microsoft’s reference syntax provides no
+  ByVal/ByRef mode; undocumented requiredness, types and defaults retain source
+  provenance instead of being guessed. The
+  audit passes, but contracts remain unresolved: 5,340 MISSING, 371 PARTIAL,
+  283 REFERENCE_ALIAS and 2 PLATFORM_SERVICE_NEEDED rows. Signature arguments,
+  property access, aliases and platform semantics still need review. This is not
+  OM00 acceptance.
+- **OM01a — configurable bounded execution limits:** published in tiny-vba and
+  pinned by GridCraft. GridCraft configures 20,000,000 instructions, 16,384 host
+  calls and a 512 MiB payload ceiling for workbook macro sessions; limits carry
+  across pause/resume and idle document-event sessions. The shared IDE embedding
+  regression passed. OM01's unified member descriptor, source-aware diagnostics
+  and static compatibility report remain outstanding.
 - **OM02a-1 — clipboard and PasteSpecial subset:** implemented for one-area
   source and destination ranges in the current workbook, including cross-sheet copies.
   `Range.Cut` with or without Destination and `Application.CutCopyMode` stage same-workbook bounded moves;
@@ -580,8 +600,36 @@ have independently observed Excel behavior or completed implementation designs.
   callbacks use the native engine path. `Worksheet.Paste Destination` uses the
   same target behavior. `Range.PasteSpecial` supports engine-backed paste types,
   arithmetic, SkipBlanks and Transpose; source-theme and conditional-format merge
-  modes refuse. Cross-workbook consent remains open. The
-  14-test clipboard integration suite passes, including callback ordering.
+  modes refuse. Cross-workbook consent remains open. The 15-test clipboard suite
+  passes, including callback ordering, live same-workbook `Worksheet.Paste
+  Link:=True` formulas and the recorded 20-slot copy loop with one undo group.
+  `Worksheet.PasteSpecial` and `Range.CopyPicture` validate their options and
+  explicitly report unavailable host services; they remain service-needed.
+- **OM02a-2 — Range clearing subset:** `Range.Clear`, `ClearContents` and
+  `ClearFormats` now route through native engine clear commands. Operations are
+  capped at 65,536 selected cells; content-clearing calls preflight and queue the
+  bounded Worksheet_Change target, while format-only clearing does not queue a
+  value-change event. The range suite passes, including distinct content,
+  format and full-clear behavior.
 
-The remaining OM00 inventory schema/exporter and every OM02-OM20 implementation
-requirement remain open. These first slices do not complete a packet.
+- **OM02a-3 — range activation and CurrentRegion:** `Range.Activate` now activates
+  its owning worksheet, retains the selected range and sets its first cell as
+  active. `Range.CurrentRegion` delegates to the engine's native region helper
+  for a single-area range and refuses results above 65,536 cells. Both behaviors
+  have focused VBA integration coverage.
+- **OM02a-4 — range-scoped Replace:** the engine `edit.replace` command now accepts
+  an optional sheet/range scope and a read-only preview that reports matching
+  cells. `Range.Replace` validates its full documented argument list, limits the
+  receiver to 65,536 cells, commits through the native replacement logic, returns
+  a Boolean, and queues a single Worksheet_Change target containing only changed
+  cells. Contiguous horizontal and vertical changed-cell runs are coalesced; more
+  than 64 disjoint event areas, MatchByte, format search, and FormulaVersion
+  service requests refuse before mutation. Tests cover range isolation, case and
+  whole-cell options, Boolean results, event Target and atomic service refusals.
+  The range suite now has 14 tests.
+
+OM02 still lacks grouped/multi-area selection rules, full Select/Activate/Goto
+history and scroll behavior, Union/Intersect, complete Find repeat state,
+CurrentArray/SpecialCells, fill/AutoFill/series, and full
+structural operation coverage. OM00/OM01 also remain open as described above;
+these slices do not complete any of the three packets.

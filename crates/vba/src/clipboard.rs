@@ -2,8 +2,9 @@
 use super::objects::{Object, arguments};
 use super::ranges::Range;
 use super::{Bridge, HostCall, HostResult, MAX_CELLS, Session, Value, failure, values};
-use gridcraft_engine::core::RangeRef;
+use gridcraft_engine::core::{CellRef, RangeRef};
 use serde_json::json;
+use vba_values::{ScalarKind, VbaArray};
 
 impl Bridge {
     pub(crate) fn paste_special(&mut self, session: &mut Session, sheet: usize, range: &Range, call: &HostCall) -> HostResult<Value> {
@@ -80,6 +81,16 @@ impl Bridge {
         let first = range.first()?;
         let address = range.areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
         session.execute("selection.set", json!({"range":address,"active":first.start.a1()})).map_err(|e| failure(1004, e.to_string()))?;
+        Ok(Value::Empty)
+    }
+
+    pub(crate) fn activate_range(&mut self, session: &mut Session, sheet: usize, range: &Range, call: &HostCall) -> HostResult<Value> {
+        arguments(call, &[])?;
+        let first = range.first()?;
+        let address = range.areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
+        session
+            .execute("selection.set", json!({"sheet":sheet,"range":address,"active":first.start.a1()}))
+            .map_err(|error| failure(1004, error.to_string()))?;
         Ok(Value::Empty)
     }
 
@@ -183,6 +194,13 @@ impl Bridge {
 
     pub(crate) fn paste_sheet(&mut self, session: &mut Session, sheet: usize, call: &HostCall) -> HostResult<Value> {
         let args = arguments(call, &["Destination", "Link"])?;
+        let link = boolean_option(args.get(1), "Link")?;
+        if link {
+            if args.first().is_some_and(|value| !matches!(value, Value::Missing)) {
+                return Err(failure(1004, "Worksheet.Paste cannot combine Destination and Link"));
+            }
+            return self.paste_sheet_link(session, sheet);
+        }
         let destination = match args.first().filter(|v| !matches!(v, Value::Missing)) {
             Some(Value::Object(reference)) => {
                 let Object::Range(destination_sheet, range) = self.object(session, *reference)? else {
@@ -196,12 +214,6 @@ impl Bridge {
             Some(_) => return Err(failure(13, "Worksheet.Paste Destination must be a Range")),
             None => None,
         };
-        if let Some(link) = args.get(1).filter(|v| !matches!(v, Value::Missing)) {
-            let link = vba_runtime::bind(vba_values::ScalarKind::Boolean, link).map_err(values::runtime_error)?;
-            if link == Value::Boolean(true) {
-                return Err(failure(1004, "Worksheet.Paste Link:=True is unsupported"));
-            }
-        }
         let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
         if destination.is_none() && doc.sheet_index() != sheet {
             return Err(failure(1004, "Worksheet.Paste requires its worksheet to be active"));
@@ -257,6 +269,55 @@ impl Bridge {
         session.execute("edit.paste", json!({})).map_err(|e| failure(1004, e.to_string()))?;
         for (owner, changed_sheet, changed_range) in events {
             self.queue_change(owner, changed_sheet, changed_range)?;
+        }
+        Ok(Value::Empty)
+    }
+
+    fn paste_sheet_link(&mut self, session: &mut Session, sheet: usize) -> HostResult<Value> {
+        let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+        if doc.sheet_index() != sheet {
+            return Err(failure(1004, "Worksheet.Paste Link requires its worksheet to be active"));
+        }
+        if doc.selection.ranges.len() != 1 {
+            return Err(failure(1004, "Worksheet.Paste Link requires one selected area"));
+        }
+        let clipboard = session.clipboard.clone().ok_or_else(|| failure(1004, "Nothing to paste"))?;
+        if clipboard.cut || clipboard.doc_uid != doc.uid || !clipboard.areas.is_empty() {
+            return Err(failure(1004, "Worksheet.Paste Link requires a copied single-area range in this workbook"));
+        }
+        let source = clipboard.range;
+        let selected = doc.selection.current();
+        let tiled = !selected.is_single() && selected.height() % source.height() == 0 && selected.width() % source.width() == 0;
+        let (height, width) = if tiled { (selected.height(), selected.width()) } else { (source.height(), source.width()) };
+        let count = u64::from(height).checked_mul(u64::from(width)).ok_or_else(|| failure(7, "linked paste cell count overflow"))?;
+        if source.count() > MAX_CELLS as u64 || count > MAX_CELLS as u64 {
+            return Err(failure(7, "linked paste exceeds VBA cell budget"));
+        }
+        let end =
+            selected.start.offset(i64::from(height) - 1, i64::from(width) - 1).ok_or_else(|| failure(1004, "linked paste exceeds the worksheet"))?;
+        let target = RangeRef::new(selected.start, end);
+        let source_sheet = doc.wb.sheet(clipboard.sheet).ok_or_else(|| failure(91, "clipboard worksheet was deleted"))?;
+        let qualifier = format!("'{}'!", source_sheet.name.replace('\'', "''"));
+        let rows = i32::try_from(height).map_err(|_| failure(7, "linked paste row budget"))?;
+        let columns = i32::try_from(width).map_err(|_| failure(7, "linked paste column budget"))?;
+        let mut formulas = VbaArray::new(ScalarKind::Variant, vec![(1, rows), (1, columns)], false).map_err(|error| failure(7, error.to_string()))?;
+        for row in 0..height {
+            for column in 0..width {
+                let source_row = row % source.height();
+                let source_column = column % source.width();
+                let source_cell = CellRef::new(source.start.row + source_row, source.start.col + source_column);
+                let formula = format!("={qualifier}{}", source_cell.a1());
+                formulas.set((row * width + column) as usize, values::vba_text(&formula)?).map_err(|error| failure(7, error.to_string()))?;
+            }
+        }
+        let event = self.preflight_change(session, sheet)?;
+        let linked_values = Value::Array(formulas);
+        values::write(session, sheet, target, &linked_values, true, false)?;
+        session
+            .execute("selection.set", json!({"range":target.a1(),"active":target.start.a1()}))
+            .map_err(|error| failure(1004, error.to_string()))?;
+        if let Some(owner) = event {
+            self.queue_change(owner, sheet, target.into())?;
         }
         Ok(Value::Empty)
     }

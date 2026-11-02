@@ -1,6 +1,7 @@
 //! Lightweight Excel references; materialization belongs to values, never construction.
-use super::{HostResult, MAX_OBJECTS, failure};
+use super::{Bridge, HostResult, MAX_CELLS, MAX_OBJECTS, Session, Value, failure};
 use gridcraft_engine::core::{CellRef, MAX_COLS, MAX_ROWS, RangeRef};
+use serde_json::json;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Unit {
     Cells,
@@ -147,5 +148,32 @@ impl Range {
         }
         let end = r.start.offset(rows - 1, cols - 1).ok_or_else(|| failure(1004, "Resize outside worksheet"))?;
         Ok(RangeRef { start: r.start, end }.into())
+    }
+}
+
+impl Bridge {
+    pub(crate) fn clear_range(&mut self, session: &mut Session, sheet: usize, range: &Range, what: &str) -> HostResult<Value> {
+        range.validate()?;
+        let rect_count = range
+            .areas
+            .iter()
+            .try_fold(0u64, |count, area| count.checked_add(area.count()).ok_or_else(|| failure(7, "clear range cell count overflow")))?;
+        if rect_count > MAX_CELLS as u64 {
+            return Err(failure(7, "clear range exceeds VBA cell budget"));
+        }
+        let changes_contents = matches!(what, "all" | "contents");
+        let event = if changes_contents { self.preflight_change(session, sheet)? } else { None };
+        let address = range.areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
+        let command = match what {
+            "all" => "edit.clearAll",
+            "contents" => "edit.clearContents",
+            "formats" => "edit.clearFormats",
+            _ => return Err(failure(438, "unsupported Range clear operation")),
+        };
+        session.execute(command, json!({"sheet":sheet,"range":address})).map_err(|e| failure(1004, e.to_string()))?;
+        if let Some(owner) = event {
+            self.queue_change(owner, sheet, range.clone())?;
+        }
+        Ok(Value::Empty)
     }
 }

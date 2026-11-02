@@ -1,5 +1,5 @@
 use super::ranges::{Range, Unit};
-use super::{Bridge, HostCall, HostResult, InvokeKind, MAX_OBJECTS, Session, Value, failure, ranges, values};
+use super::{Bridge, HostCall, HostResult, InvokeKind, MAX_CELLS, MAX_OBJECTS, Session, Value, failure, ranges, values};
 use gridcraft_engine::core::RangeRef;
 use vba_foreign::HostArgument;
 
@@ -432,6 +432,10 @@ impl Bridge {
             Object::Sheet(sheet) if read_kind(call.kind) => match member.as_str() {
                 "select" | "activate" if call.kind == InvokeKind::Call => self.select_sheet(session, sheet, &call),
                 "paste" if call.kind == InvokeKind::Call => self.paste_sheet(session, sheet, &call),
+                "pastespecial" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &["Format", "Link", "DisplayAsIcon", "IconFileName", "IconIndex", "IconLabel", "NoHTMLFormatting"])?;
+                    Err(failure(1004, "Worksheet.PasteSpecial requires an external clipboard-format service"))
+                }
                 "name" => {
                     arguments(&call, &[])?;
                     values::vba_text(
@@ -489,9 +493,14 @@ impl Bridge {
             },
             Object::Range(sheet, range) => match member.as_str() {
                 "select" if call.kind == InvokeKind::Call => self.select_range(session, sheet, &range, &call),
+                "activate" if call.kind == InvokeKind::Call => self.activate_range(session, sheet, &range, &call),
                 "copy" if call.kind == InvokeKind::Call => self.copy_range(session, sheet, &range, &call),
                 "cut" if call.kind == InvokeKind::Call => self.cut_range(session, sheet, &range, &call),
                 "pastespecial" if call.kind == InvokeKind::Call => self.paste_special(session, sheet, &range, &call),
+                "copypicture" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &["Appearance", "Format"])?;
+                    Err(failure(1004, "Range.CopyPicture requires a clipboard image service"))
+                }
                 "font" | "interior" if read_kind(call.kind) => {
                     arguments(&call, &[])?;
                     self.intern(Object::Format(sheet, range, member == "font"))
@@ -499,6 +508,7 @@ impl Bridge {
                 "numberformat" => self.number_format(session, sheet, &range, &call),
                 "end" if read_kind(call.kind) => self.end(session, sheet, &range, &call),
                 "find" | "findnext" | "findprevious" if read_kind(call.kind) => self.find(session, sheet, &range, &call),
+                "replace" if read_kind(call.kind) => self.replace_range(session, sheet, &range, &call),
                 "insert" | "delete" if call.kind == InvokeKind::Call => self.structural(session, sheet, &range, &call),
                 "entirerow" | "entirecolumn" if read_kind(call.kind) => {
                     arguments(&call, &[])?;
@@ -529,6 +539,17 @@ impl Bridge {
                         range.resize(number(0)?, number(1)?)?
                     };
                     self.intern(Object::Range(sheet, r))
+                }
+                "currentregion" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    let start = range.rectangle()?.start;
+                    let doc = session.doc().map_err(|error| failure(91, error.to_string()))?;
+                    let worksheet = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+                    let region = gridcraft_engine::selection::current_region(worksheet, start);
+                    if region.count() > MAX_CELLS as u64 {
+                        return Err(failure(7, "Range.CurrentRegion exceeds VBA cell budget"));
+                    }
+                    self.intern(Object::Range(sheet, region.into()))
                 }
                 "item" => {
                     if !read_kind(call.kind) && call.kind != InvokeKind::Let {
@@ -586,7 +607,17 @@ impl Bridge {
                 }
                 "clearcontents" if call.kind == InvokeKind::Call => {
                     arguments(&call, &[])?;
-                    values::write(session, sheet, range.rectangle()?, &Value::Empty, false, false)?;
+                    self.clear_range(session, sheet, &range, "contents")?;
+                    Ok(Value::Empty)
+                }
+                "clear" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &[])?;
+                    self.clear_range(session, sheet, &range, "all")?;
+                    Ok(Value::Empty)
+                }
+                "clearformats" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &[])?;
+                    self.clear_range(session, sheet, &range, "formats")?;
                     Ok(Value::Empty)
                 }
                 "address" if read_kind(call.kind) => self.address(session, sheet, &range, &call),

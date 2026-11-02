@@ -29,6 +29,8 @@ type HostResult<T> = std::result::Result<T, ForeignError>;
 static NEXT_HOST: AtomicU64 = AtomicU64::new(1);
 pub const MAX_OBJECTS: usize = 8192;
 pub const MAX_CELLS: usize = 65_536;
+/// Per-invocation VM host-call cap for workbook macros; UDF execution has its own budget.
+pub const MACRO_HOST_CALL_LIMIT: u64 = 16_384;
 const MAX_QUEUED_EVENTS: usize = 256;
 pub const DEMO: &str = "Option Explicit\nPublic Sub Main()\n    Dim i As Long\n    For i = 1 To 10\n        Cells(i, 1).Value2 = i\n    Next i\n    Range(\"B1\").Formula = \"=SUM(A1:A10)\"\nEnd Sub\n";
 
@@ -170,6 +172,12 @@ impl Bridge {
         self.configure_with_workbook(ide, Some(wb))
     }
     fn configure_with_workbook(&self, ide: &mut Ide, wb: Option<&gridcraft_model::Workbook>) -> Result<()> {
+        ide.configure_execution_limits(vba_ide::Limits {
+            instructions: 20_000_000,
+            host_calls: MACRO_HOST_CALL_LIMIT,
+            payload: 512 * 1024 * 1024,
+            ..vba_ide::Limits::default()
+        })?;
         let comparison_context =
             vba_vm::IntrinsicContextConfig::new("invariant".into(), "Gregorian".into(), "UTF-16".into(), usize::BITS as u8).map_err(diagnostic)?;
         ide.configure_string_comparison_service(Arc::new(vba_runtime::BinaryStringComparisonService), comparison_context).map_err(diagnostic)?;
@@ -577,6 +585,7 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Worksheet", "Activate", "Sub Activate()"),
         ("Worksheet", "Paste", "Sub Paste(Optional Destination As Variant, Optional Link As Variant)"),
         ("Range", "Select", "Sub Select()"),
+        ("Range", "Activate", "Sub Activate()"),
         ("Range", "Copy", "Sub Copy(Optional Destination As Variant)"),
         ("Range", "Cut", "Sub Cut(Optional Destination As Variant)"),
         ("Range", "PasteSpecial", "Function PasteSpecial(Optional Paste As XlPasteType, Optional Operation As XlPasteSpecialOperation, Optional SkipBlanks As Variant, Optional Transpose As Variant) As Variant"),
@@ -624,12 +633,14 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Areas", "Item", "Property Get Item(Index As Variant) As Range"),
         ("Range", "Offset", "Property Get Offset(Optional RowOffset As Variant, Optional ColumnOffset As Variant) As Range"),
         ("Range", "Resize", "Property Get Resize(Optional RowSize As Variant, Optional ColumnSize As Variant) As Range"),
+        ("Range", "CurrentRegion", "Property Get CurrentRegion() As Range"),
         ("Range", "EntireRow", "Property Get EntireRow() As Range"),
         ("Range", "EntireColumn", "Property Get EntireColumn() As Range"),
         ("Range", "End", "Property Get End(Direction As Long) As Range"),
         ("Range", "Find", "Function Find(What As Variant, Optional After As Range, Optional LookIn As Long, Optional LookAt As Long, Optional SearchOrder As Long, Optional SearchDirection As Long, Optional MatchCase As Boolean, Optional MatchByte As Boolean, Optional SearchFormat As Boolean) As Range"),
         ("Range", "FindNext", "Function FindNext(Optional After As Range) As Range"),
         ("Range", "FindPrevious", "Function FindPrevious(Optional After As Range) As Range"),
+        ("Range", "Replace", "Function Replace(What As Variant, Replacement As Variant, Optional LookAt As XlLookAt, Optional SearchOrder As XlSearchOrder, Optional MatchCase As Variant, Optional MatchByte As Variant, Optional SearchFormat As Variant, Optional ReplaceFormat As Variant, Optional FormulaVersion As XlReplaceFormula) As Boolean"),
         ("Range", "Insert", "Sub Insert(Optional Shift As Long, Optional CopyOrigin As Long)"),
         ("Range", "Delete", "Sub Delete(Optional Shift As Long)"),
         ("Range", "CountLarge", "Property Get CountLarge() As Variant"),
@@ -643,6 +654,8 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Range", "Value2", "Property Value2 As Variant"),
         ("Range", "Formula", "Property Formula As Variant"),
         ("Range", "ClearContents", "Sub ClearContents()"),
+        ("Range", "Clear", "Sub Clear()"),
+        ("Range", "ClearFormats", "Sub ClearFormats()"),
         ("Range", "Address", "Property Get Address(Optional RowAbsolute As Variant, Optional ColumnAbsolute As Variant, Optional ReferenceStyle As Long, Optional External As Variant, Optional RelativeTo As Variant) As String"),
     ]
     .into_iter()
@@ -653,6 +666,10 @@ pub fn catalog() -> Vec<ApiMember> {
         signature: signature.into(),
         supported: true,
     })
-    .chain([("ScreenUpdating", "Property ScreenUpdating As Boolean")].into_iter().map(|(name, signature)| ApiMember { library: "Excel".into(), owner: "Application".into(), name: name.into(), signature: signature.into(), supported: false }))
+    .chain([
+        ("Application", "ScreenUpdating", "Property ScreenUpdating As Boolean"),
+        ("Worksheet", "PasteSpecial", "Sub PasteSpecial(Optional Format As Variant, Optional Link As Variant, Optional DisplayAsIcon As Variant, Optional IconFileName As Variant, Optional IconIndex As Variant, Optional IconLabel As Variant, Optional NoHTMLFormatting As Variant)"),
+        ("Range", "CopyPicture", "Sub CopyPicture(Optional Appearance As XlPictureAppearance, Optional Format As XlCopyPictureFormat)"),
+    ].into_iter().map(|(owner, name, signature)| ApiMember { library: "Excel".into(), owner: owner.into(), name: name.into(), signature: signature.into(), supported: false }))
     .collect()
 }

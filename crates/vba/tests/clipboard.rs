@@ -65,27 +65,18 @@ End Sub"#;
         for d in 1..=5 {
             let t = (index - 1) * 5 + d;
             let meal = format!("meal {t}");
-            // Two populated slots exercise both ends of the recorded 4x5 loop;
-            // filling every slot exceeds the shared IDE's 1024 host-call limit.
-            if t == 1 || t == 20 {
-                s.execute("cell.set", json!({"sheet":0,"cell":CellRef::new(d+1,index).a1(),"input":meal}))?;
-            }
+            s.execute("cell.set", json!({"sheet":0,"cell":CellRef::new(d+1,index).a1(),"input":meal}))?;
             for (row, input) in [(0, meal), (1, format!("ingredient {t}")), (2, t.to_string()), (3, format!("={}*2", CellRef::new(2, t - 1).a1()))] {
                 s.execute("cell.set", json!({"sheet":1,"cell":CellRef::new(row,t-1).a1(),"input":input}))?;
             }
         }
     }
     s.execute("home.bold", json!({"sheet":1,"range":"A2:T4","on":true}))?;
-    let history = s.doc()?.undo.len();
     run(&mut s, &mut b, &mut ide)?;
     for index in 1..=4 {
         for d in 1..=5 {
             let t = (index - 1) * 5 + d;
             let row = d * 15 - 5;
-            if t != 1 && t != 20 {
-                assert_eq!(value(&s, 0, row, index)?, Value::Empty);
-                continue;
-            }
             assert_eq!(value(&s, 0, row, index)?, Value::Text(format!("ingredient {t}").into()));
             assert_eq!(value(&s, 0, row + 1, index)?, Value::Number(f64::from(t)));
             assert_eq!(value(&s, 0, row + 2, index)?, Value::Number(f64::from(t * 2)));
@@ -99,10 +90,15 @@ End Sub"#;
         }
     }
     assert_eq!(s.doc()?.sheet_index(), 0);
-    assert_eq!(s.doc()?.undo.len(), history + 1);
     s.execute("edit.undo", json!({}))?;
-    assert_eq!(value(&s, 0, 10, 1)?, Value::Empty);
-    assert_eq!(value(&s, 0, 72, 4)?, Value::Empty);
+    for index in 1..=4 {
+        for d in 1..=5 {
+            let row = d * 15 - 5;
+            assert_eq!(value(&s, 0, row, index)?, Value::Empty);
+            assert_eq!(value(&s, 0, row + 1, index)?, Value::Empty);
+            assert_eq!(value(&s, 0, row + 2, index)?, Value::Empty);
+        }
+    }
     Ok(())
 }
 
@@ -118,7 +114,9 @@ fn clipboard_refusals_preserve_cells_selection_and_previous_copy() -> R {
         ("Range(\"A1,C1\").Copy", 1004.),
         ("Range(\"A1:A2\").Cut\nActiveSheet.Paste Destination:=Range(\"A2\")", 1004.),
         ("ActiveSheet.Paste Destination:=1", 13.),
-        ("ActiveSheet.Paste Link:=True", 1004.),
+        ("ActiveSheet.Paste Destination:=Range(\"D2\"), Link:=True", 1004.),
+        ("ActiveSheet.PasteSpecial Format:=\"Unicode Text\"", 1004.),
+        ("Range(\"A1\").CopyPicture", 1004.),
         ("ActiveSheet.Paste Unknown:=True", 448.),
         ("Range(\"XFD1048576\").Select\nActiveSheet.Paste", 1004.),
         ("Range(\"A1:A65538\").Select\nActiveSheet.Paste", 7.),
@@ -166,6 +164,24 @@ End Sub"#;
     assert!(s.doc()?.wb.styles.get(s.doc()?.wb.sheet(1).ok_or("ingredients")?.style_id(CellRef::new(1, 3))).font.bold);
     assert_eq!(value(&s, 1, 0, 25)?, Value::Text("$D$2:$D$3".into()));
     assert_eq!(s.doc()?.sheet_index(), 1);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn worksheet_paste_link_creates_live_same_workbook_formulas() -> R {
+    let source = "Sub Main()\nRange(\"A1:A2\").Copy\nRange(\"C1:C2\").Select\nActiveSheet.Paste Link:=True\nEnd Sub";
+    let (mut session, mut bridge, mut ide) = setup(source)?;
+    session.execute("cell.set", json!({"cell":"A1","input":"17"}))?;
+    session.execute("cell.set", json!({"cell":"A2","input":"=A1+6"}))?;
+    run(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(value(&session, 0, 0, 2)?, Value::Number(17.));
+    assert_eq!(value(&session, 0, 1, 2)?, Value::Number(23.));
+    let sheet = session.doc()?.wb.sheet(0).ok_or("menu")?;
+    assert_eq!(sheet.cell(CellRef::new(0, 2)).and_then(|cell| cell.formula.as_ref()).map(|formula| formula.text.as_str()), Some("Menu!A1"));
+    assert_eq!(sheet.cell(CellRef::new(1, 2)).and_then(|cell| cell.formula.as_ref()).map(|formula| formula.text.as_str()), Some("Menu!A2"));
+    session.execute("cell.set", json!({"cell":"A1","input":"19"}))?;
+    assert_eq!(value(&session, 0, 0, 2)?, Value::Number(19.));
     Ok(())
 }
 

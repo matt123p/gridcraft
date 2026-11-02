@@ -35,7 +35,7 @@ refusal test proves a clear boundary, not compatibility with the rejected source
 | Range ownership and geometry | Application, Parent/Worksheet, Long Row/Column/Count, Double CountLarge, Rows/Columns, Areas, Offset/Resize, sparse End and Find/repeat, EntireRow/EntireColumn | Rows/Columns use first area; multi-area scalar/array reads/writes and structural edits refuse explicitly; see M3 report for search and structure profile boundaries |
 | Range values | Format-derived Date/Currency Value versus numeric Value2; scalar/1-based 2D reads; lower-bound-aware array cropping/error fill or scalar broadcast | No RangeValueDataType, Formula2/FormulaR1C1; fictitious Excel leap-day Date is refused |
 | Value conversion | Typed native atomic values/formats, known CVErrs, General input/formula conversion and literal Text-format strings | en-US engine conversion profile; no universal locale compatibility; invalid UTF-16/unknown errors and inexact oversized integers refuse |
-| ClearContents/Address | Undoable native clearing/structure; Address optional/named A1/R1C1, absolute/mixed/relative/external forms | External owner title/sheet supported; saved filesystem path/closed external references remain outside profile; M3 structural limits retained |
+| Range clearing/Address | `Clear`, `ClearContents` and `ClearFormats` use bounded native clear commands; Address supports optional/named A1/R1C1, absolute/mixed/relative/external forms | Clearing is limited to 65,536 selected cells; saved filesystem paths/closed external references remain outside profile; M3 structural limits retained |
 | Implicit roots | Application, ThisWorkbook, active workbook/sheet/cell/selection, collections, Range/Cells/Rows/Columns | Fresh getter resolution at source access; worksheet event calls scope unqualified Range construction to the code-name owner, and `Me` forwards through the captured live document owner. Unsupported catalogue members still refuse |
 | Language and references | Selected Office host bindings, Object/Variant late binding, registered Excel nominal types, defaults and For Each | This is a bounded Excel adapter projection, not a complete typelib/COM loader. Shared-language classes/forms support does not establish the corresponding Excel object-model or binary-control support |
 | Project import | Inert read-only standard/class/document-module extraction; original VBA bytes preserved | The declared M5 event profile is accepted: Workbook_Open is explicit, Worksheet_Change ordering/lifecycle and reviewed native edit sources are tested, and document `Me` dispatch binds to live workbook/sheet objects. Unsupported members still refuse. Source edits do not rewrite vbaProject.bin or signatures |
@@ -85,6 +85,10 @@ follow Microsoft's [Range.PasteSpecial](https://learn.microsoft.com/en-us/office
 [XlPasteType](https://learn.microsoft.com/en-us/office/vba/api/excel.xlpastetype)
 and [XlPasteSpecialOperation](https://learn.microsoft.com/en-us/office/vba/api/excel.xlpastespecialoperation)
 references. Source-theme and conditional-format merge paste modes remain refused.
+`Range.Clear`, `ClearContents` and `ClearFormats` now use native clear commands
+for selections up to 65,536 cells. Content-clearing paths preflight and queue a
+Worksheet_Change target; format-only clearing does not queue that event. Runtime
+acceptance for this addition has not yet been run.
 Evidence: `crates/vba/tests/clipboard.rs` covers the unchanged recorded sequence
 with two populated meal slots, both destination forms, Cut/Paste movement and
 event targets, PasteSpecial enum/operation/transpose/skip-blanks paths,

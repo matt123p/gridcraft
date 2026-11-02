@@ -33,6 +33,151 @@ fn run(s: &mut Session, b: &mut Bridge, ide: &mut Ide) -> R {
 fn cell(s: &Session, address: &str) -> R<CellValue> {
     Ok(s.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::parse(address).ok_or("cell")?))
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_clear_members_use_native_content_and_format_semantics() -> R {
+    let source = r#"Sub Main()
+Range("A1").ClearContents
+Range("A2").ClearFormats
+Range("A3").Clear
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    for address in ["A1", "A2", "A3"] {
+        s.execute("cell.set", serde_json::json!({"cell":address,"input":"17"}))?;
+        s.execute("home.bold", serde_json::json!({"range":address,"on":true}))?;
+    }
+    run(&mut s, &mut b, &mut ide)?;
+    let sheet = s.doc()?.wb.sheet(0).ok_or("sheet")?;
+    assert_eq!(cell(&s, "A1")?, CellValue::Empty);
+    assert!(s.doc()?.wb.styles.get(sheet.style_id(CellRef::parse("A1").ok_or("cell")?)).font.bold);
+    assert_eq!(cell(&s, "A2")?, CellValue::Number(17.));
+    assert!(!s.doc()?.wb.styles.get(sheet.style_id(CellRef::parse("A2").ok_or("cell")?)).font.bold);
+    assert_eq!(cell(&s, "A3")?, CellValue::Empty);
+    assert!(!s.doc()?.wb.styles.get(sheet.style_id(CellRef::parse("A3").ok_or("cell")?)).font.bold);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_replace_is_limited_to_its_receiver_and_reports_a_match() -> R {
+    let source = r#"Sub Main()
+Dim changed As Boolean
+changed = Range("A1:A3").Replace(What:="cat", Replacement:="dog", LookAt:=xlWhole, MatchCase:=False)
+Range("E1") = changed
+Range("E2") = Range("A1:A3").Replace(What:="missing", Replacement:="x")
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    for (address, value) in [("A1", "cat"), ("A2", "CAT"), ("A3", "wildcat"), ("A4", "cat")] {
+        s.execute("cell.set", serde_json::json!({"cell":address,"input":value}))?;
+    }
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(cell(&s, "A1")?, CellValue::Text("dog".into()));
+    assert_eq!(cell(&s, "A2")?, CellValue::Text("dog".into()));
+    assert_eq!(cell(&s, "A3")?, CellValue::Text("wildcat".into()));
+    assert_eq!(cell(&s, "A4")?, CellValue::Text("cat".into()));
+    assert_eq!(cell(&s, "E1")?, CellValue::Bool(true));
+    assert_eq!(cell(&s, "E2")?, CellValue::Bool(false));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_replace_queues_exact_change_targets_and_refuses_service_options_atomically() -> R {
+    let source = r#"Sub Main()
+Range("A1:A3").Replace What:="cat", Replacement:="dog", LookAt:=xlWhole
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(0).ok_or("sheet")?.code_name = Some("MenuCode".into());
+    ide.add_document_module(
+        "Menu.cls",
+        "MenuCode",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+    )?;
+    b.configure_document(&mut ide, &s.doc()?.wb)?;
+    for (address, value) in [("A1", "cat"), ("A2", "cat"), ("A3", "x"), ("B1", "cat")] {
+        s.execute("cell.set", serde_json::json!({"cell":address,"input":value}))?;
+    }
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(cell(&s, "Z1")?, CellValue::Text("$A$1:$A$2".into()));
+    assert_eq!(cell(&s, "B1")?, CellValue::Text("cat".into()));
+
+    for (options, number) in [
+        ("MatchByte:=True", 1004.),
+        ("SearchFormat:=True", 1004.),
+        ("ReplaceFormat:=True", 1004.),
+        ("FormulaVersion:=1", 1004.),
+        ("Unknown:=True", 448.),
+    ] {
+        let code = format!(
+            "Sub Main()\nOn Error Resume Next\nRange(\"B1\").Replace What:=\"cat\", Replacement:=\"dog\", {options}\nRange(\"B2\")=Err.Number\nEnd Sub"
+        );
+        let (mut session, mut bridge, mut interpreter) = setup(&code)?;
+        session.execute("cell.set", serde_json::json!({"cell":"B1","input":"cat"}))?;
+        run(&mut session, &mut bridge, &mut interpreter)?;
+        assert_eq!(cell(&session, "B1")?, CellValue::Text("cat".into()), "{options}");
+        assert_eq!(cell(&session, "B2")?, CellValue::Number(number), "{options}");
+    }
+
+    let code = r#"Sub Main()
+On Error Resume Next
+Range("A1:EY1").Replace What:="x", Replacement:="y", LookAt:=xlWhole
+Range("E2") = Err.Number
+End Sub"#;
+    let (mut session, mut bridge, mut interpreter) = setup(code)?;
+    std::sync::Arc::make_mut(&mut session.doc_mut()?.wb).sheet_mut(0).ok_or("sheet")?.code_name = Some("MenuCode".into());
+    interpreter.add_document_module(
+        "Menu.cls",
+        "MenuCode",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+    )?;
+    bridge.configure_document(&mut interpreter, &session.doc()?.wb)?;
+    for column in (0..129).step_by(2) {
+        session.execute("cell.set", serde_json::json!({"cell":gridcraft_engine::core::CellRef::new(0, column).a1(),"input":"x"}))?;
+    }
+    run(&mut session, &mut bridge, &mut interpreter)?;
+    assert_eq!(cell(&session, "E2")?, CellValue::Number(7.));
+    assert_eq!(cell(&session, "Z1")?, CellValue::Empty);
+    for column in (0..129).step_by(2) {
+        assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::new(0, column)), CellValue::Text("x".into()));
+    }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn range_activate_switches_to_its_sheet_and_sets_the_active_cell() -> R {
+    let source = r#"Sub Main()
+Dim target As Range
+Set target = Sheets("Ingredients").Range("B2:C3")
+target.Activate
+ActiveCell.Value2 = 29
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("home.insertSheet", serde_json::json!({"name":"Ingredients"}))?;
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(s.doc()?.sheet_index(), 1);
+    assert_eq!(s.doc()?.selection.a1(), "B2:C3");
+    assert_eq!(s.doc()?.selection.active, CellRef::parse("B2").ok_or("cell")?);
+    assert_eq!(s.doc()?.wb.sheet(1).ok_or("sheet")?.value(CellRef::parse("B2").ok_or("cell")?), CellValue::Number(29.));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn current_region_uses_the_engine_contiguous_region() -> R {
+    let source = r#"Sub Main()
+Range("E1") = Range("B2").CurrentRegion.Address
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    for (address, value) in [("A1", "1"), ("B1", "2"), ("A2", "3"), ("B2", "4"), ("D1", "separate")] {
+        s.execute("cell.set", serde_json::json!({"cell":address,"input":value}))?;
+    }
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(cell(&s, "E1")?, CellValue::Text("$A$1:$B$2".into()));
+    Ok(())
+}
+
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn application_goto_activates_the_range_sheet_and_preserves_selection_identity() -> R {
