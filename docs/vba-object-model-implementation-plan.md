@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08 and OM09 native profiles completed; eligible OM10 printing/export work is next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09 and OM10 native profiles completed; eligible OM19 annotation work is next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -351,7 +351,7 @@ specific needed receiver/command contract, not completion of every listed packet
 | OM13 | 838 | Medium | Existing local pivots; relevant OM04/OM06 and table/formula contracts where used; provider/model behavior excluded. |
 | OM08 | 163 | Medium | Native window/selection/lifecycle, saved-view and watch-list profile completed; independent panes/views and geometry services remain explicit native gaps. See completion record below. |
 | OM09 | 96 | Medium default; ordinary protection members High | Native protection permissions, selection rights and Allow Edit Ranges completed; IRM/ACL/protected-view/encryption-writer gaps remain explicit. Mutation protection enforcement applies throughout. |
-| OM10 | 133 | Medium | Existing page setup/print/export; relevant OM04/OM05 state, OM08 only for view-dependent calls, actual export/print service. |
+| OM10 | 133 | Medium | Native page setup/header definitions, bounded pagination/breaks, PDF export and actual host print/download/preview continuations completed; exact printer/option/graphic gaps remain explicit. |
 | OM19 | 101 | Medium | Existing local notes/links/metadata; relevant OM04/OM05 receivers and event hooks if the operation needs them. |
 | OM15 | 115 | Medium | Existing interactions/controls; actual host-service continuation and relevant OM03/OM08/OM11 contracts only. |
 | OM14 | 305 | Low — deferred | Connections/query/import/XML/refresh automation: classify/report only; no projection work now, including otherwise eligible local variants. |
@@ -1554,3 +1554,94 @@ Final validation (2026-11-03):
 OM08 was committed separately as `bc8751f4` before this packet began. OM09 adds
 native-state plumbing and lifetime/authentication checks; it adds no vendor assets,
 workflow changes, encryption algorithm/writer or tiny-vba dependency revision.
+
+
+## OM10 native printing/export profile completion (2026-11-03)
+
+Status: **OM10 complete for the existing native profile**. Medium continues with
+eligible OM19 annotations and then OM15 interactions. The
+[OM10 acceptance ledger](vba-object-model-om10-acceptance.json) links **86** required
+source contracts to native, WASM and actual UI-service integration tests. Printer
+presentation and platform capability limits remain explicit; PDF bytes alone are
+never described as a submitted job or a displayed preview.
+
+PageSetup is a live worksheet-owned view of native PrintSettings: supported paper
+IDs, orientation, point/inch margins, a rectangular print area, row/column titles,
+scale/fit counts, centering, gridlines/headings and raw header/footer sections.
+Supported paper mappings are Letter, Tabloid, Ledger, Legal, Executive, A3/A4/A5,
+B4/B5 JIS and 11x17. Other native papers without a supported published Excel mapping
+refuse. Margins are 0..1440 points; Zoom is 10..400 or False; set Zoom=False before
+fit counts because native has no dormant fit-count storage. Zero/False fit counts
+mean unlimited, up to the native 32767 limit. Order reads native xlDownThenOver;
+there is no independent ordering setting. Oversized headers and unsupported options
+refuse before native truncation or clamping.
+
+FirstPage/EvenPage and their HeaderFooter.Text properties edit the existing native
+variant definitions, preserving the native combined 255-character limit. Pages
+Count/Item/enumeration use native per-sheet pagination, capped at 2000 pages.
+Numbered Page/HeaderFooter nodes are read-only document-revision snapshots;
+reacquire them after native revision changes. Definition views remain live. Manual
+H/VPageBreaks project stored vectors; automatic boundaries come from the same native
+layout. Add, Delete, manual Type, horizontal Location, single-row/column Range.PageBreak
+and ResetAllPageBreaks use pageLayout.pageSetup. Manual markers are bounded to 1026
+per axis. Break handles also expire on native revision changes, preventing stale
+coordinates from rebinding after deletion/recreation. Partial regions, automatic
+extent, vertical Location assignment and DragOff have no eligible native model.
+
+Workbook PDF exports all visible sheets; Worksheet exports its explicit receiver;
+Range exports one rectangle and intersects PrintArea unless IgnorePrintAreas=True.
+The native service gained explicit sheet/selected-group and print-area override
+plumbing while retaining its existing pagination/rendering algorithms. Native files
+use the existing atomic writer and retain the workbook's source path/state. Missing
+Filename uses the actual native save picker when connected; cancellation returns
+1004 without writing. Browser PDF export hands owned bytes to the real download
+callback, using the explicit/default PDF name; it never claims a browser filesystem
+write. Standard-quality PDF with native document metadata is supported. XPS, minimal
+quality, metadata suppression, From/To intervals, post-export viewer opening and
+external extension-class pointers refuse before effects.
+
+PrintOut delegates to the existing native printer worker or browser print callback.
+Native copies are 1..999; native printer names are validated against the real
+configured/discovered printer list. ActivePrinter reads/sets that same UI state.
+Workbook/worksheet collections print visible sheets; Window/SelectedSheets print
+the actual native selected group. Native worker receipts/errors complete/fail the
+suspended VBA call; browser completion acknowledges callback handoff, not physical
+printing. Browser printer/copy overrides and native unsupported collation/page-range/
+print-to-file options refuse. An unavailable printer never submits a job.
+
+PrintPreview opens actual Backstage for workbook/single-sheet scope and suspends
+VBA until the preview closes. Range/group-specific preview and EnableChanges=False
+have no corresponding product UI representation. Missing host services return 1004
+without a fake success. Owned print requests share the existing host continuation
+manager: no document borrow survives a picker, preview or worker wait; document
+liveness/trust is rechecked; reset cancels unsubmitted requests without replay.
+An already submitted spooler job cannot be retracted by resetting the VBA editor.
+
+Independent chart page setup/export, per-object print inclusion, header/footer
+Graphic/Picture graphs, persistent monochrome/draft/first-page-number/comment/note/
+error options, printer-resolution state and PrintCommunication batching have no
+eligible native state. Existing embedded charts still render through worksheet PDF.
+CustomView.PrintSettings stays False; native saved views do not snapshot page setup.
+
+Final validation (2026-11-03):
+
+- Font-enabled `cargo xtask ci`: **all 10 stages passed**, including **232**
+  native VBA tests and the workspace engine/model/PDF/XLSX/UI suites.
+- Full Node 22 / wasm-bindgen VBA suite: **224 tests passed**, including all
+  **16** browser-capable OM10 tests (download/print transport use owned mock services).
+- Optional `vba-window` editor suites: **27 tests passed**, including **5** real
+  UI-service integration regressions for native worker settings/errors, unavailable
+  printers, actual preview completion and PDF picker success/cancellation.
+- Strict optional-editor and audit-enabled xtask Clippy passed; **31** xtask tests passed.
+  Browser `gridcraft-web/vba` check passed.
+- Pinned audit regeneration and no-write verification passed for all **5,996**
+  source pages, preserving earlier packet evidence and **86** required OM10 contracts.
+- Exported native PDF was rasterized and inspected: A4 landscape **841.89 × 595.28**
+  points, correct worksheet/range content, header/footer and page numbering. Actual
+  Backstage capture was inspected after fixing the editor presentation: preview
+  temporarily returns to the workbook and restores prior editor visibility afterward.
+  Generated validation images/PDFs remain outside the repository.
+
+OM09 was committed separately as `9d8e1b5d` before this packet began. OM10 remains
+an existing-native-capability projection, with no vendor assets, workflow changes,
+new renderer/codec/print controls or tiny-vba dependency revision.

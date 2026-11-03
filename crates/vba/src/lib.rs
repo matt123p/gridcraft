@@ -6,6 +6,7 @@ mod address;
 mod application;
 mod host_ops;
 pub use host_ops::{LifecyclePrompt, PromptRequest, PromptResponse, PromptServices};
+pub use print_api::{PrintOperation, PrintRequest, PrintResponse, PrintServices};
 mod chart_api;
 mod chart_parts_api;
 mod clipboard;
@@ -30,7 +31,10 @@ pub use lifecycle_events::{LifecycleEvent, LifecycleEventBatch};
 mod named_style_api;
 mod objects;
 mod outline_api;
+mod page_break_api;
+mod page_setup_api;
 mod permission_api;
+mod print_api;
 mod protection_api;
 mod ranges;
 mod references;
@@ -765,7 +769,7 @@ impl Host for WorkbookHost<'_> {
                     _ => object,
                 };
                 if let Some(token) = self.bridge.defer_call(session, &object, &call)? {
-                    if let Some(window) = window {
+                    if window_close && let Some(window) = window {
                         self.bridge.window_close_result(token, window);
                     }
                     suspended = Some(token);
@@ -1020,6 +1024,9 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
     .chain(named_style_api::descriptors())
     .chain(protection_api::descriptors())
     .chain(permission_api::descriptors())
+    .chain(page_setup_api::descriptors())
+    .chain(page_break_api::descriptors())
+    .chain(print_api::descriptors())
     .chain(conditional_api::descriptors())
     .chain(condition_details::descriptors())
     .chain(data_api::descriptors())

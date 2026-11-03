@@ -103,6 +103,10 @@ impl SheetLayout {
 #[derive(Clone, Debug, Default)]
 pub struct PrintOptions {
     pub all_sheets: bool,
+    /// Explicit receiver sheet, without changing workbook focus.
+    pub sheet: Option<usize>,
+    pub sheet_indices: Option<Vec<usize>>,
+    pub ignore_print_areas: bool,
     pub range: Option<RangeRef>,
     pub fit_to_page: Option<bool>,
 }
@@ -118,14 +122,50 @@ impl PrintOptions {
             Some(r) => Some(RangeRef::parse(split_sheet(r).1).ok_or_else(|| bad(cmd, format!("not a range: `{r}`")))?),
             None => None,
         };
-        Ok(PrintOptions { all_sheets, range, fit_to_page: bool_param(p, "fitToPage") })
+        let sheet = p
+            .get("sheet")
+            .map(|v| v.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or_else(|| bad(cmd, "sheet must be a zero-based index")))
+            .transpose()?;
+        if all_sheets && sheet.is_some() {
+            return Err(bad(cmd, "sheet and sheets=all cannot be combined"));
+        }
+        let sheet_indices = p
+            .get("sheetIndices")
+            .map(|v| -> Result<Vec<usize>> {
+                let a = v.as_array().ok_or_else(|| bad(cmd, "sheetIndices must be an array"))?;
+                if a.is_empty() || a.len() > 8192 {
+                    return Err(bad(cmd, "sheet group budget"));
+                }
+                let mut out = a
+                    .iter()
+                    .map(|v| v.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or_else(|| bad(cmd, "invalid sheet index")))
+                    .collect::<Result<Vec<_>>>()?;
+                out.sort_unstable();
+                out.dedup();
+                Ok(out)
+            })
+            .transpose()?;
+        if sheet_indices.is_some() && (sheet.is_some() || all_sheets) {
+            return Err(bad(cmd, "choose exactly one print scope"));
+        }
+        Ok(PrintOptions {
+            all_sheets,
+            sheet,
+            sheet_indices,
+            ignore_print_areas: bool_param(p, "ignorePrintAreas").unwrap_or(false),
+            range,
+            fit_to_page: bool_param(p, "fitToPage"),
+        })
     }
 }
 
 /// The range a sheet prints: its print area, else the used range grown to cover drawing
 /// objects. `None` when there is nothing to print.
 pub fn print_range(sh: &Sheet) -> Option<RangeRef> {
-    if let Some(a) = sh.print.print_area {
+    range_for(sh, false)
+}
+fn range_for(sh: &Sheet, ignore_print_areas: bool) -> Option<RangeRef> {
+    if let Some(a) = sh.print.print_area.filter(|_| !ignore_print_areas) {
         return Some(trim_full(sh, a));
     }
     let mut r = sh.used_range();
@@ -222,7 +262,7 @@ pub fn layout_sheet(wb: &Workbook, si: usize, opts: &PrintOptions, range_overrid
     }
     let area = match range_override {
         Some(r) => trim_full(sh, r),
-        None => print_range(sh).unwrap_or(RangeRef::cell(CellRef::new(0, 0))),
+        None => range_for(sh, opts.ignore_print_areas).unwrap_or(RangeRef::cell(CellRef::new(0, 0))),
     };
     let title_rows = title_span(st.title_rows, MAX_ROWS);
     let title_cols = title_span(st.title_cols, MAX_COLS);
@@ -328,17 +368,19 @@ pub(crate) fn split_bands(sh: &Sheet, lay: &SheetLayout, cap: usize) -> (Bands, 
 pub fn layouts(wb: &Workbook, opts: &PrintOptions) -> Vec<SheetLayout> {
     let mut out = Vec::new();
     let mut pages = 0usize;
-    let sheets: Vec<usize> = if opts.all_sheets {
+    let sheets: Vec<usize> = if let Some(indices) = &opts.sheet_indices {
+        indices.clone()
+    } else if opts.all_sheets {
         (0..wb.sheets.len()).filter(|i| wb.sheet(*i).is_some_and(|s| s.visibility == Visibility::Visible)).collect()
     } else {
-        vec![wb.active_sheet()]
+        vec![opts.sheet.unwrap_or(wb.active_sheet())]
     };
     for si in sheets {
         if pages >= MAX_PAGES {
             break;
         }
-        let ovr = if si == wb.active_sheet() { opts.range } else { None };
-        if opts.all_sheets && ovr.is_none() && wb.sheet(si).is_some_and(|s| print_range(s).is_none()) {
+        let ovr = if !opts.all_sheets || si == wb.active_sheet() { opts.range } else { None };
+        if opts.all_sheets && ovr.is_none() && wb.sheet(si).is_some_and(|s| range_for(s, opts.ignore_print_areas).is_none()) {
             continue;
         }
         if let Some(mut l) = layout_sheet(wb, si, opts, ovr) {

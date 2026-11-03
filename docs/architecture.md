@@ -222,6 +222,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM10 native print projections and owned printer/download/picker/preview continuations wired to real UI services |
 | 2026-11-03 | minor | OM09 native permission/edit-range projection, definition lifetimes, grant revocation and selection-only command plumbing |
 | 2026-11-03 | minor | OM08 native window scopes, session-owned window/watch collections, close continuations and explicit worksheet/window state boundary |
 | 2026-11-03 | minor | OM13 native local pivot/field/item/slicer graph, source lifetimes, report-owned cache views and explicit persistence/service boundaries |
@@ -356,3 +357,30 @@ IRM or protected-view documents. Encrypted reading already exists; retained file
 password/encryption settings and writing do not. Those graphs/services, independent
 chart protection and named-style inclusion flags remain explicit native gaps in
 the [OM09 acceptance ledger](vba-object-model-om09-acceptance.json).
+
+
+## OM10 print projection and transport (2026-11-03)
+
+Private page_setup_api/page_break_api/print_api handlers project native PrintSettings,
+header/footer definitions, manual vectors and derived pagination. Page setup owns
+no shadow state. Numbered Page/HeaderFooter and page-break nodes carry document
+revision snapshots; stale nodes refuse instead of retargeting coordinates. Native
+settings/bounds are validated before direct layout queries. The print service gained
+explicit sheet/selected-group and ignore-print-area scope parameters, reusing its
+existing algorithms and atomic file writer.
+
+The existing host operation manager now carries owned PrintOperation requests and
+scalar responses. Native UI polling delegates to the actual printing::State worker,
+Services download/print/save callbacks and Backstage. Native receipts/errors resume
+the original wait once; preview waits until closed and temporarily leaves/restores
+the editor presentation so Backstage is actually visible. Request tokens, document IDs,
+sheet identities and range epochs guard waits; source/target consent and liveness
+are rechecked before service effects. No workbook borrow survives an asynchronous
+worker or modal picker. Reset invalidates unsubmitted requests; submitted jobs
+remain owned by the existing spooler state. Windows close completion is applied only
+to Close operations, not to newly deferred Window print requests.
+
+The [OM10 ledger](vba-object-model-om10-acceptance.json) distinguishes native rendering
+from connected transport/presentation services and records printer, preview-scope,
+PDF-option, header-graphic and independent-chart gaps. No new product renderer,
+codec, UI print controls or platform printing backend is added.

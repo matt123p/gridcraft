@@ -613,3 +613,31 @@ protection, write reservation/sharing, signatures and encryption settings/writin
 have no eligible native backend. Stored Windows security descriptors remain opaque
 metadata. Existing encrypted-file opening still uses Workbooks.Open Password;
 code consent and a password string never imply document encryption or IRM.
+
+
+## OM10 page setup, printing and PDF export (2026-11-03)
+
+Worksheet.PageSetup now projects native paper/orientation/margins, print area and
+titles, scale/fit and layout flags, plus first/even-page header/footer definitions.
+Pages and automatic breaks use native pagination; numbered pages and break handles
+are revision-bound snapshots and must be reacquired after native commands change
+the revision. Manual break operations and setting mutations use existing engine
+commands, with input validation before effects. Native XLSX retains print settings.
+
+ExportAsFixedFormat supports native PDF for visible-workbook, worksheet and single-
+rectangle scopes, including IgnorePrintAreas and explicit inactive receivers.
+Native export uses the atomic writer or existing save picker; browser export uses
+the connected download callback. PrintOut uses the actual printer worker/browser
+print callback, and ActivePrinter accesses real UI printer settings. PrintPreview
+opens Backstage and waits until closed for workbook/single-sheet scope. Owned
+continuations carry tokens/bytes/identities across waits, recheck trust/liveness and
+propagate cancellation or service errors. Rendering a PDF alone never claims that
+printing, preview or download succeeded.
+
+The [OM10 ledger](vba-object-model-om10-acceptance.json) specifies 86 required
+contracts and exact limits: native paper enum subset, no dormant fit counts,
+255-character combined headers, 2000 pages, 1026 markers per axis, supported copies
+and actual printer selection. Unsupported page intervals, quality/metadata/viewer
+options, range/group preview, read-only preview controls, header pictures and
+independent chart print configuration refuse. No new renderer, codec, workflow,
+vendor asset or tiny-vba dependency revision is introduced.

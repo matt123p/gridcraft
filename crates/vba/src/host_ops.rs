@@ -34,6 +34,7 @@ pub(crate) struct Operations {
     next: u64,
     pub pending: BTreeMap<u64, Operation>,
     pub services: PromptServices,
+    pub print_services: super::print_api::PrintServices,
 }
 pub(crate) struct Operation {
     doc: u64,
@@ -45,6 +46,7 @@ pub(crate) struct Operation {
     window_close: Option<u64>,
 }
 enum Action {
+    Print { request: Option<super::print_api::PrintOperation>, response: Option<HostResult<Value>> },
     Procedure(SuspendedCall),
     Event { event: &'static str, save_ui: bool, success: bool },
     Callbacks { calls: VecDeque<SuspendedCall>, cancel: bool },
@@ -82,6 +84,50 @@ impl Bridge {
     }
     pub fn has_pending_events(&self) -> bool {
         !self.pending_events.is_empty()
+    }
+    pub fn set_print_services(&mut self, services: super::print_api::PrintServices) {
+        self.operations.print_services = services;
+    }
+    pub fn print_request_pending(&self, token: u64) -> bool {
+        self.operations.pending.get(&token).is_some_and(|op| matches!(op.actions.front(), Some(Action::Print { response: None, .. })))
+    }
+    pub fn print_request_permitted(&self, session: &Session, token: u64) -> bool {
+        self.permitted(session)
+            && self
+                .operations
+                .pending
+                .get(&token)
+                .is_some_and(|op| session.document(op.doc).is_some_and(|d| d.trust.allows_code() || d.uid == self.doc && self.consent))
+    }
+    pub fn take_print_request(&mut self) -> Option<super::print_api::PrintRequest> {
+        self.operations.pending.iter_mut().find_map(|(token, op)| {
+            if let Some(Action::Print { request, response: None }) = op.actions.front_mut() {
+                request.take().map(|kind| super::print_api::PrintRequest { token: *token, doc: op.doc, kind })
+            } else {
+                None
+            }
+        })
+    }
+    pub fn respond_to_print(&mut self, token: u64, response: std::result::Result<super::print_api::PrintResponse, String>) -> HostResult<()> {
+        let op = self.operations.pending.get_mut(&token).ok_or_else(|| failure(91, "stale print request"))?;
+        let Some(Action::Print { response: slot, .. }) = op.actions.front_mut() else {
+            return Err(failure(5, "not waiting for print service"));
+        };
+        if slot.is_some() {
+            return Err(failure(5, "print service already completed"));
+        }
+        *slot = Some(match response {
+            Ok(super::print_api::PrintResponse::Done) => Ok(Value::Empty),
+            Ok(super::print_api::PrintResponse::Printer(name)) => {
+                if name.len() > 1024 {
+                    Err(failure(7, "printer name budget"))
+                } else {
+                    values::vba_text(&name)
+                }
+            }
+            Err(message) => Err(failure(1004, message)),
+        });
+        Ok(())
     }
     pub fn set_prompt_services(&mut self, services: PromptServices) {
         self.operations.services = services;
@@ -128,7 +174,11 @@ impl Bridge {
             .insert(token, Operation { doc, actions, callback: None, started: false, result: empty(), cancel: false, window_close: None });
         Ok(token)
     }
-    pub(crate) fn defer_call(&mut self, session: &Session, object: &Object, call: &HostCall) -> HostResult<Option<u64>> {
+    pub(crate) fn defer_call(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> HostResult<Option<u64>> {
+        if let Some(request) = self.defer_print_call(session, object, call)? {
+            let doc = session.doc().map_err(|e| failure(91, e.to_string()))?.uid;
+            return self.add_operation(doc, VecDeque::from([Action::Print { request: Some(request), response: None }])).map(Some);
+        }
         let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
         let member = call.member.to_ascii_lowercase();
         if *object == Object::Application && member == "run" && matches!(call.kind, InvokeKind::Call | InvokeKind::Get) {
@@ -282,6 +332,14 @@ impl Bridge {
                 return Ok(());
             };
             match action {
+                Action::Print { request, response } => {
+                    if let Some(result) = response {
+                        op.result = result;
+                    } else {
+                        op.actions.push_front(Action::Print { request, response: None });
+                        return Ok(());
+                    }
+                }
                 Action::Procedure(request) => {
                     if let Some(result) = op.callback.take() {
                         op.result = result.map(|r| r.value);

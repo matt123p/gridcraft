@@ -51,7 +51,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Export as PDF",
             ["File", "Export"],
             None,
-            "{path?, sheets?: active|all, range?: \"A1:F40\" (active sheet), fitToPage?: bool} → {pages, bytes, path} or {pages, bytes, base64} when no path. Honours each sheet's Page Setup.",
+            "{path?, sheet?: index, ignorePrintAreas?: bool, sheets?: active|all, range?: \"A1:F40\" (active sheet), fitToPage?: bool} → {pages, bytes, path} or {pages, bytes, base64} when no path. Honours each sheet's Page Setup.",
             has_doc,
             export_pdf
         ),
@@ -175,6 +175,11 @@ pub fn render_pdf(wb: &Workbook, layouts: &[SheetLayout], file: &str, path: &str
 fn build_pdf(s: &Session, p: &Json, cmd: &str) -> Result<(Vec<u8>, usize)> {
     let opts = PrintOptions::from_params(p, cmd)?;
     let d = s.doc()?;
+    if opts.sheet.is_some_and(|si| d.wb.sheet(si).is_none())
+        || opts.sheet_indices.as_ref().is_some_and(|v| v.iter().any(|si| d.wb.sheet(*si).is_none()))
+    {
+        return Err(bad(cmd, "sheet does not exist"));
+    }
     let lays = layouts(&d.wb, &opts);
     let path = d.path.clone().unwrap_or_default();
     Ok(render_pdf(&d.wb, &lays, &d.display_title(), &path))
@@ -204,6 +209,11 @@ fn print(s: &mut Session, p: &Json) -> Result<Json> {
 fn print_preview(s: &mut Session, p: &Json) -> Result<Json> {
     let opts = PrintOptions::from_params(p, "file.printPreview")?;
     let d = s.doc()?;
+    if opts.sheet.is_some_and(|si| d.wb.sheet(si).is_none())
+        || opts.sheet_indices.as_ref().is_some_and(|v| v.iter().any(|si| d.wb.sheet(*si).is_none()))
+    {
+        return Err(bad("file.printPreview", "sheet does not exist"));
+    }
     let lays = layouts(&d.wb, &opts);
     let mut list = Vec::new();
     let mut n = 0usize;

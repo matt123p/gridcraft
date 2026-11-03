@@ -16,6 +16,7 @@ pub struct Editor {
     pub visible: bool,
     confirm_close: bool,
     pub(crate) pending_prompt: Option<PromptRequest>,
+    pending_print: Option<PendingPrint>,
     external_lifecycle: Option<ExternalLifecycle>,
     lifecycle_commit: bool,
     approved_close: Option<u64>,
@@ -28,6 +29,10 @@ pub struct Editor {
     focus_window: bool,
     #[cfg(all(feature = "vba-window", not(target_arch = "wasm32")))]
     owner_viewport: egui::ViewportId,
+}
+enum PendingPrint {
+    Worker { token: u64 },
+    Preview { token: u64, editor_visible: bool },
 }
 impl Drop for Editor {
     fn drop(&mut self) {
@@ -400,6 +405,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             visible: true,
             confirm_close: false,
             pending_prompt: None,
+            pending_print: None,
             external_lifecycle: None,
             lifecycle_commit: false,
             approved_close: None,
@@ -486,6 +492,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             }
             editor.ide.entry = entry.into();
             editor.bridge.set_prompt_services(prompt_services(&app.services));
+            editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
             editor.bridge.dispatch(&mut app.session, &mut editor.ide, Action::Run).map_err(error)?;
             editor.visible = false;
         }
@@ -524,6 +531,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
                 editor.lifecycle_result = Some(json!({"state":"cancelled"}));
             }
             editor.bridge.set_prompt_services(prompt_services(&app.services));
+            editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
             editor.bridge.dispatch(&mut app.session, &mut editor.ide, action).map_err(error)?;
         }
     }
@@ -539,6 +547,7 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
         }
     }
     editor.bridge.set_prompt_services(prompt_services(&app.services));
+    editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
     editor.bridge.set_formula_locale(app.ui.language.formula_locale());
     let progress = if editor.external_lifecycle.as_ref().is_some_and(|p| p.batch.is_some()) {
         editor.bridge.tick_lifecycle(&mut app.session, &mut editor.ide)
@@ -602,6 +611,173 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
         commit_lifecycle(app, ctx, doc, id, params, save);
     }
     finish_native_close(app, ctx);
+    poll_print_io(app, ctx);
+}
+/// Owns only service tokens/worker state across frames, never a document borrow.
+fn poll_print_io(app: &mut SheetApp, ctx: &egui::Context) {
+    use gridcraft_vba::{PrintOperation as Op, PrintResponse};
+    let Some(mut editor) = app.vba.take() else {
+        return;
+    };
+    if let Some(pending) = editor.pending_print.take() {
+        let restore = match &pending {
+            PendingPrint::Preview { editor_visible, .. } => Some(*editor_visible),
+            _ => None,
+        };
+        let token = match pending {
+            PendingPrint::Worker { token } | PendingPrint::Preview { token, .. } => token,
+        };
+        if editor.bridge.print_request_pending(token) {
+            if !editor.bridge.print_request_permitted(&app.session, token) {
+                let _ = editor.bridge.respond_to_print(token, Err("Print request canceled: workbook closed or consent revoked.".into()));
+            } else {
+                let result = match pending {
+                    PendingPrint::Preview { .. } => {
+                        if app.backstage.as_ref().is_some_and(|b| b.page == crate::backstage::Page::Print) {
+                            None
+                        } else {
+                            Some(Ok(PrintResponse::Done))
+                        }
+                    }
+                    PendingPrint::Worker { .. } => {
+                        app.printing.poll(ctx);
+                        match app.printing.message.as_ref() {
+                            Some(crate::printing::Feedback::Submitted(_)) => Some(Ok(PrintResponse::Done)),
+                            Some(crate::printing::Feedback::Failed(e)) => Some(Err(e.clone())),
+                            Some(crate::printing::Feedback::WorkerStopped) => Some(Err("printing worker stopped".into())),
+                            _ => None,
+                        }
+                    }
+                };
+                if let Some(result) = result {
+                    let _ = editor.bridge.respond_to_print(token, result);
+                } else {
+                    editor.pending_print = Some(pending);
+                }
+            }
+        }
+        if editor.pending_print.is_none()
+            && let Some(visible) = restore
+        {
+            editor.visible = visible || matches!(editor.ide.mode(), Mode::Break | Mode::Failed);
+            editor.focus_window = editor.visible;
+            if app.backstage.as_ref().is_some_and(|b| b.page == crate::backstage::Page::Print) {
+                app.backstage = None;
+            }
+        }
+    }
+    if editor.pending_print.is_none()
+        && let Some(request) = editor.bridge.take_print_request()
+    {
+        let token = request.token;
+        let result = (|| -> std::result::Result<Option<PrintResponse>, String> {
+            if !editor.bridge.print_request_permitted(&app.session, token) {
+                return Err("workbook closed or consent revoked".into());
+            }
+            match request.kind {
+                Op::ExportWithPicker { mut params, suggested, sheet, range_epoch } => {
+                    let pick = app.services.pick_save.as_ref().ok_or("PDF save picker became unavailable")?;
+                    let path = pick(&suggested).ok_or("PDF export canceled")?;
+                    if path.is_empty() || path.len() > 4096 || path.contains('\0') {
+                        return Err("invalid PDF path".into());
+                    }
+                    if !editor.bridge.print_request_permitted(&app.session, token) {
+                        return Err("workbook closed or consent revoked".into());
+                    }
+                    let d = app.session.document(request.doc).ok_or("workbook closed")?;
+                    if params.get("range").is_some() && d.range_epoch != range_epoch {
+                        return Err("export range changed during picker".into());
+                    }
+                    if let Some(id) = sheet {
+                        let si = d.wb.sheets.iter().position(|sh| sh.identity.same(&id)).ok_or("export worksheet deleted")?;
+                        params["sheet"] = json!(si);
+                    }
+                    let path = std::path::Path::new(&path).with_extension("pdf").to_string_lossy().into_owned();
+                    params["path"] = json!(path);
+                    app.session.execute_in(gridcraft_engine::Target::Doc(request.doc), "file.exportPdf", params).map_err(|e| e.to_string())?;
+                    Ok(Some(PrintResponse::Done))
+                }
+                Op::GetPrinter => {
+                    if app.printing.settings.printer.is_empty() {
+                        return Err("No printer is selected in File > Print.".into());
+                    }
+                    Ok(Some(PrintResponse::Printer(app.printing.settings.printer.clone())))
+                }
+                Op::SetPrinter(name) => {
+                    crate::printing::settings(&mut app.printing, &json!({"printer":name}), app.services.printers.as_ref())?;
+                    Ok(Some(PrintResponse::Done))
+                }
+                Op::Download { pdf, filename } => {
+                    let download = app.services.download.as_ref().ok_or("download service became unavailable")?;
+                    download(&filename, &pdf);
+                    Ok(Some(PrintResponse::Done))
+                }
+                Op::Submit { pdf, copies, printer } => {
+                    if let Some(submit) = &app.services.print_native {
+                        if app.printing.busy() {
+                            return Err("A print operation is already active.".into());
+                        }
+                        let mut settings = app.printing.settings.clone();
+                        settings.copies = copies;
+                        if let Some(printer) = printer {
+                            settings.printer = printer;
+                        }
+                        if !app.printing.printers.iter().any(|p| p.name == settings.printer) {
+                            return Err("Select an available printer in File > Print before submitting.".into());
+                        }
+                        let receiver = submit(pdf, settings.clone());
+                        app.printing.begin(receiver).map_err(|_| "A print operation is already active.".to_owned())?;
+                        app.printing.settings = settings;
+                        editor.pending_print = Some(PendingPrint::Worker { token });
+                        Ok(None)
+                    } else {
+                        let print = app.services.print.as_ref().ok_or("print service became unavailable")?;
+                        print(&pdf);
+                        Ok(Some(PrintResponse::Done))
+                    }
+                }
+                Op::Preview { window, sheet } => {
+                    if !app.chrome.file_tab || app.session.window(window).is_none_or(|w| w.doc_uid != request.doc) {
+                        return Err("preview window is no longer available".into());
+                    }
+                    let si = sheet
+                        .as_ref()
+                        .map(|id| {
+                            app.session
+                                .document(request.doc)
+                                .and_then(|d| d.wb.sheets.iter().position(|sh| sh.identity.same(id)))
+                                .ok_or("preview worksheet was deleted")
+                        })
+                        .transpose()?;
+                    app.enter_window(window);
+                    if let Some(si) = si {
+                        app.session.execute("sheet.activate", json!({"sheet":si})).map_err(|e| e.to_string())?;
+                    }
+                    let mut view = crate::backstage::Backstage::new(crate::backstage::Page::Print);
+                    view.print_all = sheet.is_none();
+                    app.backstage = Some(view);
+                    let editor_visible = editor.visible;
+                    editor.visible = false;
+                    editor.focus_window = false;
+                    editor.pending_print = Some(PendingPrint::Preview { token, editor_visible });
+                    Ok(None)
+                }
+            }
+        })();
+        match result {
+            Ok(Some(reply)) => {
+                let _ = editor.bridge.respond_to_print(token, Ok(reply));
+            }
+            Err(error) => {
+                let _ = editor.bridge.respond_to_print(token, Err(error));
+            }
+            Ok(None) => {}
+        }
+    }
+    if editor.pending_print.is_some() {
+        ctx.request_repaint();
+    }
+    app.vba = Some(editor);
 }
 fn commit_lifecycle(app: &mut SheetApp, ctx: &egui::Context, doc: u64, id: String, params: Json, save: bool) {
     let quitting = params.get("vbaQuitting").and_then(Json::as_bool) == Some(true);
@@ -967,6 +1143,7 @@ pub fn macro_picker(app: &mut SheetApp, ui: &mut egui::Ui, values: &mut serde_js
 pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let Some(mut editor) = app.vba.take() else { return };
     editor.bridge.set_prompt_services(prompt_services(&app.services));
+    editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
     let mut commands = Vec::new();
     let mut save_workbook = false;
     let mut allow = false;
@@ -1125,6 +1302,15 @@ fn read_source(_path: &str) -> Result<Vec<u8>> {
     Err("Use vba.open with source text in the browser.".into())
 }
 
+fn print_services(services: &crate::services::Services, preview: bool) -> gridcraft_vba::PrintServices {
+    gridcraft_vba::PrintServices {
+        native: services.print_native.is_some(),
+        browser: services.print.is_some(),
+        download: services.download.is_some(),
+        preview,
+        printer: services.print_native.is_some(),
+    }
+}
 fn prompt_services(services: &crate::services::Services) -> PromptServices {
     PromptServices { open: services.pick_open.is_some(), save: services.pick_save.is_some(), close: true }
 }

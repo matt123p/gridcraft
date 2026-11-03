@@ -150,6 +150,15 @@ impl Bridge {
         Ok(Value::Array(array))
     }
     pub(crate) fn feature_dispatch(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> Option<HostResult<Value>> {
+        if let Some(result) = self.print_api(session, object, call) {
+            return Some(result);
+        }
+        if let Some(result) = self.page_break_api(session, object, call) {
+            return Some(result);
+        }
+        if let Some(result) = self.page_setup_api(session, object, call) {
+            return Some(result);
+        }
         if let Some(result) = self.permission_api(session, object, call) {
             return Some(result);
         }

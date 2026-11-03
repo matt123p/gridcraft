@@ -98,6 +98,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     let om13_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM13")?;
     let om08_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM08")?;
     let om09_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM09")?;
+    let om10_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM10")?;
     for test in OM12_TESTS.iter().chain(OM12_DRAWING_TESTS) {
         validate_test_reference(root, test)?;
     }
@@ -123,44 +124,30 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
             );
         }
         if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| om13_acceptance.get(&fold_identifier(id))) {
-            let mut all = contract["test_ids"].as_array().cloned().unwrap_or_default();
-            for test in tests {
-                let test = json!(test);
-                if !all.contains(&test) {
-                    all.push(test);
-                }
-            }
-            contract["test_ids"] = json!(all);
+            merge_acceptance_tests(&mut contract, tests);
             contract["om13_acceptance"] = json!(
                 "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om13-acceptance.json for native capability limits, cache ownership and slicer persistence gaps"
             );
         }
         if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| om08_acceptance.get(&fold_identifier(id))) {
-            let mut all = contract["test_ids"].as_array().cloned().unwrap_or_default();
-            for test in tests {
-                let test = json!(test);
-                if !all.contains(&test) {
-                    all.push(test);
-                }
-            }
-            contract["test_ids"] = json!(all);
+            merge_acceptance_tests(&mut contract, tests);
             contract["om08_acceptance"] = json!(
                 "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om08-acceptance.json for window ownership, stash lifetimes and unavailable view services"
             );
         }
         if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| om09_acceptance.get(&fold_identifier(id))) {
-            let mut all = contract["test_ids"].as_array().cloned().unwrap_or_default();
-            for test in tests {
-                let test = json!(test);
-                if !all.contains(&test) {
-                    all.push(test);
-                }
-            }
-            contract["test_ids"] = json!(all);
+            merge_acceptance_tests(&mut contract, tests);
             contract["om09_acceptance"] = json!(
                 "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om09-acceptance.json for authentication, native selection and permission/encryption exclusions"
             );
         }
+        if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| om10_acceptance.get(&fold_identifier(id))) {
+            merge_acceptance_tests(&mut contract, tests);
+            contract["om10_acceptance"] = json!(
+                "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om10-acceptance.json for pagination epochs, PDF option limits and native/browser service gaps"
+            );
+        }
+        reconcile_om10_native_scope(&mut contract);
         reconcile_om09_native_scope(&mut contract);
         reconcile_om08_native_scope(&mut contract);
         reconcile_om13_native_scope(&mut contract);
@@ -313,6 +300,17 @@ const OM12_DRAWING_TESTS: &[&str] = &[
     "crates/vba/tests/drawings.rs::embedded_chart_location_retargets_parked_descendants_without_switching_view",
     "crates/vba/tests/drawings.rs::external_chart_moves_preserve_existing_graph_lifetimes",
 ];
+fn merge_acceptance_tests(contract: &mut Value, tests: &[String]) {
+    let mut all = contract["test_ids"].as_array().cloned().unwrap_or_default();
+    for test in tests {
+        let test = json!(test);
+        if !all.contains(&test) {
+            all.push(test);
+        }
+    }
+    contract["test_ids"] = json!(all);
+}
+
 fn validate_native_acceptance(
     root: &Path,
     rows: &[Value],
@@ -357,6 +355,43 @@ fn validate_native_acceptance(
     }
     println!("{packet} native acceptance: {} required source contracts; native product gaps remain explicit", result.len());
     Ok(result)
+}
+fn reconcile_om10_native_scope(row: &mut Value) {
+    if row["packet"] != "OM10" || row["implementation_symbol"].is_string() {
+        return;
+    }
+    let owner = row["owner"].as_str().unwrap_or("").to_ascii_lowercase();
+    let member = row["member"].as_str().unwrap_or("").to_ascii_lowercase();
+    if member.is_empty()
+        && matches!(owner.as_str(), "pagesetup" | "pages" | "page" | "headerfooter" | "hpagebreaks" | "vpagebreaks" | "hpagebreak" | "vpagebreak")
+    {
+        row["result_state"] = json!("PARTIAL");
+        row["implementation_symbol"] = json!("crates/vba/src/types.rs::references");
+        row["dispatch_evidence"] = json!("native nominal print type; reachable through OM10 member descriptors");
+        return;
+    }
+    let service = owner == "pagesetup" && member == "printquality";
+    let reason = if service {
+        "No connected printer-resolution service"
+    } else if owner == "graphic" || owner == "headerfooter" || owner == "pagesetup" && member.ends_with("picture") {
+        "No native header/footer picture object graph; worksheet images are a different owner"
+    } else if owner.starts_with("chart") {
+        "No independent chart print/page-layout or per-object print-inclusion state; native worksheet PDF still renders embedded charts"
+    } else if matches!(owner.as_str(), "hpagebreak" | "vpagebreak") {
+        "No independent partial-break region/drag-off or viewport interaction model"
+    } else if owner == "pagesetup" {
+        "No corresponding native configurable monochrome/draft/first-number/comment/note/error print setting; native renderer defaults are not independent settings"
+    } else if owner == "worksheet" {
+        "Native renderer has no comment-only printed-page model"
+    } else if owner == "workbook" {
+        "No per-window/personal-view print settings model"
+    } else if owner == "controlformat" {
+        "No native control-specific print inclusion flag"
+    } else {
+        return;
+    };
+    row["result_state"] = json!(if service { "PLATFORM_SERVICE_NEEDED" } else { "OUT_OF_SCOPE_GRIDCRAFT" });
+    row["native_capability_gate"] = json!(reason);
 }
 fn reconcile_om09_native_scope(row: &mut Value) {
     if row["packet"] != "OM09" || row["implementation_symbol"].is_string() {
@@ -1082,7 +1117,7 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         *counts.entry(state.to_owned()).or_default() += 1;
     }
     let mut out = format!(
-        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\nOM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).\n\nOM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). These are native profiles, not whole-reference compatibility claims.\n\n## State counts\n\n",
+        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\nOM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).\n\nOM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). These are native profiles, not whole-reference compatibility claims.\n\n## State counts\n\n",
         pages.len()
     );
     for (state, count) in counts {
@@ -1126,6 +1161,20 @@ fn compare_generated_text(path: &Path, expected: &str) -> Result<(), String> {
 mod tests {
     use super::{contract_row, deduplicate_enum_constants, duplicate_enum_constants, extract_default};
     use serde_json::Value;
+
+    #[test]
+    fn om10_keeps_pdf_layout_separate_from_printers_and_header_graphics() {
+        for (owner, member, state) in [
+            ("PageSetup", "PrintQuality", "PLATFORM_SERVICE_NEEDED"),
+            ("Graphic", "Filename", "OUT_OF_SCOPE_GRIDCRAFT"),
+            ("Chart", "PageSetup", "OUT_OF_SCOPE_GRIDCRAFT"),
+            ("PageSetup", "", "PARTIAL"),
+        ] {
+            let mut row = serde_json::json!({"packet":"OM10","owner":owner,"member":member,"result_state":"MISSING"});
+            super::reconcile_om10_native_scope(&mut row);
+            assert_eq!(row["result_state"], state);
+        }
+    }
 
     #[test]
     fn om09_never_substitutes_consent_or_opaque_metadata_for_document_permissions() {
