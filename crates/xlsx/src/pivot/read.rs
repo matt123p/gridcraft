@@ -204,7 +204,7 @@ fn field_ref(cx: &mut Ctx<'_>, cache: &CacheIn, i: usize) -> Option<(String, Piv
 }
 
 fn read_table(cx: &mut Ctx<'_>, x: &El, cache: &CacheIn, id: u32) -> Option<PivotTable> {
-    let mut pt = PivotTable { id, ..PivotTable::default() };
+    let mut pt = PivotTable { identity: Default::default(), source_identity: Default::default(), id, ..PivotTable::default() };
     if let Some(n) = x.attr("name").filter(|n| !n.trim().is_empty()) {
         pt.name = n.to_string();
     } else {
@@ -362,7 +362,7 @@ fn read_table(cx: &mut Ctx<'_>, x: &El, cache: &CacheIn, id: u32) -> Option<Pivo
                 .filter(|id| *id != 0)
                 .and_then(|id| crate::tables::builtin_format(id).map(str::to_string).or_else(|| cx.num_fmts.get(&id).cloned()));
             let name = d.attr("name").map(str::to_string).unwrap_or_else(|| format!("{} of {}", func_caption(func), f.name));
-            pt.values.push(PivotValue { source_col: f.name.clone(), func, name, show_as, number_format });
+            pt.values.push(PivotValue { identity: Default::default(), source_col: f.name.clone(), func, name, show_as, number_format });
         }
     }
 
@@ -374,7 +374,7 @@ fn read_table(cx: &mut Ctx<'_>, x: &El, cache: &CacheIn, id: u32) -> Option<Pivo
         {
             let formula = formula.trim();
             let formula = if formula.starts_with('=') { formula.to_string() } else { format!("={formula}") };
-            pt.calculated_fields.push(PivotCalcField { name: f.name.clone(), formula });
+            pt.calculated_fields.push(PivotCalcField { identity: Default::default(), name: f.name.clone(), formula });
         }
     }
 

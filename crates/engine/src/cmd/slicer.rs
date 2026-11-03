@@ -138,6 +138,7 @@ fn insert_slicer(s: &mut Session, p: &Json) -> Result<Json> {
     let height = f64_param(p, "height").unwrap_or(200.0).clamp(60.0, 10000.0) as f32;
     let id = d.wb.next_object_id();
     let slicer = Slicer {
+        identity: Default::default(),
         id,
         table,
         column: column.clone(),
@@ -155,7 +156,7 @@ fn insert_slicer(s: &mut Session, p: &Json) -> Result<Json> {
 /// The target slicer: by `slicer` id, else the last one on the active sheet.
 fn find_slicer(s: &Session, p: &Json) -> Result<(usize, u32)> {
     let d = s.doc()?;
-    let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
+    let sh = d.wb.sheet(target_sheet(s, p)?).ok_or(EngineError::NoDocument)?;
     let idx = match u32_param(p, "slicer") {
         Some(id) => sh.slicers.iter().position(|x| x.id == id),
         None => sh.slicers.len().checked_sub(1),
@@ -167,10 +168,10 @@ fn slicer_toggle(s: &mut Session, p: &Json) -> Result<Json> {
     let (idx, id) = find_slicer(s, p)?;
     let value = str_param(p, "value").ok_or_else(|| bad("slicer.toggle", "missing `value`"))?.to_string();
     let multi = bool_param(p, "multi").unwrap_or(false);
-    let sheet = s.doc()?.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     let (table, column, current) = {
         let d = s.doc()?;
-        let sl = d.wb.active().and_then(|sh| sh.slicers.get(idx)).ok_or_else(|| bad("slicer.toggle", "no slicer"))?;
+        let sl = d.wb.sheet(sheet).and_then(|sh| sh.slicers.get(idx)).ok_or_else(|| bad("slicer.toggle", "no slicer"))?;
         (sl.table.clone(), sl.column.clone(), sl.selected.clone())
     };
     let all = column_values(&s.doc()?.wb, sheet, &table, &column);
@@ -206,7 +207,7 @@ fn slicer_toggle(s: &mut Session, p: &Json) -> Result<Json> {
 
 fn slicer_select_all(s: &mut Session, p: &Json) -> Result<Json> {
     let (idx, id) = find_slicer(s, p)?;
-    let sheet = s.doc()?.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         if let Some(sl) = cx.sheet_mut(sheet)?.slicers.get_mut(idx) {
             sl.selected = None;
@@ -219,10 +220,10 @@ fn slicer_select_all(s: &mut Session, p: &Json) -> Result<Json> {
 
 fn slicer_delete(s: &mut Session, p: &Json) -> Result<Json> {
     let (idx, id) = find_slicer(s, p)?;
-    let sheet = s.doc()?.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     // Absolute column of the slicer, so its filter criterion can be removed too.
     let abs_col = s.doc().ok().and_then(|d| {
-        let sh = d.wb.active()?;
+        let sh = d.wb.sheet(sheet)?;
         let sl = sh.slicers.get(idx)?;
         let t = sh.tables.iter().find(|t| t.name.eq_ignore_ascii_case(&sl.table))?;
         let ci = t.column_index(&sl.column)?;

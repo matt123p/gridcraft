@@ -19,7 +19,10 @@ mod formatting;
 mod formula_api;
 mod lifecycle;
 mod lifecycle_events;
+mod pivot_api;
+mod pivot_fields_api;
 mod series_api;
+mod slicer_api;
 pub use lifecycle_events::{LifecycleEvent, LifecycleEventBatch};
 mod named_style_api;
 mod objects;
@@ -947,6 +950,9 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         availability: if owner == "Application" && name == "Run" { MemberAvailability::Implemented } else { MemberAvailability::OutOfScope },
         implementation_symbol: if owner == "Application" && name == "Run" { "crates/vba/src/host_ops.rs::Bridge::defer_call" } else { "crates/vba/src/objects.rs::Bridge::invoke_object" },
     }))
+    .chain(pivot_api::descriptors())
+    .chain(pivot_fields_api::descriptors())
+    .chain(slicer_api::descriptors())
     .chain(chart_api::descriptors())
     .chain(chart_parts_api::descriptors())
     .chain(series_api::descriptors())

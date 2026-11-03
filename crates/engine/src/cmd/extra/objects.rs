@@ -58,6 +58,11 @@ pub(super) fn arrange(s: &mut Session, p: &Json, forward: bool) -> Result<Json> 
                     reorder(&mut sh.charts, i, forward, extreme);
                 }
             }
+            "slicer" => {
+                if let Some(i) = sh.slicers.iter().position(|c| c.id == id) {
+                    reorder(&mut sh.slicers, i, forward, extreme);
+                }
+            }
             "image" => {
                 if let Some(i) = sh.images.iter().position(|c| c.id == id) {
                     reorder(&mut sh.images, i, forward, extreme);
@@ -93,6 +98,7 @@ fn anchors_of<'a>(sh: &'a mut Sheet, kind: &str) -> Vec<(u32, &'a mut Anchor)> {
     match kind {
         "chart" => sh.charts.iter_mut().map(|c| (c.id, &mut c.anchor)).collect(),
         "image" => sh.images.iter_mut().map(|c| (c.id, &mut c.anchor)).collect(),
+        "slicer" => sh.slicers.iter_mut().map(|c| (c.id, &mut c.anchor)).collect(),
         _ => sh.shapes.iter_mut().map(|c| (c.id, &mut c.anchor)).collect(),
     }
 }

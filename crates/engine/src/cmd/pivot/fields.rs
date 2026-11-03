@@ -150,7 +150,8 @@ pub(super) fn add_to_area(pt: &mut PivotTable, src: &pv::Source, placement: Area
                 _ => auto_name(f, &field),
             };
             let nm = unique_value_name(pt, &base, None);
-            let v = PivotValue { source_col: field, func: f, name: nm, show_as: PivotShowAs::Normal, number_format: None };
+            let v =
+                PivotValue { identity: Default::default(), source_col: field, func: f, name: nm, show_as: PivotShowAs::Normal, number_format: None };
             let at = position.unwrap_or(pt.values.len()).min(pt.values.len());
             pt.values.insert(at, v);
         }
@@ -295,6 +296,43 @@ pub(super) fn list(s: &mut Session, _: &Json) -> Result<Json> {
 
 pub(super) fn add_field(s: &mut Session, p: &Json) -> Result<Json> {
     const C: &str = "pivot.addField";
+    if let Some(areas) = p.get("areas") {
+        let map = areas.as_object().ok_or_else(|| bad(C, "areas must be an object"))?;
+        let mut placements = Vec::new();
+        for (area, fields) in map {
+            let area = area_param(C, Some(area))?;
+            let fields = fields.as_array().ok_or_else(|| bad(C, "area fields must be an array"))?;
+            if fields.len() > 256 {
+                return Err(bad(C, "field budget"));
+            }
+            let mut names = Vec::new();
+            for field in fields {
+                let name = field.as_str().filter(|n| !n.is_empty() && n.len() <= 1024).ok_or_else(|| bad(C, "field must be bounded text"))?;
+                names.push(name.to_owned());
+            }
+            placements.push((area, names));
+        }
+        let append = bool_param(p, "append").unwrap_or(false);
+        return update(s, p, move |pt, src, _| {
+            for (area, names) in &placements {
+                if !append {
+                    match *area {
+                        "rows" => {
+                            pt.rows.clear();
+                            pt.values_position = None;
+                        }
+                        "columns" => pt.columns.clear(),
+                        "values" => pt.values.clear(),
+                        _ => pt.filters.clear(),
+                    }
+                }
+                for name in names {
+                    add_to_area(pt, src, AreaPlacement { cmd: C, field: name, area, func: None, name: None, position: None })?;
+                }
+            }
+            Ok(json!({}))
+        });
+    }
     let field = str_param(p, "field").ok_or_else(|| bad(C, "missing `field`"))?.to_string();
     let area = area_param(C, str_param(p, "area"))?;
     let func = match str_param(p, "func") {
@@ -355,7 +393,7 @@ pub(super) fn calculated_field(s: &mut Session, p: &Json) -> Result<Json> {
                 if pt.calculated_fields.len() >= crate::pivot_calc::MAX_CALC_FIELDS {
                     return Err(other(format!("A PivotTable can have at most {} calculated fields.", crate::pivot_calc::MAX_CALC_FIELDS)));
                 }
-                pt.calculated_fields.push(PivotCalcField { name: name.clone(), formula: formula.clone() });
+                pt.calculated_fields.push(PivotCalcField { identity: Default::default(), name: name.clone(), formula: formula.clone() });
                 name.clone()
             }
         };
@@ -449,6 +487,17 @@ pub(super) fn move_field(s: &mut Session, p: &Json) -> Result<Json> {
                     let at = pos.unwrap_or(pt.filters.len()).min(pt.filters.len());
                     pt.filters.insert(at, f);
                 }
+            }
+            if let Some(position) = p.get("valuesPosition") {
+                let position = position
+                    .as_u64()
+                    .and_then(|v| usize::try_from(v).ok())
+                    .filter(|i| *i <= pt.rows.len())
+                    .ok_or_else(|| bad(C, "values position bounds"))?;
+                if from != "rows" || !pt.values_on_rows || pt.values.len() < 2 {
+                    return Err(bad(C, "valuesPosition requires the native row values axis"));
+                }
+                pt.values_position = (position < pt.rows.len()).then_some(position);
             }
             return Ok(json!({}));
         }

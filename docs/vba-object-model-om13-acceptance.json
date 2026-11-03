@@ -1,0 +1,257 @@
+{
+  "schema": 1,
+  "packet": "OM13",
+  "reviewed": "2026-11-03",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "status": "IMPLEMENTED_NATIVE_PROFILE",
+  "scope": "Existing local native pivots, report-owned cache views, table slicers and PivotCharts. This closes the selected native OM13 profile, not the complete Excel family or Medium stage. No new pivot algorithm, OLAP/data-model service or XLSX slicer codec.",
+  "required_obligations": [
+    {
+      "id": "reports_and_caches",
+      "native_evidence": "crates/model/src/features/pivot.rs; engine::pivot; xlsx::pivot::write",
+      "profile": "Worksheet PivotTables.Add with xlDatabase, explicit source and destination. Existing report-owned cache views mirror one-cache-per-report native XLSX export. Same-report lookups intern the same view; reports with the same source remain independent. There is no standalone/shared runtime cache, external connection or retained record snapshot. SourceData assignment uses native A1 reference/named-source text. Native source bounds: 65,536 cells and 256 columns. Names are read-only.",
+      "source_ids": [
+        "PivotCache.Application",
+        "PivotCache.Index",
+        "PivotCache.OLAP",
+        "PivotCache.Parent",
+        "PivotCache.RecordCount",
+        "PivotCache.Refresh",
+        "PivotCache.SourceData",
+        "PivotCache.SourceType",
+        "PivotCaches.Application",
+        "PivotCaches.Count",
+        "PivotCaches.Item",
+        "PivotCaches.Parent",
+        "PivotTable.Application",
+        "PivotTable.CacheIndex",
+        "PivotTable.CalculatedFields",
+        "PivotTable.ColumnFields",
+        "PivotTable.DataFields",
+        "PivotTable.HiddenFields",
+        "PivotTable.Location",
+        "PivotTable.Name",
+        "PivotTable.PageFields",
+        "PivotTable.Parent",
+        "PivotTable.PivotCache",
+        "PivotTable.PivotFields",
+        "PivotTable.RefreshTable",
+        "PivotTable.RowFields",
+        "PivotTable.SourceData",
+        "PivotTable.TableRange1",
+        "PivotTable.TableRange2",
+        "PivotTable.Update",
+        "PivotTables.Add",
+        "PivotTables.Application",
+        "PivotTables.Count",
+        "PivotTables.Item",
+        "PivotTables.Parent",
+        "Workbook.PivotCaches",
+        "Worksheet.PivotTables"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output",
+        "crates/vba/tests/pivots.rs::pivot_creation_source_rebind_and_id_reuse_refuse_stale_views",
+        "crates/vba/tests/pivots.rs::source_events_and_report_owned_caches_do_not_invent_shared_refresh"
+      ]
+    },
+    {
+      "id": "layout_and_values",
+      "native_evidence": "engine::cmd::pivot::{fields,layout}; model::{PivotTable,PivotValue}",
+      "profile": "Native compact/outline/tabular layouts, totals/subtotals/style/header/drilldown settings; atomic area placement and clear operations. Data fields retain native lifetime identity through reorder/settings changes. Native values axis maps rows/columns and row positions. Calculations expose represented percent/running-total/descending-rank modes, using the native first-row base where applicable. ManualUpdate, unsupported base selectors and independent per-field subtotal settings refuse.",
+      "source_ids": [
+        "PivotTable.AddDataField",
+        "PivotTable.AddFields",
+        "PivotTable.ClearAllFilters",
+        "PivotTable.ClearTable",
+        "PivotTable.ColumnGrand",
+        "PivotTable.DataBodyRange",
+        "PivotTable.DataPivotField",
+        "PivotTable.DisplayFieldCaptions",
+        "PivotTable.EnableDrilldown",
+        "PivotTable.RowAxisLayout",
+        "PivotTable.RowGrand",
+        "PivotTable.SubtotalLocation",
+        "PivotTable.TableStyle2"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output",
+        "crates/vba/tests/pivots.rs::atomic_area_edits_values_axis_and_clear_table_keep_real_cache_views",
+        "crates/vba/tests/pivots.rs::protection_bad_sources_and_provider_refusals_do_not_partially_refresh"
+      ]
+    },
+    {
+      "id": "fields_items_and_calculations",
+      "native_evidence": "model::{PivotField,PivotValue,PivotFilter,PivotCalcField}; engine::pivot::{read_source,distinct_labels,item_label}; pivot.* commands",
+      "profile": "Source fields are name-qualified live views under a report/source epoch. A source rebind invalidates old fields/items. Value/calculated definitions have native nonserialized lifetime tokens; deletion/recreation cannot retarget old handles. Native item-label views provide manual visibility/report filters and axis collapse. Calculated fields use the existing English aggregate formula engine. Source/calculated names and item labels are read-only; only data-field captions can change. Item labels and source names are capped at 1,024 bytes; no cache-label renames, calculated items or OLAP hierarchies are invented.",
+      "source_ids": [
+        "CalculatedFields.Application",
+        "CalculatedFields.Count",
+        "CalculatedFields.Item",
+        "CalculatedFields.Parent",
+        "PivotField.Application",
+        "PivotField.Calculation",
+        "PivotField.Caption",
+        "PivotField.ClearAllFilters",
+        "PivotField.ClearManualFilter",
+        "PivotField.CurrentPage",
+        "PivotField.Delete",
+        "PivotField.Formula",
+        "PivotField.Function",
+        "PivotField.HiddenItems",
+        "PivotField.IsCalculated",
+        "PivotField.Name",
+        "PivotField.NumberFormat",
+        "PivotField.Orientation",
+        "PivotField.Parent",
+        "PivotField.PivotItems",
+        "PivotField.Position",
+        "PivotField.ShowDetail",
+        "PivotField.SourceCaption",
+        "PivotField.SourceName",
+        "PivotField.Value",
+        "PivotField.VisibleItems",
+        "PivotFields.Application",
+        "PivotFields.Count",
+        "PivotFields.Item",
+        "PivotFields.Parent",
+        "PivotItem.Application",
+        "PivotItem.Caption",
+        "PivotItem.Name",
+        "PivotItem.Parent",
+        "PivotItem.Position",
+        "PivotItem.RecordCount",
+        "PivotItem.ShowDetail",
+        "PivotItem.SourceName",
+        "PivotItem.Value",
+        "PivotItem.Visible",
+        "PivotItems.Application",
+        "PivotItems.Count",
+        "PivotItems.Item",
+        "PivotItems.Parent"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::filters_calculated_fields_and_stale_children_use_native_lifetimes",
+        "crates/vba/tests/pivots.rs::pivot_creation_source_rebind_and_id_reuse_refuse_stale_views",
+        "crates/vba/tests/pivots.rs::atomic_area_edits_values_axis_and_clear_table_keep_real_cache_views"
+      ]
+    },
+    {
+      "id": "drilldown",
+      "native_evidence": "engine::pivot::{compute,detail_records}; engine::cmd::pivot::create::show_details",
+      "profile": "Existing native report-cell roles, report ranges and True-only ShowDetail drilldown for a single value cell. EnableDrilldown and workbook structure protection retain native failures. New details sheets contain actual source records and join native undo. Range.ShowDetail outside pivot reports still routes to the prior outline projection. No independent cell-to-field/line/axis metadata or GETPIVOTDATA Range-returning service is fabricated.",
+      "source_ids": [
+        "PivotCell.Application",
+        "PivotCell.Parent",
+        "PivotCell.PivotCellType",
+        "PivotCell.PivotTable",
+        "PivotCell.Range",
+        "Range.PivotCell",
+        "Range.PivotTable",
+        "Range.ShowDetail"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::drilldown_uses_native_records_options_and_structural_undo",
+        "crates/vba/tests/pivots.rs::protection_bad_sources_and_provider_refusals_do_not_partially_refresh"
+      ]
+    },
+    {
+      "id": "pivotcharts",
+      "native_evidence": "model::Chart.pivot; engine::pivot::rebind_charts; native chart renderer and XLSX",
+      "profile": "Existing PivotCharts expose PivotLayout/PivotTable and their Chart parent. Report refresh reuses native chart rebinding, with report and linked drawing protection preflight. Native and XLSX report/chart output and shared raster output are verified. Standalone cache-based CreatePivotChart is excluded because there is no unattached/shared runtime cache.",
+      "source_ids": [
+        "Chart.PivotLayout",
+        "PivotLayout.Application",
+        "PivotLayout.Parent",
+        "PivotLayout.PivotTable",
+        "pivottable.pivotchart"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::pivotcharts_and_local_caches_persist_and_render_the_refreshed_report"
+      ]
+    },
+    {
+      "id": "table_slicers",
+      "native_evidence": "model::Slicer; engine::cmd::slicer; object.move/anchor and drawing commands",
+      "profile": "Existing table widgets expose per-widget cache views, local source ListObject, slicer/item collections, native selection/clear/delete, caption/column count and shape/geometry. Independent widgets are not presented as a shared Excel slicer cache. Source/item names are read-only; native table filtering and protection are retained. Model snapshot/undo serialization persists widget state. Native XLSX has NO slicer codec, so this projection does not claim slicer XLSX round trips. Standalone SlicerCaches.Add and shared Slicers.Add remain native model gaps.",
+      "source_ids": [
+        "Slicer.Application",
+        "Slicer.Caption",
+        "Slicer.Delete",
+        "Slicer.Height",
+        "Slicer.Left",
+        "Slicer.Name",
+        "Slicer.NumberOfColumns",
+        "Slicer.Shape",
+        "Slicer.SlicerCache",
+        "Slicer.Top",
+        "Slicer.Width",
+        "SlicerCache.Application",
+        "SlicerCache.Delete",
+        "SlicerCache.Name",
+        "SlicerCache.OLAP",
+        "SlicerCache.Parent",
+        "SlicerCache.SlicerItems",
+        "SlicerCache.Slicers",
+        "SlicerCache.SourceName",
+        "SlicerCaches.Application",
+        "SlicerCaches.Count",
+        "SlicerCaches.Item",
+        "SlicerCaches.Parent",
+        "SlicerItem.Application",
+        "SlicerItem.Caption",
+        "SlicerItem.Name",
+        "SlicerItem.Parent",
+        "SlicerItem.Selected",
+        "SlicerItem.SourceName",
+        "SlicerItem.Value",
+        "SlicerItems.Application",
+        "SlicerItems.Count",
+        "SlicerItems.Item",
+        "SlicerItems.Parent",
+        "Slicers.Application",
+        "Slicers.Count",
+        "Slicers.Item",
+        "Slicers.Parent",
+        "Workbook.SlicerCaches",
+        "slicercache.clearallfilters",
+        "slicercache.clearmanualfilter",
+        "slicercache.filtercleared",
+        "slicercache.listobject",
+        "SlicerCache.Index",
+        "SlicerCache.SourceType",
+        "slicercache.slicercachetype"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::table_slicer_views_filter_format_and_persist_on_inactive_owners",
+        "crates/vba/tests/pivots.rs::slicer_lifetimes_and_protection_prevent_retarged_or_partial_widget_edits"
+      ]
+    }
+  ],
+  "native_capability_exclusions": [
+    {
+      "surface": "PivotCaches.Create / PivotCache.CreatePivotTable / ChangePivotCache / shared cache reuse",
+      "reason": "No independent runtime cache model. Native sources are live and report-owned; XLSX writes one cache per report. Cache views cannot imply shared refresh, retained cache records, connection lifecycle or unattached cache persistence."
+    },
+    {
+      "surface": "Cube/model/relationships/measures/writeback/external connections/async refresh and cancellation",
+      "reason": "No native service. Refusals occur before workbook effects; no empty successful provider refresh or fictitious cancellation is returned."
+    },
+    {
+      "surface": "Pivot filters, calculated items, hierarchy/line metadata and arbitrary grouping hierarchies",
+      "reason": "Native filters are manual label selections and native calculations are aggregate fields. No advanced label/value filter object model, calculated-item engine or Excel grouping hierarchy/cell-to-field metadata service exists."
+    },
+    {
+      "surface": "SlicerCaches.Add / shared Slicers.Add / PivotTable slicer connections / timelines",
+      "reason": "Native widgets filter one local table column. No standalone/shared slicer-cache model, pivot connections, OLAP levels or timeline model exists."
+    },
+    {
+      "surface": "Slicer XLSX persistence",
+      "reason": "Native XLSX read/write does not implement slicer widgets; native model snapshots/undo serialize their existing state. Adding a new codec is a product roadmap task outside OM13."
+    },
+    {
+      "surface": "PivotTableUpdate events, provider refresh events, RefreshDate / ManualUpdate cache state",
+      "reason": "No native event source or retained state exists. Existing source-cell Change events remain valid; internal report rewrites do not masquerade as explicit cell edits."
+    }
+  ]
+}

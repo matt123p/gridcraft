@@ -222,6 +222,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM13 native local pivot/field/item/slicer graph, source lifetimes, report-owned cache views and explicit persistence/service boundaries |
 | 2026-11-03 | minor | Complete OM12 native chart/drawing graph, series/trendline/shape identities, Office child types and bounded snapshots |
 | 2026-11-03 | minor | First OM12 embedded chart projection, nonserialized chart identity, explicit native sheet routing and renderer/round-trip evidence |
 | 2026-11-03 | minor | OM03/OM04 suspended host operations, cancellable OM11 native lifecycle events and High evidence reconciliation |
@@ -284,3 +285,26 @@ The reference set includes fork-owned Office child types and enum facts verified
 from the pinned archive. Shared Office contracts outside the Excel inventory are
 reported separately. The [OM12 native acceptance ledger](vba-object-model-om12-acceptance.json)
 records native capabilities, tests and unsupported product state/services.
+
+
+## OM13 local pivot graph (2026-11-03)
+
+Private optional bridge modules `pivot_api`, `pivot_fields_api` and `slicer_api`
+project native report definitions, source-qualified field/item views, local table
+widgets and PivotChart links. They use the same document-qualified Feature
+registry and nominal type resolver. Nonserialized identity tokens distinguish
+PivotTables/value fields/calculated fields/slicers; source epochs invalidate old
+field/item views after source rebinding. Name/label and collection budgets bound
+host metadata. The chart-owner repair path only scans chart-owned feature kinds.
+
+Mutations use native commands. Explicit sheet routing avoids changes to the user's
+view; native area placement and manual-filter batches retain one atomic report
+rewrite. Stored slicer caption/columns use the native object command. Report-cell
+and body-range views reuse native current-report validation. No alternate pivot
+aggregation, formula engine or provider service was added.
+
+Native XLSX writes one cache per report. Cache objects are report-owned source
+views, not a new shared runtime cache. Slicer views similarly reflect existing
+independent table widgets. Native model snapshots serialize those widgets, but
+XLSX does not implement their codec. The [OM13 ledger](vba-object-model-om13-acceptance.json)
+keeps this persistence gap and provider/model/timeline exclusions explicit.

@@ -35,7 +35,7 @@ fn child(f: &Feature, kind: &'static str, part: i32) -> Feature {
     n
 }
 fn roots(sh: &Sheet, sheet: usize) -> HostResult<Vec<Feature>> {
-    let count = sh.shapes.len().saturating_add(sh.images.len()).saturating_add(sh.charts.len());
+    let count = sh.shapes.len().saturating_add(sh.images.len()).saturating_add(sh.charts.len()).saturating_add(sh.slicers.len());
     if count > super::MAX_OBJECTS {
         return Err(failure(7, "drawing collection budget"));
     }
@@ -44,6 +44,7 @@ fn roots(sh: &Sheet, sheet: usize) -> HostResult<Vec<Feature>> {
     out.extend(sh.shapes.iter().map(|x| root(sheet, x.id, &x.identity, "shape")));
     out.extend(sh.images.iter().map(|x| root(sheet, x.id, &x.identity, "image")));
     out.extend(sh.charts.iter().map(|x| root(sheet, x.id, &x.identity, "chart")));
+    out.extend(sh.slicers.iter().map(|x| root(sheet, x.id, &x.identity, "slicer")));
     Ok(out)
 }
 fn view(sh: &Sheet, f: &Feature) -> HostResult<View> {
@@ -51,6 +52,7 @@ fn view(sh: &Sheet, f: &Feature) -> HostResult<View> {
     let duplicates = match f.text.as_deref().unwrap_or("shape") {
         "chart" => sh.charts.iter().filter(|x| u64::from(x.id) == f.key).count(),
         "image" => sh.images.iter().filter(|x| u64::from(x.id) == f.key).count(),
+        "slicer" => sh.slicers.iter().filter(|x| u64::from(x.id) == f.key).count(),
         _ => sh.shapes.iter().filter(|x| u64::from(x.id) == f.key).count(),
     };
     if duplicates > 1 {
@@ -91,6 +93,19 @@ fn view(sh: &Sheet, f: &Feature) -> HostResult<View> {
             v.line = x.line;
             v.on_action = x.on_action.clone();
             v.shape_kind = Some(x.kind);
+        }
+        "slicer" => {
+            let (i, x) = sh
+                .slicers
+                .iter()
+                .enumerate()
+                .find(|(_, x)| u64::from(x.id) == f.key && identity.same(&x.identity))
+                .ok_or_else(|| failure(91, "slicer deleted or replaced"))?;
+            v.id = x.id;
+            v.index = i;
+            v.tag = "slicer";
+            v.name = format!("Slicer{}", x.id);
+            v.anchor = x.anchor;
         }
         "image" => {
             let (i, x) = sh
@@ -265,7 +280,11 @@ impl Bridge {
             }
             if m == "delete" {
                 arguments(call, &[])?;
-                return self.drawing_command(s, sheet, "object.delete", json!({"kind":v.tag,"id":v.id})).map(|_| Value::Empty);
+                return if v.tag == "slicer" {
+                    self.drawing_command(s, sheet, "slicer.delete", json!({"slicer":v.id})).map(|_| Value::Empty)
+                } else {
+                    self.drawing_command(s, sheet, "object.delete", json!({"kind":v.tag,"id":v.id})).map(|_| Value::Empty)
+                };
             }
             if m == "zorder" {
                 let a = arguments(call, &["ZOrderCmd"])?;
@@ -291,6 +310,7 @@ impl Bridge {
                 "type" => Ok(Value::Long(match (v.tag, v.shape_kind) {
                     ("chart", _) => 3,
                     ("image", _) => 13,
+                    ("slicer", _) => 25,
                     (_, Some(ShapeKind::TextBox)) => 17,
                     (_, Some(ShapeKind::Line | ShapeKind::Arrow)) => 9,
                     _ => 1,
@@ -676,7 +696,7 @@ impl Bridge {
         }
         self.objects.reserve(1)?;
         let sh = s.doc().map_err(|e| failure(91, e.to_string()))?.wb.sheet(sheet).ok_or_else(|| failure(91, "sheet"))?;
-        if sh.shapes.len().saturating_add(sh.images.len()).saturating_add(sh.charts.len()) >= super::MAX_OBJECTS {
+        if sh.shapes.len().saturating_add(sh.images.len()).saturating_add(sh.charts.len()).saturating_add(sh.slicers.len()) >= super::MAX_OBJECTS {
             return Err(failure(7, "drawing collection budget"));
         }
         let at = CellRef::new(sh.row_at(top), sh.col_at(left));

@@ -336,12 +336,16 @@ mod tests {
     fn deep_and_cyclic_chains_are_bounded() {
         // 300 calculated fields, each using the previous one, and a two-field cycle.
         let mut pt = PivotTable::default();
-        pt.calculated_fields.push(gridcraft_model::PivotCalcField { name: "C0".into(), formula: "=Sales+1".into() });
+        pt.calculated_fields.push(gridcraft_model::PivotCalcField { identity: Default::default(), name: "C0".into(), formula: "=Sales+1".into() });
         for i in 1..300 {
-            pt.calculated_fields.push(gridcraft_model::PivotCalcField { name: format!("C{i}"), formula: format!("=C{}+1", i - 1) });
+            pt.calculated_fields.push(gridcraft_model::PivotCalcField {
+                identity: Default::default(),
+                name: format!("C{i}"),
+                formula: format!("=C{}+1", i - 1),
+            });
         }
-        pt.calculated_fields.push(gridcraft_model::PivotCalcField { name: "P".into(), formula: "=Q".into() });
-        pt.calculated_fields.push(gridcraft_model::PivotCalcField { name: "Q".into(), formula: "=P*2".into() });
+        pt.calculated_fields.push(gridcraft_model::PivotCalcField { identity: Default::default(), name: "P".into(), formula: "=Q".into() });
+        pt.calculated_fields.push(gridcraft_model::PivotCalcField { identity: Default::default(), name: "Q".into(), formula: "=P*2".into() });
         let set = CalcSet::new(&pt, &["Sales".to_string()]);
         let wb = Workbook::new();
         let sum = |_: &str| Value::Number(10.0);
@@ -352,8 +356,8 @@ mod tests {
         assert_eq!(set.index("P"), None, "P is past the cap of {MAX_CALC_FIELDS} fields");
         // A small cycle within the cap.
         let mut small = PivotTable::default();
-        small.calculated_fields.push(gridcraft_model::PivotCalcField { name: "P".into(), formula: "=Q".into() });
-        small.calculated_fields.push(gridcraft_model::PivotCalcField { name: "Q".into(), formula: "=P*2".into() });
+        small.calculated_fields.push(gridcraft_model::PivotCalcField { identity: Default::default(), name: "P".into(), formula: "=Q".into() });
+        small.calculated_fields.push(gridcraft_model::PivotCalcField { identity: Default::default(), name: "Q".into(), formula: "=P*2".into() });
         let set = CalcSet::new(&small, &["Sales".to_string()]);
         assert!(set.is_cyclic(0));
         assert_eq!(set.value(&wb, 0, &sum), Value::Error(CellError::Ref));

@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12 native chart/drawing profile completed; OM13 next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12 and OM13 native profiles completed; selected OM08 view work is next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -1375,3 +1375,58 @@ Final validation (2026-11-03):
 - Optional native `ui-egui/vba-window` and WASM `gridcraft-web/vba` builds passed.
   The shared tiny-vba revision is unchanged; no new Office oracle execution,
   vendor asset, workflow change or external service was used.
+
+
+## OM13 native local pivot profile completion (2026-11-03)
+
+Status: **OM13 complete for the existing local native profile**. Medium continues
+with the selected OM08/OM09/OM10/OM19/OM15 work; OM14 remains deferred.
+The [OM13 acceptance ledger](vba-object-model-om13-acceptance.json) records 153
+required native contracts, their real Rust tests and the native capability limits.
+This is a native profile completion, not a claim that the entire Excel pivot,
+OLAP, model and timeline reference is implemented.
+
+| Surface | Native-backed contract and boundary |
+|---|---|
+| Worksheet.PivotTables / PivotTable | Live one-based/default/name lookup and enumeration, Parent/Application, explicit xlDatabase Add from a same-workbook bounded source to a receiver-sheet cell. Explicit creation keeps the current view. Native source, cache index, report/body ranges, aggregation/layout/header/totals/style settings, AddFields/AddDataField, values-axis placement, ClearTable/ClearAllFilters, Update and RefreshTable use engine commands. Names are read-only. Native overlap/protection failures remain errors. |
+| PivotCaches / PivotCache | Workbook enumeration and same-report canonical views, source text/type, index, live native record count, OLAP=False and synchronous native refresh. Native XLSX writes one cache per report; two reports with the same source stay independent. Unattached/shared cache creation, cache reassignment, provider/connection properties, retained cache records and async refresh/cancellation have no native model and refuse. These views do not simulate shared Excel caches. |
+| PivotFields / PivotField | Source-qualified fields plus explicit value/calculated-field lifetimes; row/column/page/data/hidden collections, placement, native functions/show-as modes/number formats, data captions, source names, formulas and native label sorting. The native Σ Values axis supports its stored row/column and row-position options. Source/calculated names are read-only; data-field captions can change. Reordering retains native definition identity. Source changes invalidate prior field/item views. |
+| PivotItems / PivotItem | Bounded native item labels, visible/hidden collections, record counts, manual visibility/report filters and stored axis collapse. At least one pivot item must remain visible. Item names are read-only. There is no independent cached-label rename or calculated-item engine. Native date grouping remains usable by the product; Excel's separate grouping hierarchy/field metadata is not fabricated. |
+| CalculatedFields | Add, lookup/enumeration, formula updates and deletion through the existing native aggregate formula engine. English/default formula mode only; unsupported localized parsing refuses. Deleted/recreated definitions cannot retarget parked field arguments or data fields. |
+| Range / PivotCell | PivotTable/PivotCell traversal, native report-cell roles and True-only drilldown for one native value cell. EnableDrilldown and workbook-structure protection retain native behavior. Details sheets contain actual source records and remain in native undo. Non-pivot Range.ShowDetail still uses the existing outline implementation. Report-derived geometry refuses stale report/source combinations, using the same native validation as drilldown. No field/line/axis object metadata or GETPIVOTDATA Range-returning service is invented. |
+| PivotCharts / PivotLayout | Existing linked charts expose the actual PivotTable and Chart parent. Native refresh rebinds their source through the existing engine; linked drawing protection is preflighted. Native/XLSX reports, chart values and shared raster output are tested. |
+| Table slicers | Existing native widgets expose SlicerCaches/SlicerCache/Slicers/Slicer/SlicerItems/SlicerItem, local ListObject binding, selection/filter clearing, deletion, native caption/column count and shape/geometry. Shape traversal uses native slicer identity and anchor commands. Cache views are per widget; standalone/shared caches, PivotTable slicer connections, OLAP levels and timelines remain native gaps. **Native XLSX has no slicer codec.** Widget state is covered by model snapshot/undo serialization, not claimed as an XLSX round trip. No new codec is added by this packet. |
+
+Private `pivot_api`, `pivot_fields_api` and `slicer_api` use the shared qualified
+Feature registry and nominal resolver. PivotTables, value fields, calculated fields
+and slicers have nonserialized lifetime tokens; source epochs prevent stale source
+views from silently rebinding. Scalar names/labels and input-sized collections are
+bounded before projection. Native commands gained explicit pivot/slicer sheet
+routing and narrow existing-state parameter plumbing for atomic area edits and
+slicer formatting. No pivot algorithm, external service, new event framework,
+vendor asset or workflow was introduced.
+
+Tests in `crates/vba/tests/pivots.rs` cover typed parent identity, explicit and
+inactive destinations, atomic layout/refusals, field reordering, source rebinding,
+numeric ID reuse, deleted calculated-field arguments, protection, native details
+records, source events, independent cache views, PivotChart refresh, XLSX/native
+raster parity and slicer model snapshot limits. Existing source-cell Change events
+remain intact. Internal report rewrites do not masquerade as explicit cell edits;
+there is no native PivotTableUpdate/provider event source to project. Unsupported
+provider/model/timeline families are classified as OUT_OF_SCOPE_GRIDCRAFT rather
+than offered empty successful refreshes.
+
+Final validation (2026-11-03):
+
+- Font-enabled `cargo xtask ci`: **all 10 stages passed**, including **189**
+  native VBA tests and the workspace engine/model/chart/XLSX/UI suites.
+- Full Node 22 / wasm-bindgen VBA suite: **181 tests passed**, including all
+  **10** OM13 tests. Native and WASM use the same aggregation and renderer paths.
+- Strict adapter and audit-enabled xtask Clippy passed; **28** xtask tests passed.
+  Audit regeneration and non-writing verification passed for **153** required
+  OM13 source contracts while retaining the **5,996** pinned Excel pages and the
+  existing High/OM12 ledgers. **435** unbacked OM13 provider/model/timeline and
+  related source rows are explicitly OUT_OF_SCOPE_GRIDCRAFT.
+- Optional native `ui-egui/vba-window` and WASM `gridcraft-web/vba` builds passed.
+  The tiny-vba dependency revision is unchanged. No new Office oracle execution,
+  XLSX slicer codec, external service, asset or workflow was introduced.

@@ -169,7 +169,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Move Object",
             [],
             None,
-            "{sheet?, kind: chart|image|shape, id, at?: \"C3\", dx?, dy?, width?, height?}",
+            "{sheet?, kind: chart|image|shape, id, at?: \"C3\", dx?, dy?, width?, height?, caption?: string (slicer), columns?: 1..10 (slicer)}",
             has_doc,
             move_object
         ),
@@ -1286,6 +1286,18 @@ fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
     let kind = str_param(p, "kind").unwrap_or("").to_string();
     let sheet = target_sheet(s, p)?;
     let at = cell_param_on(s, p, "at", target_sheet(s, p)?)?;
+    let caption = match p.get("caption") {
+        None => None,
+        Some(Json::String(t)) if t.len() <= 65536 => Some(t.clone()),
+        _ => return Err(bad("object.move", "caption bounds")),
+    };
+    let columns = match p.get("columns") {
+        None => None,
+        Some(v) => Some(v.as_u64().filter(|n| (1..=10).contains(n)).ok_or_else(|| bad("object.move", "columns bounds"))? as u32),
+    };
+    if kind != "slicer" && (caption.is_some() || columns.is_some()) {
+        return Err(bad("object.move", "caption/columns require a slicer"));
+    }
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         let anchor = match kind.as_str() {
@@ -1311,6 +1323,14 @@ fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
         if let Some(v) = f64_param(p, "height") {
             a.height = v.clamp(0.0, 10000.0) as f32;
         }
+        if let Some(sl) = sh.slicers.iter_mut().find(|sl| kind == "slicer" && sl.id == id) {
+            if let Some(caption) = caption {
+                sl.caption = caption;
+            }
+            if let Some(columns) = columns {
+                sl.columns = columns;
+            }
+        }
         Ok(Json::Null)
     })
 }
@@ -1321,7 +1341,7 @@ fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
 fn set_anchor_mode(s: &mut Session, p: &Json) -> Result<Json> {
     let id = u32_param(p, "id").ok_or_else(|| bad("object.setAnchorMode", "missing `id`"))?;
     let kind = str_param(p, "kind").unwrap_or("").to_string();
-    if !matches!(kind.as_str(), "chart" | "image" | "shape") {
+    if !matches!(kind.as_str(), "chart" | "image" | "shape" | "slicer") {
         return Err(bad("object.setAnchorMode", "kind must be chart, image or shape"));
     }
     let mode = anchor_mode_param(p).ok_or_else(|| bad("object.setAnchorMode", "mode must be moveAndSize, moveOnly or absolute"))?;
@@ -1331,6 +1351,7 @@ fn set_anchor_mode(s: &mut Session, p: &Json) -> Result<Json> {
         let anchor = match kind.as_str() {
             "chart" => sh.charts.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
             "image" => sh.images.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
+            "slicer" => sh.slicers.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
             _ => sh.shapes.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
         };
         let Some(a) = anchor else { return Err(bad("object.setAnchorMode", "no such object")) };

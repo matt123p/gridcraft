@@ -99,6 +99,8 @@ fn workbook() -> Workbook {
     // Pivot 1: tabular, page filter, custom and built-in value formats, collapsed item, Enable
     // show details off.
     let p1 = PivotTable {
+        identity: Default::default(),
+        source_identity: Default::default(),
         id: 1,
         name: "Sales by Region".into(),
         source: "Data!$A$1:$F$9".into(),
@@ -107,6 +109,7 @@ fn workbook() -> Workbook {
         columns: vec![PivotField { sort: PivotSort::None, ..field("Product") }],
         values: vec![
             PivotValue {
+                identity: Default::default(),
                 source_col: "Sales".into(),
                 func: PivotFunc::Sum,
                 name: "Sum of Sales".into(),
@@ -114,6 +117,7 @@ fn workbook() -> Workbook {
                 ..PivotValue::default()
             },
             PivotValue {
+                identity: Default::default(),
                 source_col: "Units".into(),
                 func: PivotFunc::Count,
                 name: "Count of Units".into(),
@@ -138,6 +142,8 @@ fn workbook() -> Workbook {
     // Pivot 2: table source, date grouping on two levels, show-values-as, multi-select page
     // filter and a hidden-items filter on a column field.
     let p2 = PivotTable {
+        identity: Default::default(),
+        source_identity: Default::default(),
         id: 2,
         name: "Trend".into(),
         source: "SalesTbl".into(),
@@ -149,14 +155,23 @@ fn workbook() -> Workbook {
         columns: vec![PivotField { sort: PivotSort::Desc, ..field("Product") }],
         values: vec![
             PivotValue {
+                identity: Default::default(),
                 source_col: "Sales".into(),
                 func: PivotFunc::Sum,
                 name: "Share".into(),
                 show_as: PivotShowAs::PercentOfGrandTotal,
                 number_format: None,
             },
-            PivotValue { source_col: "Sales".into(), func: PivotFunc::Max, name: "Rank".into(), show_as: PivotShowAs::Rank, number_format: None },
             PivotValue {
+                identity: Default::default(),
+                source_col: "Sales".into(),
+                func: PivotFunc::Max,
+                name: "Rank".into(),
+                show_as: PivotShowAs::Rank,
+                number_format: None,
+            },
+            PivotValue {
+                identity: Default::default(),
                 source_col: "Sales".into(),
                 func: PivotFunc::Average,
                 name: "Running".into(),
@@ -164,6 +179,7 @@ fn workbook() -> Workbook {
                 number_format: None,
             },
             PivotValue {
+                identity: Default::default(),
                 source_col: "Units".into(),
                 func: PivotFunc::StdDevP,
                 name: "Spread".into(),
@@ -171,6 +187,7 @@ fn workbook() -> Workbook {
                 number_format: None,
             },
             PivotValue {
+                identity: Default::default(),
                 source_col: "Units".into(),
                 func: PivotFunc::VarP,
                 name: "RowPct".into(),
@@ -197,12 +214,20 @@ fn workbook() -> Workbook {
     };
     // Pivot 3: defaults, defined-name source, compact.
     let p3 = PivotTable {
+        identity: Default::default(),
+        source_identity: Default::default(),
         id: 3,
         name: "PivotTable3".into(),
         source: "SalesData".into(),
         anchor: at("AB1"),
         rows: vec![field("Product")],
-        values: vec![PivotValue { source_col: "Units".into(), func: PivotFunc::Product, name: "Product of Units".into(), ..PivotValue::default() }],
+        values: vec![PivotValue {
+            identity: Default::default(),
+            source_col: "Units".into(),
+            func: PivotFunc::Product,
+            name: "Product of Units".into(),
+            ..PivotValue::default()
+        }],
         filters: vec![PivotFilter { source_col: "Channel".into(), selected: None }],
         last_range: Some(rr("AB1:AC6")),
         ..PivotTable::default()
@@ -422,11 +447,13 @@ fn large_cache_is_written_without_records() {
         s.cells.set(CellRef::new(r, 0), Cell::value(Value::number((r % 3) as f64)));
     }
     s.pivots.push(PivotTable {
+        identity: Default::default(),
+        source_identity: Default::default(),
         id: 1,
         source: "Sheet1!$A$1:$C$700001".into(),
         anchor: at("E1"),
         rows: vec![field("K")],
-        values: vec![PivotValue { source_col: "V".into(), name: "Sum of V".into(), ..PivotValue::default() }],
+        values: vec![PivotValue { identity: Default::default(), source_col: "V".into(), name: "Sum of V".into(), ..PivotValue::default() }],
         last_range: Some(rr("E1:F5")),
         ..PivotTable::default()
     });
@@ -465,11 +492,18 @@ fn boolean_and_error_cache_flags_match_excel() {
         }
     }
     s.pivots.push(PivotTable {
+        identity: Default::default(),
+        source_identity: Default::default(),
         id: 1,
         source: "Sheet1!$A$1:$G$4".into(),
         anchor: at("J1"),
         rows: vec![field("K")],
-        values: vec![PivotValue { source_col: "NumBool".into(), name: "Sum of NumBool".into(), ..PivotValue::default() }],
+        values: vec![PivotValue {
+            identity: Default::default(),
+            source_col: "NumBool".into(),
+            name: "Sum of NumBool".into(),
+            ..PivotValue::default()
+        }],
         last_range: Some(rr("J1:K4")),
         ..PivotTable::default()
     });
@@ -596,9 +630,9 @@ fn calculated_fields_round_trip() {
     let mut wb = workbook();
     {
         let p = wb.sheet_mut(1).unwrap().pivots.get_mut(0).unwrap();
-        p.calculated_fields.push(PivotCalcField { name: "Price".into(), formula: "=Sales/Units".into() });
-        p.calculated_fields.push(PivotCalcField { name: "Unit Bonus".into(), formula: "='Price'*0.1".into() });
-        p.values.push(PivotValue { source_col: "Price".into(), name: "Sum of Price".into(), ..PivotValue::default() });
+        p.calculated_fields.push(PivotCalcField { identity: Default::default(), name: "Price".into(), formula: "=Sales/Units".into() });
+        p.calculated_fields.push(PivotCalcField { identity: Default::default(), name: "Unit Bonus".into(), formula: "='Price'*0.1".into() });
+        p.values.push(PivotValue { identity: Default::default(), source_col: "Price".into(), name: "Sum of Price".into(), ..PivotValue::default() });
     }
     let bytes = write_xlsx(&wb).unwrap();
     let parts = unzip(&bytes);
@@ -744,7 +778,15 @@ fn small_pivot(columns: &[(&str, Vec<Value>)], pt: impl FnOnce(&mut PivotTable))
         rows = rows.max(vals.len());
     }
     let last = format!("{}{}", gridcraft_core::col_to_letters(columns.len() as u32 - 1), rows + 1);
-    let mut table = PivotTable { id: 1, name: "PT".into(), source: format!("Data!$A$1:{last}"), anchor: at("A3"), ..PivotTable::default() };
+    let mut table = PivotTable {
+        identity: Default::default(),
+        source_identity: Default::default(),
+        id: 1,
+        name: "PT".into(),
+        source: format!("Data!$A$1:{last}"),
+        anchor: at("A3"),
+        ..PivotTable::default()
+    };
     pt(&mut table);
     let mut report = Sheet::new("Report");
     report.pivots = vec![table];
@@ -760,7 +802,7 @@ fn two_value_fields_without_columns_hide_the_values_row() {
         ("Sales", vec![Value::number(10.0), Value::number(20.0), Value::number(5.0)]),
         ("Qty", vec![Value::number(1.0), Value::number(2.0), Value::number(3.0)]),
     ];
-    let value = |c: &str| PivotValue { source_col: c.into(), name: format!("Sum of {c}"), ..PivotValue::default() };
+    let value = |c: &str| PivotValue { identity: Default::default(), source_col: c.into(), name: format!("Sum of {c}"), ..PivotValue::default() };
     let two = small_pivot(&cols, |p| {
         p.rows = vec![field("Region")];
         p.values = vec![value("Sales"), value("Qty")];

@@ -9,6 +9,7 @@ pub(crate) struct Feature {
     pub sheet: Option<usize>,
     pub key: u64,
     pub text: Option<String>,
+    pub label: Option<String>,
     pub part: i32,
     pub range: Option<ranges::Range>,
     pub identity: Option<SheetIdentity>,
@@ -21,6 +22,7 @@ impl PartialEq for Feature {
         self.kind == other.kind
             && self.sheet == other.sheet
             && self.text == other.text
+            && self.label == other.label
             && self.key == other.key
             && self.part == other.part
             && self.range == other.range
@@ -37,7 +39,19 @@ impl PartialEq for Feature {
 }
 impl Feature {
     pub fn new(kind: &'static str, sheet: Option<usize>) -> Self {
-        Self { kind, sheet, text: None, key: 0, part: 0, range: None, identity: None, ancestors: Vec::new(), items: Vec::new(), span: None }
+        Self {
+            kind,
+            sheet,
+            text: None,
+            label: None,
+            key: 0,
+            part: 0,
+            range: None,
+            identity: None,
+            ancestors: Vec::new(),
+            items: Vec::new(),
+            span: None,
+        }
     }
     pub fn object(self) -> Object {
         Object::Feature(self)
@@ -50,28 +64,33 @@ pub(crate) fn absent(value: &Value) -> bool {
     matches!(value, Value::Missing)
 }
 fn chart_lifetime(f: &Feature) -> Option<&SheetIdentity> {
-    f.ancestors.first().or_else(|| {
-        if matches!(
-            f.kind,
-            "Chart"
-                | "ChartObject"
-                | "ChartTitle"
-                | "Legend"
-                | "SeriesCollection"
-                | "Axes"
-                | "Axis"
-                | "AxisTitle"
-                | "Gridlines"
-                | "ChartArea"
-                | "PlotArea"
-        ) || f.text.as_deref() == Some("chart")
-        {
-            f.identity.as_ref()
-        } else {
-            None
-        }
-    })
+    if matches!(
+        f.kind,
+        "Series" | "SeriesInterior" | "SeriesBorder" | "SeriesFormat" | "Trendlines" | "Trendline" | "TrendlineBorder" | "DataLabels" | "DataLabel"
+    ) || matches!(f.kind, "FillFormat" | "LineFormat" | "ColorFormat") && matches!(f.text.as_deref(), Some("series" | "trendline"))
+    {
+        return f.ancestors.first();
+    }
+    if matches!(
+        f.kind,
+        "Chart"
+            | "ChartObject"
+            | "ChartTitle"
+            | "Legend"
+            | "SeriesCollection"
+            | "Axes"
+            | "Axis"
+            | "AxisTitle"
+            | "Gridlines"
+            | "ChartArea"
+            | "PlotArea"
+    ) || f.kind == "Shape" && f.text.as_deref() == Some("chart")
+    {
+        return f.identity.as_ref();
+    }
+    None
 }
+
 impl Bridge {
     /// Native undo or an external chart.move can transfer the same chart lifetime.
     /// Repair only the requested chart graph; ordinary cell calls do not scan drawings.
@@ -131,6 +150,12 @@ impl Bridge {
         Ok(Value::Array(array))
     }
     pub(crate) fn feature_dispatch(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> Option<HostResult<Value>> {
+        if let Some(result) = self.pivot_api(session, object, call) {
+            return Some(result);
+        }
+        if let Some(result) = self.slicer_api(session, object, call) {
+            return Some(result);
+        }
         if let Some(result) = self.drawing_api(session, object, call) {
             return Some(result);
         }

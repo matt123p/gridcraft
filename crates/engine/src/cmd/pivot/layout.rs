@@ -8,6 +8,16 @@ use super::{
 
 pub(super) fn filter(s: &mut Session, p: &Json) -> Result<Json> {
     const C: &str = "pivot.filter";
+    if bool_param(p, "all").unwrap_or(false) {
+        return update(s, p, |pt, _, _| {
+            let axes = pt.rows.iter().chain(&pt.columns).map(|f| f.source_col.to_ascii_lowercase()).collect::<Vec<_>>();
+            pt.filters.retain(|f| !axes.contains(&f.source_col.to_ascii_lowercase()));
+            for f in &mut pt.filters {
+                f.selected = None;
+            }
+            Ok(json!({}))
+        });
+    }
     let field = str_param(p, "field").ok_or_else(|| bad(C, "missing `field`"))?.to_string();
     let selected: Option<Vec<String>> = match p.get("selected") {
         None | Some(Json::Null) => None,
@@ -237,6 +247,9 @@ pub(super) fn change_source(s: &mut Session, p: &Json) -> Result<Json> {
     let (si, _) = find_pivot(s, p)?;
     let src = pv::read_source(&s.doc()?.wb, &source, si).map_err(other)?;
     update(s, p, move |pt, _, _| {
+        if pt.source != source {
+            pt.source_identity = Default::default();
+        }
         pt.source = source.clone();
         let mut dropped: Vec<String> = vec![];
         let keep = |name: &str, dropped: &mut Vec<String>| {

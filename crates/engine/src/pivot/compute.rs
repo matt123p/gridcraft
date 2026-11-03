@@ -705,3 +705,10 @@ pub(super) fn compute_from(wb: &Workbook, pt: &PivotTable, src: &Source, mut pro
     }
     Ok(Output { width: g.width as u32, grid: g.rows, row_kinds: g.kinds, body_offset, chart_rows, chart_cols, label_col })
 }
+
+/// Native report metadata is meaningful only while its stored cells match the source/layout.
+pub fn current_output(wb: &Workbook, pt: &PivotTable, pivot_sheet: usize) -> Result<Output, String> {
+    let out = super::compute(wb, pt, pivot_sheet)?;
+    check_current(wb, pt, pivot_sheet, &out)?;
+    Ok(out)
+}

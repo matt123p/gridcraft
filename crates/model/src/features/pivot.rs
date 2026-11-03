@@ -82,6 +82,8 @@ pub enum PivotShowAs {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PivotValue {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub source_col: String,
     pub func: PivotFunc,
     /// Caption, e.g. "Sum of Sales".
@@ -104,6 +106,10 @@ pub struct PivotFilter {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PivotTable {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
+    #[serde(skip)]
+    pub source_identity: crate::sheet::SheetIdentity,
     pub id: u32,
     pub name: String,
     /// Source: range formula text (`Sheet1!$A$1:$E$200`), a table name or a defined name.
@@ -144,6 +150,8 @@ pub struct PivotTable {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PivotCalcField {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub name: String,
     /// Formula text, starting with `=`.
     pub formula: String,
@@ -152,6 +160,8 @@ pub struct PivotCalcField {
 impl Default for PivotTable {
     fn default() -> Self {
         PivotTable {
+            identity: Default::default(),
+            source_identity: Default::default(),
             id: 0,
             name: "PivotTable1".into(),
             source: String::new(),

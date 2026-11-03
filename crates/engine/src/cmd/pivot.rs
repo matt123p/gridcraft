@@ -14,8 +14,8 @@ use gridcraft_model::{
 use serde_json::{Value as Json, json};
 
 use super::{
-    CommandSpec, Ctx, EngineError, Result, Session, anchor_mode_param, bad, bool_param, cell_param, cmd, edit, f64_param, has_doc, ok, str_param,
-    u32_param,
+    CommandSpec, Ctx, EngineError, Result, Session, anchor_mode_param, bad, bool_param, cell_param, cell_param_on, cmd, edit, f64_param, has_doc, ok,
+    str_param, target_sheet, u32_param,
 };
 use crate::pivot as pv;
 use crate::selection::current_region;
@@ -38,7 +38,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "PivotTable",
             ["Insert", "Tables"],
             None,
-            "{source?: \"Sheet1!$A$1:$E$200\" | table name (default: the table or current region of the selection), destination?: \"new\" (default: new sheet before the current one, report at A3) | \"Sheet1!H3\", name?, rows?: [field | {field, group?: years|quarters|months|days}], columns?: [..], values?: [field | {field, func?, name?}], filters?: [field], replace?: bool} → {id, name, sheet, anchor, fields}",
+            "{source?: \"Sheet1!$A$1:$E$200\" | table name (default: the table or current region of the selection), destination?: \"new\" (default: new sheet before the current one, report at A3) | \"Sheet1!H3\", name?, activate?: bool (default true), rows?: [field | {field, group?: years|quarters|months|days}], columns?: [..], values?: [field | {field, func?, name?}], filters?: [field], replace?: bool} → {id, name, sheet, anchor, fields}",
             has_doc,
             insert_pivot
         ),
@@ -65,7 +65,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Calculated Field",
             ["PivotTable Analyze", "Calculations"],
             None,
-            "{pivot?, name, formula?: \"=Sales*0.1\" (fields bare or 'quoted'; evaluated on each cell's sums), delete?: bool, values?: bool (add a new field to Values, default true)} adds, changes or deletes a calculated field; without `name` opens the dialog → {name, formula, calculatedFields}",
+            "{sheet?, pivot?, name, formula?: \"=Sales*0.1\" (fields bare or 'quoted'; evaluated on each cell's sums), delete?: bool, values?: bool (add a new field to Values, default true)} adds, changes or deletes a calculated field; without `name` opens the dialog → {name, formula, calculatedFields}",
             has_doc,
             calculated_field
         ),
@@ -74,19 +74,19 @@ pub fn specs() -> Vec<CommandSpec> {
             "PivotChart",
             ["Insert", "Charts"],
             None,
-            "{pivot?: name | id | a cell of the report (\"Sheet2!B5\"; default: the PivotTable at the active cell), type?: column|bar|line|pie|area|… (default column), subtype?, title?, at?: \"H2\", width?, height?} adds a chart bound to the PivotTable's report: categories are the innermost row items, series the column items × value fields; it follows refreshes and layout changes → {chart, pivot, series}",
+            "{sheet?, pivot?: name | id | a cell of the report (\"Sheet2!B5\"; default: the PivotTable at the active cell), type?: column|bar|line|pie|area|… (default column), subtype?, title?, at?: \"H2\", width?, height?} adds a chart bound to the PivotTable's report: categories are the innermost row items, series the column items × value fields; it follows refreshes and layout changes → {chart, pivot, series}",
             has_doc,
             insert_pivot_chart
         ),
-        cmd!(query "pivot.fields", "PivotTable Fields", [], None, "{pivot?} → source fields (name, numeric, date, samples, areas) and the current layout", has_doc, fields),
-        cmd!(query "pivot.fieldList", "Field List", ["PivotTable Analyze", "Show"], None, "{pivot?} (same as pivot.fields)", has_doc, fields),
+        cmd!(query "pivot.fields", "PivotTable Fields", [], None, "{sheet?, pivot?} → source fields (name, numeric, date, samples, areas) and the current layout", has_doc, fields),
+        cmd!(query "pivot.fieldList", "Field List", ["PivotTable Analyze", "Show"], None, "{sheet?, pivot?} (same as pivot.fields)", has_doc, fields),
         cmd!(query "pivot.list", "PivotTables", [], None, "{} → every PivotTable in the workbook", has_doc, list),
         cmd!(
             "pivot.addField",
             "Add Field",
             [],
             None,
-            "{pivot?, field, area: rows|columns|values|filters, func?: sum|count|average|max|min|product|countNumbers|stdDev|stdDevP|var|varP, name?, position?: index, replace?}",
+            "{sheet?, pivot?, field?: name, areas?: {rows?: [names], columns?: [names], values?: [names], filters?: [names]}, append?: bool, area?: rows|columns|values|filters, func?: sum|count|average|max|min|product|countNumbers|stdDev|stdDevP|var|varP, name?, position?: index, valuesPosition?: index (row values axis), replace?}",
             has_doc,
             add_field
         ),
@@ -95,7 +95,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Remove Field",
             [],
             None,
-            "{pivot?, field (or value caption), area?: rows|columns|values|filters, replace?}",
+            "{sheet?, pivot?, field (or value caption), area?: rows|columns|values|filters, replace?}",
             has_doc,
             remove_field
         ),
@@ -104,7 +104,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Move Field",
             [],
             None,
-            "{pivot?, field (\"Σ Values\" moves the value fields between rows and columns; in columns it stays after the last field), from: rows|columns|values|filters, to: rows|columns|values|filters, position?: index, replace?}",
+            "{sheet?, pivot?, field (\"Σ Values\" moves the value fields between rows and columns; in columns it stays after the last field), from: rows|columns|values|filters, to: rows|columns|values|filters, position?: index, valuesPosition?: index (row values axis), replace?}",
             has_doc,
             move_field
         ),
@@ -113,18 +113,26 @@ pub fn specs() -> Vec<CommandSpec> {
             "Value Field Settings",
             ["PivotTable Analyze", "Active Field"],
             None,
-            "{pivot?, field: caption or source field | index: n, func?, name?, showAs?: normal|percentOfGrandTotal|percentOfColumnTotal|percentOfRowTotal|runningTotal|rank, numberFormat?: \"#,##0\" | null, replace?}",
+            "{sheet?, pivot?, field: caption or source field | index: n, func?, name?, showAs?: normal|percentOfGrandTotal|percentOfColumnTotal|percentOfRowTotal|runningTotal|rank, numberFormat?: \"#,##0\" | null, replace?}",
             has_doc,
             value_settings
         ),
-        cmd!("pivot.filter", "Filter Items", [], None, "{pivot?, field, selected: [\"East\", ..] | null (all), replace?}", has_doc, filter),
-        cmd!("pivot.sort", "Sort Field", [], None, "{pivot?, field, order: asc|desc|none, replace?}", has_doc, sort),
+        cmd!(
+            "pivot.filter",
+            "Filter Items",
+            [],
+            None,
+            "{sheet?, pivot?, field?, all?: bool (clear all manual filters), selected: [\"East\", ..] | null (all), replace?}",
+            has_doc,
+            filter
+        ),
+        cmd!("pivot.sort", "Sort Field", [], None, "{sheet?, pivot?, field, order: asc|desc|none, replace?}", has_doc, sort),
         cmd!(
             "pivot.group",
             "Group Field",
             ["PivotTable Analyze", "Group"],
             None,
-            "{pivot?, field, by: years|quarters|months|days|none, replace?}",
+            "{sheet?, pivot?, field, by: years|quarters|months|days|none, replace?}",
             has_doc,
             group
         ),
@@ -133,7 +141,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Expand/Collapse Field",
             ["PivotTable Analyze", "Active Field"],
             None,
-            "{pivot?, field, items?: [labels] (default: all), collapse?: true, replace?}",
+            "{sheet?, pivot?, field, items?: [labels] (default: all), collapse?: true, replace?}",
             has_doc,
             collapse
         ),
@@ -142,7 +150,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "PivotTable Layout",
             ["PivotTable Design", "Layout"],
             None,
-            "{pivot?, layout?: compact|outline|tabular, grandTotalsRows?: bool, grandTotalsCols?: bool, subtotals?: bool|top|bottom|none, style?: \"PivotStyleLight16\", showHeaders?: bool, replace?}",
+            "{sheet?, pivot?, layout?: compact|outline|tabular, grandTotalsRows?: bool, grandTotalsCols?: bool, subtotals?: bool|top|bottom|none, style?: \"PivotStyleLight16\", showHeaders?: bool, replace?}",
             has_doc,
             layout
         ),
@@ -151,11 +159,11 @@ pub fn specs() -> Vec<CommandSpec> {
             "Grand Totals",
             ["PivotTable Design", "Layout"],
             None,
-            "{pivot?, mode?: off|on|rows|columns, rows?: bool, cols?: bool}",
+            "{sheet?, pivot?, mode?: off|on|rows|columns, rows?: bool, cols?: bool}",
             has_doc,
             grand_totals
         ),
-        cmd!("pivot.subtotals", "Subtotals", ["PivotTable Design", "Layout"], None, "{pivot?, mode: none|top|bottom}", has_doc, |s, p| {
+        cmd!("pivot.subtotals", "Subtotals", ["PivotTable Design", "Layout"], None, "{sheet?, pivot?, mode: none|top|bottom}", has_doc, |s, p| {
             let mode = str_param(p, "mode").unwrap_or("top");
             layout(s, &with(p, "subtotals", json!(mode)))
         }),
@@ -164,7 +172,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Report Layout",
             ["PivotTable Design", "Layout"],
             None,
-            "{pivot?, layout: compact|outline|tabular}",
+            "{sheet?, pivot?, layout: compact|outline|tabular}",
             has_doc,
             layout
         ),
@@ -173,11 +181,11 @@ pub fn specs() -> Vec<CommandSpec> {
             "PivotTable Styles",
             ["PivotTable Design", "PivotTable Styles"],
             None,
-            "{pivot?, style: \"PivotStyleMedium9\"}",
+            "{sheet?, pivot?, style: \"PivotStyleMedium9\"}",
             has_doc,
             layout
         ),
-        cmd!("pivot.refresh", "Refresh", ["PivotTable Analyze", "Data"], Some("Alt+F5"), "{pivot?, replace?}", has_doc, refresh),
+        cmd!("pivot.refresh", "Refresh", ["PivotTable Analyze", "Data"], Some("Alt+F5"), "{sheet?, pivot?, replace?}", has_doc, refresh),
         cmd!(
             "data.refreshAll",
             "Refresh All",
@@ -192,7 +200,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Change Data Source",
             ["PivotTable Analyze", "Data"],
             None,
-            "{pivot?, source: \"Sheet1!$A$1:$E$300\" | table name, replace?} (fields missing from the new source are removed)",
+            "{sheet?, pivot?, source: \"Sheet1!$A$1:$E$300\" | table name, replace?} (fields missing from the new source are removed)",
             has_doc,
             change_source
         ),
@@ -201,7 +209,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Show Details",
             [],
             None,
-            "{cell?: \"B5\" (a value, subtotal or grand total cell of a PivotTable on the active sheet; default: the active cell)} puts the source records behind that value on a new sheet before the current one → {sheet, records}. An error when the PivotTable's Enable show details option is off (`pivot.options` `{enableShowDetails: true}` turns it on).",
+            "{sheet?, cell?: \"B5\" (a value, subtotal or grand total cell of a PivotTable on the active sheet; default: the active cell)} puts the source records behind that value on a new sheet before the current one → {sheet, records}. An error when the PivotTable's Enable show details option is off (`pivot.options` `{enableShowDetails: true}` turns it on).",
             has_doc,
             show_details
         ),
@@ -210,7 +218,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "PivotTable Options",
             ["PivotTable Analyze", "PivotTable"],
             None,
-            "{pivot?, enableShowDetails?: bool (Data › Enable show details: off, Show Details and double-clicking a value cell list no records)} → {enableShowDetails}",
+            "{sheet?, pivot?, enableShowDetails?: bool (Data › Enable show details: off, Show Details and double-clicking a value cell list no records)} → {enableShowDetails}",
             has_doc,
             options
         ),
@@ -219,7 +227,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Delete PivotTable",
             ["PivotTable Analyze", "Actions"],
             None,
-            "{pivot?} clears the report and removes the PivotTable",
+            "{sheet?, pivot?} clears the report and removes the PivotTable",
             has_doc,
             delete
         ),
@@ -241,10 +249,12 @@ fn other(msg: impl Into<String>) -> EngineError {
 /// (sheet, index) of the pivot a call targets.
 fn find_pivot(s: &Session, p: &Json) -> Result<(usize, usize)> {
     let d = s.doc()?;
-    let active = d.wb.active_sheet();
+    let active = if p.get("sheet").is_some() { target_sheet(s, p)? } else { d.wb.active_sheet() };
     if let Some(v) = p.get("pivot").filter(|v| !v.is_null()) {
         let mut order: Vec<usize> = vec![active];
-        order.extend((0..d.wb.sheets.len()).filter(|i| *i != active));
+        if p.get("sheet").is_none() {
+            order.extend((0..d.wb.sheets.len()).filter(|i| *i != active));
+        }
         for si in order {
             let Some(sh) = d.wb.sheet(si) else { continue };
             let hit = sh.pivots.iter().position(|pt| match v {
@@ -258,7 +268,7 @@ fn find_pivot(s: &Session, p: &Json) -> Result<(usize, usize)> {
         }
         return Err(bad("pivot", format!("no PivotTable `{}`", v.as_str().map(str::to_string).unwrap_or_else(|| v.to_string()))));
     }
-    let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
+    let sh = d.wb.sheet(active).ok_or(EngineError::NoDocument)?;
     let at = d.selection.active;
     if let Some(i) = sh.pivots.iter().position(|pt| pt.last_range.is_some_and(|r| r.contains(at))) {
         return Ok((active, i));

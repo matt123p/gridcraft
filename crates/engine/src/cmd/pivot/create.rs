@@ -2,7 +2,7 @@ use super::fields::{AreaPlacement, add_to_area, in_axes};
 use super::params::{func_name, func_param, group_name, group_param, layout_name, show_as_name, sort_name};
 use super::{
     Arc, Cell, CellRef, Ctx, EngineError, Json, NumFmt, PivotDateGroup, PivotTable, RangeRef, Result, Session, Sheet, StyleId, Workbook, bad,
-    bool_param, cell_param, current_region, edit, find_pivot, json, other, pv, str_param, with,
+    bool_param, cell_param_on, current_region, edit, find_pivot, json, other, pv, str_param, target_sheet, with,
 };
 
 // ---------------------------------------------------------------- insert
@@ -114,7 +114,15 @@ pub(super) fn insert_pivot(s: &mut Session, p: &Json) -> Result<Json> {
                 (at, CellRef::new(2, 0))
             }
         };
-        let mut pt = PivotTable { id, name: name.clone(), source: source.clone(), anchor, ..Default::default() };
+        let mut pt = PivotTable {
+            identity: Default::default(),
+            source_identity: Default::default(),
+            id,
+            name: name.clone(),
+            source: source.clone(),
+            anchor,
+            ..Default::default()
+        };
         let add = |pt: &mut PivotTable, list: &[Json], area: &str| -> Result<()> {
             for f in list {
                 match f {
@@ -156,8 +164,10 @@ pub(super) fn insert_pivot(s: &mut Session, p: &Json) -> Result<Json> {
         sh.pivots.push(pt);
         let pi = sh.pivots.len() - 1;
         let area = pv::refresh(&mut cx.wb, si, pi, replace).map_err(other)?;
-        cx.wb.set_active_sheet(si);
-        *cx.sel = crate::Selection::at(anchor);
+        if bool_param(p, "activate").unwrap_or(true) {
+            cx.wb.set_active_sheet(si);
+            *cx.sel = crate::Selection::at(anchor);
+        }
         cx.structural = true;
         let sheet_name = cx.wb.sheet(si).map(|s| s.name.clone()).unwrap_or_default();
         Ok(json!({
@@ -198,9 +208,9 @@ fn insert_sheet_before_active(cx: &mut Ctx) -> usize {
 /// column's number format, under the source headers on a new sheet.
 pub(super) fn show_details(s: &mut Session, p: &Json) -> Result<Json> {
     let d = s.doc()?;
-    let at = cell_param(s, p, "cell")?.unwrap_or(d.selection.active);
-    let active = d.wb.active_sheet();
-    let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
+    let active = target_sheet(s, p)?;
+    let at = cell_param_on(s, p, "cell", active)?.unwrap_or(d.selection.active);
+    let sh = d.wb.sheet(active).ok_or(EngineError::NoDocument)?;
     let pt = sh
         .pivots
         .iter()

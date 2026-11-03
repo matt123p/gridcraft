@@ -728,6 +728,8 @@ pub struct AutoFilter {
 /// so a slicer is just a visual front-end over the existing filter machinery.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Slicer {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub id: u32,
     /// Name of the table this slicer filters.
     pub table: String,

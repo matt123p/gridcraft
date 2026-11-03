@@ -538,3 +538,22 @@ clipboard, chart-only export and independent unsupported child/effect state are
 not projected. Explicit native picture paths use the existing file service;
 browser filesystem calls refuse before insertion. No dummy data or inert group
 objects are created to satisfy an Excel-shaped call.
+
+
+## OM13 local pivots and table slicers (2026-11-03)
+
+Typed PivotTables, report-owned PivotCache views, fields/items, calculated fields,
+manual filters, native layouts/value settings and drilldown now use the existing
+pivot engine. Existing PivotCharts expose their real PivotLayout and report.
+Source changes and deleted/recreated definitions invalidate parked descendants;
+all effects retain native protection, overlap checks and grouped undo.
+
+Existing table slicers expose widget/cache/item views and native filtering,
+formatting and geometry. These are per-widget views, without shared/pivot/OLAP or
+timeline cache services. Native slicer widgets serialize in model snapshots and
+undo; **the native XLSX slicer codec is absent** and remains a product gap.
+
+OM13 is complete for its existing local native profile. Standalone/shared pivot
+caches, external model/provider services and unsupported Excel leaves remain
+explicit exclusions in the [acceptance ledger](vba-object-model-om13-acceptance.json)
+and [completion record](vba-object-model-implementation-plan.md#om13-native-local-pivot-profile-completion-2026-11-03).

@@ -94,7 +94,8 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         }
     }
     let acceptance = validate_high_acceptance(root, rows)?;
-    let om12_acceptance = validate_om12_acceptance(root, rows, &descriptors)?;
+    let om12_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM12")?;
+    let om13_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM13")?;
     for test in OM12_TESTS.iter().chain(OM12_DRAWING_TESTS) {
         validate_test_reference(root, test)?;
     }
@@ -119,6 +120,20 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
                 "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om12-acceptance.json for signatures, bounds and native capability exclusions"
             );
         }
+        if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| om13_acceptance.get(&fold_identifier(id))) {
+            let mut all = contract["test_ids"].as_array().cloned().unwrap_or_default();
+            for test in tests {
+                let test = json!(test);
+                if !all.contains(&test) {
+                    all.push(test);
+                }
+            }
+            contract["test_ids"] = json!(all);
+            contract["om13_acceptance"] = json!(
+                "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om13-acceptance.json for native capability limits, cache ownership and slicer persistence gaps"
+            );
+        }
+        reconcile_om13_native_scope(&mut contract);
         if contract.get("enum_type").is_some_and(|ty| !ty.is_null()) {
             if let Some(ty) = contract.get("enum_type").and_then(Value::as_str) {
                 enum_types.insert(ty.to_owned());
@@ -268,49 +283,132 @@ const OM12_DRAWING_TESTS: &[&str] = &[
     "crates/vba/tests/drawings.rs::embedded_chart_location_retargets_parked_descendants_without_switching_view",
     "crates/vba/tests/drawings.rs::external_chart_moves_preserve_existing_graph_lifetimes",
 ];
-fn validate_om12_acceptance(
+fn validate_native_acceptance(
     root: &Path,
     rows: &[Value],
     descriptors: &BTreeMap<(String, String), MemberDescriptor>,
+    packet: &str,
 ) -> Result<BTreeMap<String, Vec<String>>, String> {
-    let path = root.join("docs/vba-object-model-om12-acceptance.json");
+    let path = root.join(format!("docs/vba-object-model-{}-acceptance.json", packet.to_ascii_lowercase()));
     let value: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-    if value["packet"] != "OM12" || value["documentation_commit"] != COMMIT {
-        return Err("OM12 ledger provenance mismatch".into());
+    if value["packet"] != packet || value["documentation_commit"] != COMMIT {
+        return Err("native ledger provenance mismatch".into());
     }
     let source_ids = rows.iter().filter_map(|r| r["id"].as_str().map(fold_identifier)).collect::<BTreeSet<_>>();
     let mut result = BTreeMap::new();
-    for group in value["required_obligations"].as_array().ok_or("OM12 ledger obligations missing")? {
+    for group in value["required_obligations"].as_array().ok_or("native ledger obligations missing")? {
         let tests = group["test_ids"]
             .as_array()
-            .ok_or("OM12 tests missing")?
+            .ok_or("native tests missing")?
             .iter()
-            .map(|t| t.as_str().map(str::to_owned).ok_or("OM12 test ID must be text"))
+            .map(|t| t.as_str().map(str::to_owned).ok_or("native test ID must be text"))
             .collect::<Result<Vec<_>, _>>()?;
         if tests.is_empty() {
-            return Err("OM12 obligation has no tests".into());
+            return Err("native obligation has no tests".into());
         }
         for test in &tests {
             validate_test_reference(root, test)?;
         }
-        for id in group["source_ids"].as_array().ok_or("OM12 source IDs missing")? {
-            let id = id.as_str().ok_or("OM12 source ID must be text")?;
+        for id in group["source_ids"].as_array().ok_or("native source IDs missing")? {
+            let id = id.as_str().ok_or("native source ID must be text")?;
             let key = fold_identifier(id);
             if !source_ids.contains(&key) {
-                return Err(format!("unknown OM12 source ID: {id}"));
+                return Err(format!("unknown native source ID: {id}"));
             }
-            let (owner, member) = id.split_once('.').ok_or("OM12 obligation must name a member")?;
+            let (owner, member) = id.split_once('.').ok_or("native obligation must name a member")?;
             if descriptors.get(&(fold_identifier(owner), fold_identifier(member))).is_none_or(|d| d.availability != MemberAvailability::Implemented) {
-                return Err(format!("OM12 required member is not implemented: {id}"));
+                return Err(format!("native required member is not implemented: {id}"));
             }
             result.entry(key).or_insert_with(Vec::new).extend(tests.clone());
         }
     }
     if result.is_empty() {
-        return Err("OM12 ledger has no required members".into());
+        return Err("native ledger has no required members".into());
     }
-    println!("OM12 native acceptance: {} required source contracts; native product gaps remain explicit", result.len());
+    println!("{packet} native acceptance: {} required source contracts; native product gaps remain explicit", result.len());
     Ok(result)
+}
+fn reconcile_om13_native_scope(row: &mut Value) {
+    if row["packet"] != "OM13" || row["implementation_symbol"].is_string() {
+        return;
+    }
+    let owner = row["owner"].as_str().unwrap_or("").to_ascii_lowercase();
+    let member = row["member"].as_str().unwrap_or("").to_ascii_lowercase();
+    let native_types = [
+        "pivottables",
+        "pivottable",
+        "pivotcaches",
+        "pivotcache",
+        "pivotfields",
+        "pivotfield",
+        "pivotitems",
+        "pivotitem",
+        "calculatedfields",
+        "pivotcell",
+        "pivotlayout",
+        "slicercaches",
+        "slicercache",
+        "slicers",
+        "slicer",
+        "sliceritems",
+        "sliceritem",
+    ];
+    if member.is_empty() && native_types.contains(&owner.as_str()) {
+        row["result_state"] = json!("PARTIAL");
+        row["implementation_symbol"] = json!("crates/vba/src/types.rs::references");
+        row["dispatch_evidence"] = json!("native nominal type; reachable through OM13 member descriptors");
+        return;
+    }
+    let reason = if owner.starts_with("model3d") {
+        Some("No native 3-D drawing object graph")
+    } else if owner.starts_with("cube")
+        || owner.starts_with("model")
+        || owner.starts_with("timeline")
+        || owner.starts_with("calculatedmember")
+        || matches!(owner.as_str(), "valuechange" | "pivottablechangelist" | "pivotvaluecell")
+    {
+        Some("No native OLAP, data-model, writeback or timeline service/object graph")
+    } else if matches!(owner.as_str(), "slicerpivottables" | "slicercachelevel" | "slicercachelevels") {
+        Some("Native slicers filter one table column; no pivot connections or OLAP levels")
+    } else if matches!(owner.as_str(), "calculateditems" | "pivotfilters" | "pivotfilter") {
+        Some("Native pivots support calculated fields and manual item selections; no calculated-item or advanced filter object model")
+    } else if owner == "pivotcache" {
+        Some("Native caches are local report-owned source views; no retained cache/provider lifecycle state or standalone/shared cache service")
+    } else if owner == "pivottable"
+        && matches!(
+            member.as_str(),
+            "allocatechanges"
+                | "allocation"
+                | "allocationmethod"
+                | "allocationvalue"
+                | "allocationweightexpression"
+                | "changeconnection"
+                | "changelist"
+                | "commitchanges"
+                | "createcubefile"
+                | "cubefields"
+                | "discardchanges"
+                | "enabledatavalueediting"
+                | "enablewriteback"
+                | "mdx"
+                | "visualtotals"
+                | "visualtotalsforsets"
+                | "viewcalculatedmembers"
+                | "calculatedmembers"
+        )
+    {
+        Some("No native OLAP/provider, data-model or writeback service")
+    } else if owner == "slicercache"
+        && matches!(member.as_str(), "timelinestate" | "slicercachelevels" | "pivottables" | "workbookconnection" | "cleardatefilter")
+    {
+        Some("No native timeline, shared pivot-slicer connection or provider service")
+    } else {
+        None
+    };
+    if let Some(reason) = reason {
+        row["result_state"] = json!("OUT_OF_SCOPE_GRIDCRAFT");
+        row["native_capability_gate"] = json!(reason);
+    }
 }
 fn render_office_enums(types: &[&str], values: &[(String, String, i32)]) -> String {
     let mut out = String::from("// Generated from the pinned VBA-Docs Office enum pages; regenerate with cargo xtask vba-audit --write.\n");
@@ -885,7 +983,7 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         *counts.entry(state.to_owned()).or_default() += 1;
     }
     let mut out = format!(
-        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\n## State counts\n\n",
+        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\nOM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json). These are native profiles, not whole-reference compatibility claims.\n\n## State counts\n\n",
         pages.len()
     );
     for (state, count) in counts {
