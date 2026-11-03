@@ -1,5 +1,21 @@
 # Decisions
 
+## VBA projects only existing GridCraft capabilities (2026-11-03)
+
+Treat Microsoft’s Excel object-model documentation as an audit catalogue, not
+as authority to expand GridCraft. The VBA workstream may add typed bindings,
+object projections, dispatch, diagnostics and tests around behavior GridCraft
+already provides. It must not add spreadsheet, UI, file, chart, pivot, provider,
+rendering or collaboration features merely to satisfy an Excel member.
+
+Apply capability eligibility before High/Medium/Low priority. Rows without an
+underlying GridCraft capability remain visible as `OUT_OF_SCOPE_GRIDCRAFT`; they
+are not unfinished VBA work. If the ordinary GridCraft roadmap later supplies
+the capability, a separate reviewed change may make its VBA projection eligible.
+The accepted profile and delivery order are recorded in the
+[v1 priority report](vba-object-model-v1-priority-final.md) and
+[object-model implementation plan](vba-object-model-implementation-plan.md).
+
 ## VBA window presentation stays in the native shell (2026-10-28)
 
 `vba-window` implies `vba` and enables a separate immediate viewport on native

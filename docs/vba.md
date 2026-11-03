@@ -1,6 +1,6 @@
 # Optional tiny-vba integration
 
-Updated 2026-11-02. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
+Updated 2026-11-03. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
 protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
 The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
 members, remaining mismatches and stages toward running existing workbooks
@@ -12,6 +12,23 @@ For an embedded desktop editor, use `--features vba`. The `vba-window` feature
 includes `vba`; it adds only native shell presentation, not another interpreter or
 process. Browser builds use `gridcraft-web/vba` and always embed the editor.
 Default application builds keep VBA disabled.
+
+## Scope contract
+
+This project integrates VBA with capabilities GridCraft already has. It may add
+object-model bindings, typed adapters, dispatch, diagnostics and tests, but it
+does not add spreadsheet, UI, file, chart, pivot, provider, export or collaboration
+features merely because Excel exposes them through VBA. If the underlying behavior
+is not currently supported by GridCraft, the corresponding VBA member is
+`OUT_OF_SCOPE_GRIDCRAFT` and must fail explicitly or appear as unavailable in the
+compatibility report.
+
+The accepted prioritization is in the
+[final v1 report](vba-object-model-v1-priority-final.md); the
+[implementation plan](vba-object-model-implementation-plan.md) applies its
+existing-capability gate before High/Medium/Low ordering. A later GridCraft
+feature can make a member eligible, but that product work belongs to GridCraft's
+normal roadmap, not this integration workstream.
 
 `Application.Goto` accepts an explicit Range in the current workbook, activates
 its worksheet and selects its areas, with the first area's first cell active.
@@ -151,8 +168,9 @@ stays literal. Formula explicitly parses leading `=` even in Text cells.
 Address implements its five optional arguments and A1/R1C1, relative and external
 forms. Live NumberFormat, Font Bold/Italic/Name/Size/Color and Interior.Color use
 bounded protected native commands. Calculation settings and Calculate have real
-engine effects. Unsupported settings/members refuse explicitly; ScreenUpdating
-remains unsupported, while `EnableEvents` has the bounded M5 behavior below. See the
+engine effects. Unsupported settings/members refuse explicitly; `ScreenUpdating`
+is out of scope while GridCraft has no matching behavior, while `EnableEvents`
+has the bounded M5 behavior below. See the
 [M4 contract and acceptance](vba-m4-identity-values-and-members.md) for exact
 boundaries, immutable dependency pin and executable evidence.
 

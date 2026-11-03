@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-29 · **Change:** minor (§8: PivotTable Enable show details; earlier: PivotTable Show Details) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope) · **Target:** Microsoft Excel (Microsoft 365)
 
 Every known shortfall against Excel, one entry each, ranked by user impact (what blocks someone
 using GridCraft for real work first). This is the work list: pick from the top, check the open
@@ -13,12 +13,12 @@ Kinds: **F** feature · **U** UI/UX · **FF** file format · **H** hardware · *
 
 ## Beta blockers
 
-VBA feature-branch audit (2026-10-29): the optional adapter remains a bounded
-standard-module subset. Existing Excel workbooks are not generally executable
-without modification. M1 typed declarations/defaults/collections and M3 range/navigation/structural
-coverage and the M4 identity/value/member profile are complete.
-Document modules/events and package acceptance remain open; see the
-[detailed object-model audit and staged work](vba-excel-compatibility.md).
+VBA feature-branch audit (2026-11-03): the optional adapter remains a bounded
+standard-module subset. It projects only behavior GridCraft already supports;
+the VBA project does not add missing GridCraft features. Existing Excel workbooks
+are not generally executable without modification. See the
+[accepted scope](vba-object-model-v1-priority-final.md) and
+[detailed compatibility audit](vba-excel-compatibility.md).
 
 No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-gate).
 
@@ -172,8 +172,11 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
   [hardware-parity.md](hardware-parity.md)
 
 ### 21. Automation and add-ins (F)
-- VBA out of scope (dropped on open, #6); no Office Scripts compatibility; no plugin or custom
-  function API. **Estimate:** 25–40 h plus an owner decision.
+- GridCraft has an optional bounded VBA integration for capabilities the product
+  already supports. General Excel object-model parity, COM/XLL add-ins, Office
+  Scripts compatibility and using VBA work to add missing GridCraft features are
+  out of scope. No plugin or custom-function API. **Estimate:** 25–40 h for the
+  separate plugin/custom-function gap; VBA projection work is tracked by OM packets.
 
 ### 22. AI features (F)
 - No in-app assistant, natural-language formulas or Analyze Data; agent control via MCP is
@@ -188,6 +191,7 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
 
 ## Revision history
 
+- 2026-11-03: Accept the existing-capability-only boundary for the optional VBA integration.
 - 2026-10-29: Record M3 range/navigation/structural coverage and retain M4 identity/value and M5 events gaps.
 
 - 2026-10-28: Record Excel VBA source-compatibility blockers and link the audited

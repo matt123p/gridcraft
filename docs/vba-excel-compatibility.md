@@ -1,12 +1,18 @@
 # Excel VBA source compatibility audit
 
-Reviewed 2026-11-02 against public Microsoft Learn documentation and the actual
+Reviewed 2026-11-03 against public Microsoft Learn documentation and the actual
 `gridcraft-vba` adapter and the tiny-vba Git revision pinned in its manifest/lockfile.
 Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
-Target: existing Excel workbook source
-running unchanged. **That target is not met.** `GridCraft.Excel.v1` is a bounded
-standard-module profile; it must not be advertised as an identical Excel object
-model or general XLSM execution support.
+Unchanged Excel workbook source is measured as compatibility evidence, not the
+implementation target. `GridCraft.Excel.v1` is a bounded standard-module profile;
+it must not be advertised as an identical Excel object model or general XLSM
+execution support.
+
+The accepted scope is narrower: VBA projects only behavior GridCraft already
+supports. Binding and adapter work is in scope; adding a missing GridCraft
+feature is not. Such members remain visible as `OUT_OF_SCOPE_GRIDCRAFT` and do
+not count as unfinished VBA integration. See the
+[accepted v1 priority report](vba-object-model-v1-priority-final.md).
 
 For the documentation-led audit of the **entire Excel object-model surface**
 and Luna's implementation packets, use the
@@ -104,10 +110,9 @@ this profile. Semantics follow public [Range.Copy](https://learn.microsoft.com/e
 and [cell selection](https://learn.microsoft.com/en-us/office/vba/excel/concepts/cells-and-ranges/selecting-and-activating-cells)
 documentation. No Food.xlsm execution or fresh Excel oracle result is claimed.
 
-Remaining execution limit observed during this work: populating all 20 meal
-slots in the 4x5/40-column test exhausts the shared IDE's 1,024 host-call budget.
-Next is a host-configurable bounded IDE execution budget, retaining explicit
-resource failures and testing the fully populated loop before claiming support.
+The host-configurable bounded execution profile now permits the fully populated
+20-slot loop while retaining explicit resource failures. The focused clipboard
+suite exercises the complete loop and one grouped undo.
 
 Workbook no longer inherits Application-only Range, Cells, ThisWorkbook or
 ActiveWorkbook. Application/Parent links retain object identity across supported
@@ -134,7 +139,7 @@ corpus run is included in these counts.
 The final `cargo +1.99.1 xtask ci` passes all ten gates (including native tests,
 format/Clippy, assets/layers and browser compilation).
 
-## Stages toward unchanged workbooks
+## Stages toward the bounded GridCraft projection
 
 M1 registered types, defaults and selected collection workflows are implemented;
 see the acceptance reports. M5 document modules, events and Range-aware UDFs are
@@ -145,9 +150,11 @@ M3 range/worksheet and M4 identity/value/member implementations are described in
 [M3 acceptance](vba-m3-ranges-and-worksheets.md) and
 [M4 acceptance](vba-m4-identity-values-and-members.md). M4 uses the published immutable tiny-vba dependency; no local path override remains.
 
-3. Expand application-specific support beyond the accepted M5 profile. Coordinate
-   reusable language work in tiny-vba and Office behavior in GridCraft, retaining
-   separate repositories.
+3. Expand application-specific support only for underlying behavior already
+   implemented by GridCraft. Coordinate reusable language work in tiny-vba and
+   binding work in GridCraft, retaining separate repositories. Missing GridCraft
+   features stay on the ordinary product roadmap and are not dependencies of this
+   VBA integration plan.
 4. Select a reviewed, licensed workbook corpus with declared dependencies and
    independently established expected results. Report load/compile/run/save
    results separately, including source-byte identity, exact value/error tags,

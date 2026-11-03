@@ -1,6 +1,6 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-29 · **Change:** minor (test command) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
@@ -8,10 +8,13 @@ list is [`gaps.md`](gaps.md); numbers and method are in
 
 ## Current focus
 
-Optional VBA: [M3 range/worksheet acceptance](vba-m3-ranges-and-worksheets.md) extends
-the M1 profile. [M4 identity/value/member acceptance](vba-m4-identity-values-and-members.md)
-is complete for its declared profile, using the published immutable shared dependency.
-Next language/host work is M5 document modules/events; package writeback stays separate.
+Optional VBA follows the accepted
+[v1 object-model profile](vba-object-model-v1-priority-final.md): expose only
+capabilities GridCraft already supports. Binding, object projection and adapter
+tests belong to the VBA workstream; missing GridCraft product features remain on
+this ordinary roadmap and are never added merely for Excel object-model parity.
+The next work is the eligible OM03/OM04 projection described in the
+[implementation plan](vba-object-model-implementation-plan.md).
 
 
 1. **Review and land the open PR queue** (50 PRs on 2026-10-10): recalc and spill fixes (#148,
@@ -117,6 +120,7 @@ to check our files, and Windows machines with the reported GPU drivers.
 
 ## Revision history
 
+- 2026-11-03: Accept the existing-capability-only boundary for VBA object-model work.
 - 2026-10-29: Record M3 coverage and remaining M4–M5 VBA stages.
 
 | Date | Change | Summary |

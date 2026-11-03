@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-10-29 · **Last updated:** 2026-10-29 · **Change:** minor (M3 range/navigation/structural coverage; earlier: AutoSum over a selected row puts its total to the right, and fills a selection's empty last row and column; macro engine and `macro.*` commands; macro interface on the Automate tab; existing parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -11,6 +11,9 @@ This page is the summary. The detail is in:
 The optional [tiny-vba baseline](docs/vba.md) is isolated behind `vba` and a pinned
 separate Git repository. It adds a bounded Excel object profile and the shared
 editor/debugger; existing estimates below do not claim full VBA compatibility.
+The VBA workstream projects only features GridCraft already supports; it does not
+add product capabilities for Excel object-model parity. See the
+[accepted v1 scope](docs/vba-object-model-v1-priority-final.md).
 Registered typed declarations now have [M1.1 native/WASM acceptance](docs/vba-m1-types.md).
 [M3 acceptance](docs/vba-m3-ranges-and-worksheets.md) adds lightweight ranges, sparse
 search/navigation and native structural commands. [M4](docs/vba-m4-identity-values-and-members.md)
@@ -75,7 +78,7 @@ collaboration, mobile, AI).
 | Localization | ~10% (ribbon in 6 languages) | 100–165 | [localization-parity.md](docs/localization-parity.md) |
 | Hardware (multi-core calc, GPU, pen, multi-window) | ~40% | 25–40 | [hardware-parity.md](docs/hardware-parity.md) |
 | Platforms | ~80% (no iOS/Android; ahead on Linux, BSD, RISC-V) | 30–60 | [target-app-parity.md](docs/target-app-parity.md#platforms) |
-| Ecosystem / add-ins | ~10% (VBA out of scope; own scripts, MCP, CLI) | 25–40 | [target-app-parity.md](docs/target-app-parity.md#ecosystem-and-ai) |
+| Ecosystem / add-ins | ~10% (bounded existing-capability VBA adapter; COM/XLL and full parity out of scope) | 25–40 | [target-app-parity.md](docs/target-app-parity.md#ecosystem-and-ai) |
 | AI features | ~15% (agent control strong; no in-app assistant) | 30–50 | [target-app-parity.md](docs/target-app-parity.md#ecosystem-and-ai) |
 | **Total** | **~50%** | **~700–1,100** | |
 
@@ -95,7 +98,7 @@ collaboration, mobile, AI).
 | Get & Transform, external data, data model | ~15% | ~10% | 60–100 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
 | Insert objects (pictures, shapes, ink, SmartArt, equations) | ~55% | ~45% | 25–40 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
 | Review, comments, protection, collaboration | ~55% | ~40% | 35–55 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
-| Automation (recorded scripts; typed macros with a recorder, a Macros dialog and a step editor; no VBA) | ~30% | ~20% | 12–20 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
+| Automation (recorded scripts plus optional bounded VBA over existing GridCraft features) | ~30% | ~20% | 12–20 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
 
 ## Languages
 

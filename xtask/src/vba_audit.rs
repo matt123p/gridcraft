@@ -637,13 +637,13 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         *counts.entry(state.to_owned()).or_default() += 1;
     }
     let mut out = format!(
-        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage.\n\n## State counts\n\n",
+        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\n## State counts\n\n",
         pages.len()
     );
     for (state, count) in counts {
         out.push_str(&format!("- `{state}`: {count}\n"));
     }
-    out.push_str("\n## Unresolved rows\n\nRows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain outstanding. This report deliberately does not calculate an overall compatibility percentage.\n\n| ID | State | Signature review |\n|---|---|---|\n");
+    out.push_str("\n## Unresolved audit rows\n\nRows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain unresolved against the Microsoft catalogue. They are not automatically in-scope implementation requirements: the existing-GridCraft-capability gate is applied first. This report deliberately does not calculate an overall compatibility percentage.\n\n| ID | State | Signature review |\n|---|---|---|\n");
     for row in pages {
         let state = row.get("result_state").and_then(Value::as_str).unwrap_or("LEGACY_REVIEW");
         if state == "IMPLEMENTED_TESTED" {

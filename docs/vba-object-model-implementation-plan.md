@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-02. Status: implementation in progress. Scope is the
+Reviewed 2026-11-03. Status: implementation in progress. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -8,10 +8,30 @@ This is a documentation-led audit, not an audit of a particular workbook.
 ## Scope and the evidence to use
 
 Use Microsoft's [Excel object-model reference](https://learn.microsoft.com/en-us/office/vba/api/overview/excel/object-model)
-as the target, not the list of operations already exposed by GridCraft. An engine
-command, worksheet formula or visible UI feature does not establish a working
-VBA object-model member. A catalogue entry does not prove every optional argument
-or every Excel behavior works.
+as the audit catalogue, but use GridCraft's current capabilities as the hard
+implementation boundary. An engine command, worksheet formula or visible UI
+feature does not by itself establish a working VBA member; it establishes only
+that a corresponding projection may be eligible. A catalogue entry does not
+prove every optional argument or Excel behavior works.
+
+This project integrates VBA with GridCraft; it does not add unrelated GridCraft
+features. A member is implementation work only when the underlying behavior is
+already available through a GridCraft command, model, calculator function, file
+path, renderer or host service. VBA-specific binding, dispatch, type conversion,
+object identity, diagnostics and tests are in scope. Adding a missing spreadsheet,
+UI, file, provider, rendering or collaboration capability is not.
+
+Every row must record one of these eligibility outcomes before packet priority:
+
+- `ELIGIBLE_EXISTING`: project the existing GridCraft behavior through VBA;
+- `OUT_OF_SCOPE_GRIDCRAFT`: retain it in compatibility output, but do not build
+  the underlying feature in this workstream;
+- `POLICY_BLOCKED` or `SERVICE_UNAVAILABLE`: retain the exact reason and fail
+  explicitly rather than providing a compatibility stub.
+
+High/Medium/Low orders eligible projections only. A High Excel member whose
+behavior GridCraft lacks is still out of scope. If GridCraft later implements
+that behavior through its own roadmap, eligibility can be reviewed separately.
 
 Do not audit or reimplement VBA intrinsic functions, syntax, or the worksheet
 calculation library in this project. `Application.WorksheetFunction` is included
@@ -40,17 +60,16 @@ Office binary, workbook specimen or personal workbook source is included.
 
 These are **page counts, not unique callable-feature counts**. The reference
 includes legacy Excel Graph material, aliases and standalone member pages.
-Some pages require reconciliation before becoming implementation requirements.
+Some pages require reconciliation and an eligibility decision before becoming
+implementation requirements.
 Member signatures, defaults, return types, read/write modes and platform remarks
 must be expanded per packet; the snapshot is not a completed semantic oracle.
 
-Implementation baseline: GridCraft HEAD
-`c2c5ca8031a607089aae0206e1dbb69d57a74dcf` **plus the existing uncommitted
-Goto/clipboard changes**, and its pinned tiny-vba revision
-`0b41fd7bf7c78a62323133b290f2f9646667f9d3`. Rebase the inventory against the
-actual checkout before coding. Do not discard, overwrite or reimplement those
-uncommitted changes. The local ignored `plan/` files referenced by AGENTS.md are
-absent; follow committed repository instructions and architecture.
+Implementation baseline is the current GridCraft branch and the immutable
+tiny-vba revision pinned by its Cargo manifests and lockfile. Check the actual
+pin and current adapter before each implementation slice; this plan does not
+freeze a historical source commit. The Microsoft documentation archive and
+inventory provenance remain independently pinned as recorded above.
 
 ## What the implementation actually exposes
 
@@ -60,9 +79,9 @@ in `lib.rs::catalog`, and specialized range/value/format/clipboard helpers.
 `worksheet.rs` supplies a separate constrained UDF execution context. The
 engine implements many more features than this adapter exposes.
 
-| Surface | Current baseline | Missing work |
+| Surface | Current baseline | Catalogue gaps (eligibility still required) |
 |---|---|---|
-| Application | Dynamic workbook/sheet/cell/selection roots; calculation, EnableEvents, CutCopyMode; explicit same-workbook Range Goto | Workbooks/Windows access, Union/Intersect, general Run/Evaluate/WorksheetFunction, screen/alert/status settings, scheduling, UI and platform APIs; complete Goto variants |
+| Application | Dynamic workbook/sheet/cell/selection roots; calculation, EnableEvents, CutCopyMode; explicit same-workbook Range Goto | Workbooks/Windows access, Union/Intersect, general Run/Evaluate/WorksheetFunction and eligible Goto variants; screen/alert/status settings, scheduling, UI and platform APIs remain out of scope where GridCraft lacks them |
 | Workbooks/Workbook | Code-owner and active identity, selected properties and worksheet collections | Workbooks collection; Add/Open/Close/Save/SaveAs/SaveCopyAs, windows, names, metadata, links, protection and the remaining documented members |
 | Worksheets/Sheets/Worksheet | Worksheet-only collections, Count/Item/enumeration, name, ranges, UsedRange, narrow Select/Activate/Paste | Add/Copy/Move/Delete and grouping; visibility/CodeName/Index; chartsheets; protection, data/print/drawing objects and remaining members |
 | Range | Selected construction, default access, values/formulas, geometry, areas, offset/resize, End/Find, contents clearing, bounded structural operations, Select/Copy/Cut and a native-backed PasteSpecial subset | Remaining Destination variants, PasteSpecial source-theme/conditional-format modes, fills, Replace, SpecialCells, CurrentRegion, merges, formatting breadth, formulas/local/R1C1/dynamic arrays, filtering/sorting and remaining methods/properties |
@@ -80,7 +99,7 @@ Inventory status meanings:
 | `context-only` | 2 | Caller/Volatile on the UDF path, not general macro support |
 | `object-subset` | 9 | An object-page alias for a type represented in the adapter |
 | `not-exposed` | 4,602 | No matching member in the reviewed adapter projection |
-| `platform-service-needed` | 2 | Clipboard image and external-format paste dispatch explicitly refuse until the host services exist |
+| `platform-service-needed` | 2 | Clipboard image and external-format paste dispatch explicitly refuse; without corresponding GridCraft services they are out of this integration's scope |
 | `object-not-exposed` | 335 | No general projection of this documented object |
 | `formula-bridge-not-exposed` | 390 | WorksheetFunction member pages; bridge work only in this plan |
 | `partial-definition` | 10 | Existing enum type registration; reconcile actual values/aliases |
@@ -96,9 +115,11 @@ precedence where a member has multiple concerns, and OM20 must resolve the tail.
 
 - GridCraft owns Excel object definitions, lifetimes, collections, enums,
   workbook/document state, UI, undo/recalc, file persistence and services.
-  Reuse native engine commands; add engine primitives when no correct one
-  exists. Do not implement a second workbook or duplicate an engine algorithm
-  inside the VBA adapter.
+  Reuse native engine commands and models. Adapter plumbing may expose existing
+  semantics, but this project must not add an engine/product capability merely
+  to satisfy an Excel member. When no underlying capability exists, classify
+  the row `OUT_OF_SCOPE_GRIDCRAFT`. Do not implement a second workbook or
+  duplicate an engine algorithm inside the VBA adapter.
 - tiny-vba owns generic runtime/debugger/IDE/host protocol changes. Use its
   repository-local development and focused skills. Do not add Excel classes to
   tiny-vba. Keep dependency revisions immutable and synchronized across GridCraft;
@@ -120,10 +141,11 @@ precedence where a member has multiple concerns, and OM20 must resolve the tail.
 - Keep long work bounded and cancellable. Native/browser/headless consumers
   need explicit service availability; no ambient filesystem/network/shell/COM
   access inside the VM and no generic desktop automation in the adapter.
-- Unsupported, unavailable, deprecated and platform-restricted are distinct
+- Unsupported, unavailable, deprecated, out-of-scope and platform-restricted are distinct
   outcomes. Record every documented row even where implementation needs a new
-  service or policy contract. Do not hide difficult APIs by omitting them from
-  the denominator or declaring all of an object supported after one method works.
+  service or policy contract. A missing GridCraft service is not VBA backlog.
+  Do not hide difficult APIs by omitting them from the catalogue or declaring
+  all of an object supported after one method works.
 - Preserve current roadmap IDs and completed intrinsic work. OM IDs below are
   a new cross-repository object-model workstream, not replacements for M1-M8.
 
@@ -137,7 +159,8 @@ the progress section. System-clipboard services and behavior owned by later
 packets remain explicit rather than being counted as silent OM02 successes.
 Split each packet into small PRs by object family and behavior. Do not
 make one PR containing the whole object model. OM00-OM02 are complete; continue
-with OM03-OM07, then the remaining families with their prerequisites.
+with the eligible portions of OM03-OM07, then eligible portions of the remaining
+families with their prerequisites.
 OM20 classification starts early and must be complete before final sign-off.
 
 | Packet | Reconciled pages | Deliverable | Prerequisites |
@@ -145,24 +168,24 @@ OM20 classification starts early and must be complete before final sign-off.
 | OM00 | 272 | Complete inventory, signatures, enum and constant contracts | None |
 | OM01 | Cross-cutting | Host execution policy, member registry and diagnostics | OM00 schema |
 | OM02 | 68 | Selection, clipboard, editing and range operations | OM01 |
-| OM03 | 206 | Application roots, settings, calculation and dispatch | OM01 |
-| OM04 | 278 | Workbook/sheet collections and lifecycle | OM01, OM03 |
-| OM05 | 541 | Formatting, styles and conditional formatting | OM02, OM04 |
-| OM06 | 180 | Sort/filter/validation/outline/data tools | OM02, OM05 |
-| OM07 | 515 | Names, formulas and evaluation/function bridges | OM03, OM04 |
-| OM08 | 163 | Windows, panes, view and navigation | OM03, OM04 |
-| OM09 | 96 | Protection, permissions and protected document state | OM04 |
-| OM10 | 133 | Page setup, printing and export | OM04, OM05, OM08 |
+| OM03 | 206 | Project existing Application roots, settings, calculation and dispatch | OM01 |
+| OM04 | 278 | Project existing workbook/sheet collections and lifecycle | OM01, OM03 |
+| OM05 | 541 | Project existing formatting, styles and conditional formatting | OM02, OM04 |
+| OM06 | 180 | Project existing sort/filter/validation/outline/data tools | OM02, OM05 |
+| OM07 | 515 | Project existing names, formulas and evaluation/function bridges | OM03, OM04 |
+| OM08 | 163 | Project existing windows, panes, view and navigation | OM03, OM04 |
+| OM09 | 96 | Project existing protection and permission state | OM04 |
+| OM10 | 133 | Project existing page setup, printing and export | OM04, OM05, OM08 |
 | OM11 | 123 | Application/workbook/worksheet event completeness | OM01, OM04; incremental with every mutating packet |
-| OM12 | 1,220 | Charts, drawings, images and associated objects | OM04, OM05, OM08 |
-| OM13 | 838 | Pivot objects, slicers, timelines, cube/model APIs | OM04, OM06, OM14 where externally backed |
-| OM14 | 305 | Connections, query/import/XML and refresh | OM04, explicit services |
-| OM15 | 115 | Dialogs, interaction, proofing and built-in controls | OM03, OM08, OM11 |
-| OM16 | 138 | Sharing, collaboration, publishing and remote document APIs | OM04, OM09, explicit services |
-| OM17 | 570 | Legacy/Graph/OS/COM/XLL/VBE interoperability decisions and adapters | OM00, explicit platform/service contracts |
-| OM18 | 134 | Structured tables and table styles | OM04, OM05, OM06, OM07 |
-| OM19 | 101 | Notes/comments, hyperlinks and document metadata | OM04, OM05, OM11 |
-| OM20 | Cross-cutting | Reconcile aliases/reference pages and finish acceptance; zero unrouted pages | Starts at OM00; closes after all packets |
+| OM12 | 1,220 | Project existing charts, drawings, images and associated objects | OM04, OM05, OM08 |
+| OM13 | 838 | Project existing local pivot behavior; unsupported slicer/model/provider behavior is out of scope | OM04, OM06 |
+| OM14 | 305 | Classify connections/query/import/XML/refresh; project only existing local behavior | OM04 |
+| OM15 | 115 | Project existing dialogs, interaction, proofing and controls | OM03, OM08, OM11 |
+| OM16 | 138 | Classify sharing/collaboration/publishing APIs; no new providers | OM04, OM09 |
+| OM17 | 570 | Classify legacy/Graph/OS/COM/XLL/VBE interoperability; no new platform layer | OM00 |
+| OM18 | 134 | Project existing structured tables and table styles | OM04, OM05, OM06, OM07 |
+| OM19 | 101 | Project existing notes/comments, hyperlinks and metadata | OM04, OM05, OM11 |
+| OM20 | Cross-cutting | Reconcile aliases/reference pages and finish acceptance; every row implemented or explicitly classified | Starts at OM00; closes after all packets |
 
 Page routing is not a project estimate: for example, one chart method may need
 several engine capabilities, whereas many enum pages can be registered together.
@@ -180,9 +203,10 @@ when several pages map to the same member.
 Expand rows with member kind, signature, argument modes/defaults, return type,
 read/write support, event parameters/cancellation, enum values/aliases, platform
 notes, dependencies, profile, implementation symbol, test IDs and result state.
-Use states such as MISSING, PARTIAL, IMPLEMENTED_TESTED, PLATFORM_SERVICE_NEEDED,
-LEGACY_REVIEW and REFERENCE_ALIAS. A service-needed row remains outstanding;
-it is not an automatic completion exception. Fully implemented states require
+Use states such as MISSING, PARTIAL, IMPLEMENTED_TESTED, OUT_OF_SCOPE_GRIDCRAFT,
+PLATFORM_SERVICE_NEEDED, LEGACY_REVIEW and REFERENCE_ALIAS. A service-needed row
+is implementation work only when the corresponding GridCraft service exists;
+otherwise it is out of this integration's scope. Fully implemented states require
 parameter-level acceptance. Catalogue/source comparison is evidence, not a
 substitute for tests. Check declared metadata against actual dispatch branches.
 
@@ -195,7 +219,8 @@ implicit variables; test the constants' actual values, not merely compilation.
 Acceptance: no missing/duplicate source paths, no unassigned canonical members,
 no silently discarded aliases, stable deterministic output, baseline dispatch
 reconciled, and a report that lists every unresolved row without a misleading
-overall compatibility percentage.
+overall compatibility percentage. Every row must also have an explicit
+eligibility outcome; out-of-scope rows are reported, not treated as unfinished.
 
 ### OM01 — cross-cutting execution and diagnostics
 
@@ -259,32 +284,27 @@ and [PasteSpecial](https://learn.microsoft.com/en-us/office/vba/api/excel.range.
 
 ### OM03 — Application API
 
-Add missing global roots/collections and preserve unqualified root behavior.
-Implement ScreenUpdating, DisplayAlerts, StatusBar/DisplayStatusBar, Cursor,
-calculation state/full/rebuild modes and other settings through real host state.
-ScreenUpdating=False must suppress workbook painting where appropriate while
-keeping the editor, cancellation and logic responsive; it is not a no-op flag.
-DisplayAlerts=False needs documented default responses, not blind approval of
-destructive operations. Coordinate scope/restoration with normal completion,
-error, Reset and host close according to documented behavior and explicit host
-termination policy.
+Add eligible missing global roots/collections and preserve unqualified root
+behavior. Project calculation state, `Run`, environment/path values and settings
+only where GridCraft already owns equivalent state or commands. `ScreenUpdating`,
+`DisplayAlerts`, status/cursor settings, scheduling, custom lists and similar
+members are `OUT_OF_SCOPE_GRIDCRAFT` when no matching product behavior exists;
+do not create host state, queues or UI behavior for them in this packet.
 
-Add bounded Application.Run, Undo/OnUndo/OnRepeat, OnKey/OnTime/Wait, path/
-environment/version/locale queries, custom lists and documented utility methods.
-Schedule through injected host time/queues; avoid blocking the UI thread and
-cancel retained callbacks on host/project teardown. Treat Evaluate and formula
-bridges as OM07. Route remote/OS/legacy APIs to OM16/OM17 rather than faking them.
+Treat Evaluate and formula bridges as OM07. Route remote/OS/legacy APIs to
+OM16/OM17 classification rather than faking them.
 Acceptance must exercise separate documents, live state, callback ownership,
 teardown and headless/browser availability. [Application reference](https://learn.microsoft.com/en-us/office/vba/api/excel.application(object)).
 
 ### OM04 — workbook and worksheet lifecycle
 
-Implement Workbooks and the full documented collection/default/enumeration
-contracts, then workbook Add/Open/Activate/Close/Save/SaveAs/SaveCopyAs and sheet
-Add/Copy/Move/Delete/visibility/index/CodeName/chart-sheet support. Include
+Project Workbooks collection/default/enumeration contracts and the workbook and
+sheet lifecycle operations already provided by GridCraft. Include eligible
+Add/Open/Activate/Close/Save/SaveAs/SaveCopyAs and sheet Add/Copy/Move/Delete/
+visibility/index/CodeName/chart-sheet behavior. Include
 optional Before/After, omitted destination/new workbook, count/template, naming
-collisions, workbook structure protection and stale references. Model sheet
-grouping explicitly so editing a grouped selection has the correct scope.
+collisions, workbook structure protection and stale references only where the
+underlying operation exists. Missing Excel lifecycle variants are out of scope.
 
 Use existing document/window/file commands and services, not raw VM IO. Suppress
 macro execution during import; event delivery remains explicit and ordered.
@@ -300,7 +320,7 @@ all involved undo groups, file round trips and closed/deleted handles.
 
 ### OM05 — formatting and conditional formatting
 
-Complete Font, Interior, Borders/Border, Styles/Style and the range alignment,
+Project eligible existing Font, Interior, Borders/Border, Styles/Style and range alignment,
 wrap/shrink/indent/orientation, row/column sizing/hidden, merge and number-format
 families. Implement mixed-range return values, theme/indexed/RGB color identities
 and conversions, clear/copy behavior, localized format variants and protection.
@@ -324,13 +344,13 @@ Map valid state to `data.sort`; explicitly provide nonempty keys. The current
 engine opens a sort dialog when keys are empty, which must not become a
 programmatic VBA success path. Bound keys/footprints and preflight before
 mutation. Its current Unicode-lowercase/codepoint text comparison is not proof
-of locale/Pinyin/Stroke order. Implement/inject and test required collation or
-declare the exact unsupported profile; do not accept SortMethod and ignore it.
+of locale/Pinyin/Stroke order. Expose only supported collation and classify the
+rest `OUT_OF_SCOPE_GRIDCRAFT`; do not accept SortMethod and ignore it.
 
-Then implement Range/Worksheet AutoFilter, Filters/Filter and criteria operators,
+Then project existing Range/Worksheet AutoFilter, Filters/Filter and criteria operators,
 ShowAllData, AdvancedFilter, validation objects, RemoveDuplicates, TextToColumns,
 Subtotal, outline/grouping, scenarios/consolidation/goal-seeking and the remaining
-data-tool members routed to this packet. Reuse native sort/filter/validation/
+eligible data-tool members routed to this packet. Reuse native sort/filter/validation/
 outline commands. Test blanks/errors/mixed types/headers/stability, descending
 order, multiple keys, metadata/formula movement, protected/merged cells, saved
 state, event footprints, cancellation and zero writes on invalid configuration.
@@ -339,21 +359,22 @@ state, event footprints, cancellation and zero writes on invalid configuration.
 
 ### OM07 — names and formula-facing object-model APIs
 
-Implement workbook/sheet Names/Name: scope, Add/Delete, RefersTo variants,
+Project existing workbook/sheet Names/Name behavior: scope, Add/Delete, RefersTo variants,
 RefersToRange, visibility and identity. Complete Formula/FormulaR1C1/Formula2,
 array/spill and local forms without confusing displayed text and formula source.
 Add Range/Worksheet/Application Evaluate and Application.WorksheetFunction
 through a typed context-sensitive bridge to existing engine functions. Preserve
 Range arguments, arrays, errors and Excel return/error differences between
 Evaluate, WorksheetFunction calls and worksheet formulas. Unsupported calculator
-functions remain explicit; this packet does not implement their mathematics.
-Inventory the 390 WorksheetFunction member pages as bridge requirements only.
+functions are `OUT_OF_SCOPE_GRIDCRAFT`; this packet does not implement their
+mathematics. Inventory the 390 WorksheetFunction member pages as bridge
+candidates, then apply function-registry eligibility.
 Test reference ownership, dynamic arrays/spills, default members, errors versus
 raised runtime errors, UDF read-only policy, locale and recursion/payload budgets.
 
 ### OM08 — windows, panes and navigation
 
-Project Windows/Window/Panes/Pane and custom/sheet views onto real per-window
+Project eligible Windows/Window/Panes/Pane and custom/sheet views onto real per-window
 state: ActiveWindow, activation, selection, scrolling, freeze/split panes, Zoom,
 gridlines/headings, display modes, bounds and window lifecycle. Worksheet-owned
 state and window-owned state must remain distinct. Goto scrolling depends on
@@ -363,9 +384,9 @@ saved views, closed handles, narrow/native/browser layouts and headless results.
 
 ### OM09 — protection and permissions
 
-Project workbook/sheet/range protection and AllowEditRanges, protection status,
+Project existing workbook/sheet/range protection and AllowEditRanges, protection status,
 password/encryption options, protected-view and document permissions through
-existing protection models plus explicit services where needed. Preserve option
+existing protection models and services. Unsupported options are out of scope. Preserve option
 semantics such as UI-only protection and allowed edits; do not treat a password
 string as proof that encryption exists. Validate protection for every newly
 exposed mutation. Test locked/unlocked cells, structure protection, failed
@@ -373,10 +394,11 @@ authentication, save/reopen, cancellation and retained trust boundaries.
 
 ### OM10 — printing and export
 
-Implement PageSetup, print areas/titles, margins, paper/orientation/scaling,
+Project existing PageSetup, print areas/titles, margins, paper/orientation/scaling,
 headers/footers, page breaks and Workbook/Worksheet/Range PrintOut/PrintPreview/
-ExportAsFixedFormat. Delegate to existing print/PDF services; implement missing
-engine options rather than acknowledging ignored arguments. Printer selection,
+ExportAsFixedFormat. Delegate to existing print/PDF services; missing engine
+options are `OUT_OF_SCOPE_GRIDCRAFT` rather than VBA implementation tasks.
+Printer selection,
 preview and native printing are service-backed; pure file/PDF export can have a
 headless path. Test page geometry and selected-sheet/range scope by rendering
 output and inspecting it, plus cancellation, unavailable printer and file errors.
@@ -384,10 +406,10 @@ output and inspecting it, plus cancellation, unavailable printer and file errors
 
 ### OM11 — event completeness
 
-Inventory every documented event and ByRef/Cancel parameter. Extend explicit
-open/change delivery to activate/deactivate/selection/calculate/before-save/
-before-close/before-print/new-sheet/input events and the dependent chart/pivot/
-connection/control events. Host commands, UI edits and VBA writes need one
+Inventory every documented event and ByRef/Cancel parameter. Extend delivery
+only for lifecycle and mutation signals GridCraft already exposes. Events that
+would require new product hooks are `OUT_OF_SCOPE_GRIDCRAFT`. Host commands, UI
+edits and VBA writes need one
 defined ordering and suppression model. EnableEvents must apply at the correct
 scope; UDF execution must not accidentally enable mutating events.
 Use cancellable precommit events where documented; do not deliver BeforeSave or
@@ -398,60 +420,61 @@ Do not retain document borrows or mutable locks across callbacks.
 
 ### OM12 — charts and drawing objects
 
-Implement ChartObjects/ChartObject, Charts/Chart, ChartArea/PlotArea, Series/
+Project eligible existing ChartObjects/ChartObject, Charts/Chart,
+ChartArea/PlotArea, Series/
 SeriesCollection, axes/titles/legends/labels, data binding and chart settings;
 then Shapes/Shape/ShapeRange, pictures, text frames, connectors, groups, geometry,
-z-order, formatting, placement, OnAction, export and copy/paste. Include all
-associated child/collection objects from the inventory, not just creation APIs.
-Reuse chart/drawing models, commands and renderer. Engine feature gaps are
-separate dependent tasks within this packet. Test object identity, data edits,
+z-order, formatting, placement, OnAction, export and copy/paste. Include reachable
+child/collection objects backed by existing GridCraft state. Reuse chart/drawing
+models, commands and renderer. Engine feature gaps are out of scope for this
+packet and remain on the normal GridCraft roadmap. Test object identity, data edits,
 anchor transforms, grouping/ungrouping, protected sheets, undo, source deletion,
 OOXML round trips and rendered native/browser/export output.
 [Shapes](https://learn.microsoft.com/en-us/office/vba/api/excel.shapes).
 
 ### OM13 — pivots, slicers and data models
 
-Project PivotCaches/PivotCache, PivotTables/PivotTable, fields/items/layout,
-filters/calculated fields, refresh/drilldown, charts, slicers/timelines and the
-documented cube/model/relationship/measure objects. Use existing pivot models;
+Project GridCraft's existing PivotCaches/PivotCache, PivotTables/PivotTable,
+fields/items/layout, filters/calculated fields, refresh/drilldown and eligible
+charts. Cube/model/relationship/measure, slicer or timeline members without
+existing GridCraft behavior are out of scope. Use existing pivot models;
 do not create superficial objects that cannot calculate or persist. Separate
 local pivot operations from external OLAP/data-model services. Test cache reuse,
 refresh, missing data, field identity, filter/layout results, saved files, events,
-undo and service cancellation. Unsupported provider functionality remains a
-visible outstanding requirement, not an empty successful refresh.
+undo and service cancellation. Unsupported provider functionality remains
+visible as `OUT_OF_SCOPE_GRIDCRAFT`, not an empty successful refresh or VBA backlog.
 
 ### OM14 — connections, import and refresh
 
-Implement Connections/WorkbookConnection, QueryTables/QueryTable, queries,
+Classify Connections/WorkbookConnection, QueryTables/QueryTable, queries,
 parameters, text/ODBC/OLEDB/XML/data-feed connection objects, mappings and refresh
-lifecycle. Native parser/CSV/OOXML facilities can back local operations; external
-drivers/network/authentication require injected services and explicit host
-availability. Capture credential ownership without saving secrets into generic
-metadata/logs. Test disconnected/cancelled/failed/async refresh, typed data,
-dependencies, callback order, partial-result policy and package preservation.
+lifecycle. Project only local operations already supported by GridCraft. Database
+drivers, network/authentication, refresh providers and credential ownership are
+not added by this project and are `OUT_OF_SCOPE_GRIDCRAFT`. Existing package-part
+preservation remains a file-fidelity behavior, not an executable VBA provider.
 
 ### OM15 — interaction and built-in controls
 
-Implement documented Excel dialogs, Application.InputBox type/Cancel semantics,
+Project documented Excel dialogs, Application.InputBox type/Cancel semantics,
 file pickers, status/interaction surfaces, dialog-sheet/form-control objects and
-their action/event wiring. Scope built-in Office controls according to existing
+their action/event wiring only where an equivalent GridCraft interaction already
+exists. Scope built-in Office controls according to existing
 tiny-vba form contracts; third-party ActiveX/OLE controls remain outside the
 adopted policy and must be listed explicitly. No fake dialogs or success without
-user-visible effects. UI interaction needs suspend/resume with released borrows,
+user-visible effects, and no new GridCraft dialogs or controls are created for
+VBA parity. UI interaction needs suspend/resume with released borrows,
 bounded callbacks and explicit headless/browser behavior. Test modal ownership,
 Cancel and typed results, selection/focus, project teardown and accessibility.
 
 ### OM16 — remote, collaboration and publishing APIs
 
 Keep every sharing/review/mail/server/SharePoint/publishing/cloud-related row
-visible. Identify which GridCraft feature/service can reproduce the documented
-contract and which needs a new provider or a platform-specific profile. There
-are currently no general host adapters for these APIs. Split implementation by
-provider and data model, including authentication, conflicts, async completion,
-failure/cancellation and package metadata. Do not reinterpret SendMail as a
+visible. Project only behavior already provided by a GridCraft feature/service.
+There are currently no general host adapters for these APIs, so provider-backed
+rows are `OUT_OF_SCOPE_GRIDCRAFT`. Do not reinterpret SendMail as a
 no-op, automatically send messages, or silently replace a Microsoft service with
-a different one. Implementation activation requires an explicit host feature;
-planning does not authorize external sends or remote state changes.
+a different one. This plan does not authorize new providers, external sends or
+remote state changes.
 
 ### OM17 — legacy and platform interoperability
 
@@ -460,31 +483,34 @@ OLE, OS-specific operations, VBProject/VBE and similar APIs. Classify aliases,
 deprecated-but-documented contracts and true platform dependencies. Preserve
 all rows even when a native portable implementation is inappropriate.
 The existing Rust-only/no-ambient-COM/no-VM-IO and third-party-control boundaries
-still apply. Implement portable equivalents only when their behavior is explicit;
-otherwise retain PLATFORM_SERVICE_NEEDED or POLICY_BLOCKED with exact reasons.
+still apply. Project portable equivalents only when their behavior is explicit
+and GridCraft already implements it; otherwise retain `OUT_OF_SCOPE_GRIDCRAFT`,
+`SERVICE_UNAVAILABLE` or `POLICY_BLOCKED` with exact reasons.
 Any policy expansion needs its own reviewed design, not an implicit exception in
 an implementation PR. A complete portable profile and complete Windows Excel
 interoperability are different acceptance claims; publish both denominators.
 
 ### OM18 — structured tables
 
-Implement ListObjects/ListObject, ListRows/ListRow, ListColumns/ListColumn,
+Project existing ListObjects/ListObject, ListRows/ListRow, ListColumns/ListColumn,
 table ranges/totals/header rows, resize/convert/add/delete, styles, filters and
 structured references through actual table models. Include TableObject and
-connection-backed variants with OM14. Test empty-table ranges, headers and
+connection-backed variants with OM14; they remain out of scope without an
+existing provider. Test empty-table ranges, headers and
 totals, calculated columns, row insertion/deletion, reference maintenance,
 filter/sort interaction, protection, formula spill interaction and saved files.
 [ListObject](https://learn.microsoft.com/en-us/office/vba/api/excel.listobject).
 
 ### OM19 — annotations and metadata
 
-Implement Comments/Comment, threaded comments/persons/replies where documented,
+Project existing Comments/Comment, threaded comments/persons/replies where supported,
 Hyperlinks/Hyperlink, custom and built-in document properties, custom worksheet
 properties and annotation formatting/visibility. Distinguish local notes from
 collaborative threaded state and external follow-link actions. Use current
 metadata/comment/link commands and package models. Test copy/move/delete,
 structural rebase, author/thread identities, formatting, undo, file round trips
-and unavailable remote/person services.
+and unavailable remote/person services. Missing remote identity/thread services
+are out of scope rather than new provider work.
 
 ### OM20 — finish the tail and acceptance
 
@@ -493,8 +519,9 @@ Reconcile every `reference-triage` row within its assigned family, including
 names with unusual receiver spelling and legacy standalone pages. Ensure smart
 tag actions/proofing (OM15), phonetics/characters (OM05), add-ins (OM17), cell
 watches (OM08), file converters/recovery (OM04) and the smaller object families
-are implemented rather than lost behind the headline objects. New source pages
-must be routed to a precise packet or a new explicit family packet. Do not
+are projected when eligible or explicitly classified out of scope rather than
+lost behind the headline objects. New source pages must be routed to a precise
+packet or a new explicit family packet. Do not
 introduce an unexamined miscellaneous bucket at sign-off. Resolve duplicates/
 aliases without deleting source-page provenance.
 
@@ -506,7 +533,8 @@ supported/partial/missing/platform-restricted reports from the same inventory.
 
 ## Per-PR handoff and verification
 
-Each implementation PR must contain the specific inventory row IDs and Microsoft
+Each implementation PR must demonstrate that the underlying GridCraft capability
+already exists, then contain the specific inventory row IDs and Microsoft
 links, owning layer, documented signature/options, intended profile, implementation
 symbols, synthetic regression tests and an updated result ledger. Use original
 authored workbooks and cases; no proprietary corpus or downloaded macros are
@@ -538,13 +566,14 @@ Do not infer broad Excel parity from the absence of runtime error 438.
 
 ## Recommended next Luna assignment
 
-Start OM03 with the smallest coherent Application-state slice: ScreenUpdating,
-DisplayAlerts, StatusBar/DisplayStatusBar and Cursor, including restoration on
-normal completion, error and Reset. Then add calculation-state variants and the
-bounded scheduling/Run family before moving into OM04 lifecycle work. OM06a
-Sort/SortFields remains the next data-tools slice after its OM03-OM05
-prerequisites. Keep the rest of this plan as the ordered full-surface backlog;
-do not turn it into a single large implementation change.
+Start by applying the eligibility gate to OM03. Implement the smallest coherent
+Application slice backed by existing GridCraft behavior: roots, calculation,
+`Run` and environment/path projections. Mark ScreenUpdating, DisplayAlerts,
+StatusBar/DisplayStatusBar, Cursor and scheduling out of scope wherever no
+matching GridCraft state/service exists. Then move into the eligible OM04
+lifecycle projection. OM06a Sort/SortFields remains the next data-tools slice
+after its eligible prerequisites. Keep the rest of this plan as an ordered audit
+catalogue plus eligible backlog; do not turn it into a full Excel feature plan.
 
 ## Audit validation performed in this planning task
 
@@ -587,7 +616,8 @@ have independently observed Excel behavior or completed implementation designs.
   access and platform notes are source-reviewed, legacy ownerless pages are
   explicitly routed to OM17, and the report deliberately publishes no aggregate
   compatibility percentage. OM00's inventory/contract acceptance is complete;
-  those result states remain work for their owning implementation packets.
+  those result states still require eligibility classification, and only eligible
+  rows become work for their owning implementation packets.
 - **OM01a — configurable bounded execution limits:** published in tiny-vba and
   pinned by GridCraft. GridCraft configures 25,000,000 instructions, 12,000 host
   calls and a 1 GiB payload ceiling for workbook macro sessions; limits carry
@@ -611,7 +641,8 @@ have independently observed Excel behavior or completed implementation designs.
   passes, including callback ordering, live same-workbook `Worksheet.Paste
   Link:=True` formulas and the recorded 20-slot copy loop with one undo group.
   `Worksheet.PasteSpecial` and `Range.CopyPicture` validate their options and
-  explicitly report unavailable host services; they remain service-needed.
+  explicitly report unavailable host services. Because GridCraft does not
+  currently supply those services, they are out of this integration's scope.
 - **OM02a-2 — Range clearing subset:** `Range.Clear`, `ClearContents` and
   `ClearFormats` now route through native engine clear commands. Operations are
   capped at 65,536 selected cells; content-clearing calls preflight and queue the

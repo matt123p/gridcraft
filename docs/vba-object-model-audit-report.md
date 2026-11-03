@@ -2,7 +2,7 @@
 
 Pinned source: MicrosoftDocs/VBA-Docs `b202c96d9d53896593b73d6fae57f5230601a5e3` (SHA256 `285218108a034fc33acc8296d714395fd182397ada27c848b93c3d5423efd75e`).
 
-5996 source pages; page counts are not a compatibility percentage.
+5996 source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).
 
 ## State counts
 
@@ -11,9 +11,9 @@ Pinned source: MicrosoftDocs/VBA-Docs `b202c96d9d53896593b73d6fae57f5230601a5e3`
 - `PARTIAL`: 390
 - `PLATFORM_SERVICE_NEEDED`: 2
 
-## Unresolved rows
+## Unresolved audit rows
 
-Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain outstanding. This report deliberately does not calculate an overall compatibility percentage.
+Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain unresolved against the Microsoft catalogue. They are not automatically in-scope implementation requirements: the existing-GridCraft-capability gate is applied first. This report deliberately does not calculate an overall compatibility percentage.
 
 | ID | State | Signature review |
 |---|---|---|

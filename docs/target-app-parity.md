@@ -1,6 +1,6 @@
 # Target-app parity: GridCraft vs Microsoft Excel
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-28 · **Change:** minor (several windows: a native window per workbook window, New Window on the same workbook, Arrange All; no score change; earlier: automation: macro interface; catalog count 276 / 292, as `cargo xtask parity` measures; automation: typed macros in the engine) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope; no score change) · **Target:** Microsoft Excel (Microsoft 365)
 
 This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summarizes it,
 [`gaps.md`](gaps.md) lists every shortfall, and the area checklists hold the detail:
@@ -10,11 +10,12 @@ generated ribbon checklist is [`parity-checklist.md`](parity-checklist.md).
 
 ## Summary
 
-VBA audit update (2026-10-28, optional integration feature): corrected range
-endpoints/ownership do not establish unchanged Excel workbook compatibility.
-Typed Excel declarations, collections/default members and document events remain
-unsupported. See the [audited profile](vba-excel-compatibility.md); no parity score
-is increased by this work.
+VBA audit update (2026-11-03, optional integration feature): the bounded profile
+projects only capabilities GridCraft already supports. It does not establish
+unchanged Excel workbook compatibility and cannot add missing GridCraft features.
+See the [accepted scope](vba-object-model-v1-priority-final.md) and
+[audited profile](vba-excel-compatibility.md); no parity score is increased by
+adapter work alone.
 
 | Number | Value | Kind |
 |---|---|---|
@@ -99,7 +100,7 @@ performance 8, stability 8, localization 4, hardware 2, platforms 2, ecosystem 2
 | Get & Transform, external data, data model | 5 | ~15% | ~10% | 60–100 | Import of CSV/TSV, JSON, HTML. No Power Query editor, no From Web, database or folder sources, no connections or refresh, no relationships or data model, no external workbook links (dropped with a warning) |
 | Insert objects | 3 | ~55% | ~45% | 25–40 | Pictures, 8 shape kinds (Excel has ~170), text boxes, own icon set, ink with Ink to Shape, hyperlinks, checkboxes. Missing: SmartArt, WordArt, equations, signature line, objects, 3-D models, screenshot, pictures in cells (PR #105) |
 | Review, comments, protection, collaboration | 4 | ~55% | ~40% | 35–55 | Threaded comments, notes, spelling (system dictionary), thesaurus, sheet and workbook protection, Allow Edit Ranges with Excel-compatible password hashes (#307). Missing: comment navigation, Show Changes, notes-to-comments conversion, accessibility checker, co-authoring, opening password-encrypted files (refused with a message since #17) |
-| Automation | 4 | ~30% | ~20% | 12–20 | Recorded, editable GridCraft scripts (Automate tab). Typed macros in the engine (`macro.*`: recorder, runner with input checks and a footprint dry run, debugger; [macros.md](macros.md)), recorded from Automate › Macros, edited and debugged in a step editor, and run from the Macros dialog or a Ctrl+Shift shortcut. VBA is out of scope by owner decision: an `.xlsm` keeps its VBA project unchanged on save and never runs it. No Office Scripts compatibility |
+| Automation | 4 | ~30% | ~20% | 12–20 | Recorded, editable GridCraft scripts (Automate tab). Typed macros in the engine (`macro.*`: recorder, runner with input checks and a footprint dry run, debugger; [macros.md](macros.md)), recorded from Automate › Macros, edited and debugged in a step editor, and run from the Macros dialog or a Ctrl+Shift shortcut. Optional bounded VBA projects existing GridCraft capabilities only; full Excel object-model parity and feature expansion through VBA are out of scope. No Office Scripts compatibility |
 | **Weighted** | 100 | **~75%** | **~59%** | **300–485** | |
 
 ## Dimensions
@@ -107,7 +108,7 @@ performance 8, stability 8, localization 4, hardware 2, platforms 2, ecosystem 2
 | Dimension | Weight | Ready | Hours | Evidence |
 |---|---|---|---|---|
 | Features | 45 | ~59% | 300–485 | Table above |
-| File formats | 15 | ~50% | 80–120 | XLSX read/write is broad but unproven on a real corpus and in Excel; XLSB and ODS are values-only import; no XLS, XML Spreadsheet 2003, SYLK, DIF, PRN; VBA dropped; 100 MB XLSX fails (#175). [file-format-parity.md](file-format-parity.md) |
+| File formats | 15 | ~50% | 80–120 | XLSX read/write is broad but unproven on a real corpus and in Excel; XLSB and ODS are values-only import; no XLS, XML Spreadsheet 2003, SYLK, DIF, PRN; original VBA package bytes are preserved while the optional bounded source profile is separate; 100 MB XLSX fails (#175). [file-format-parity.md](file-format-parity.md) |
 | UI/UX fidelity | 12 | ~55% | 50–80 | Excel-style ribbon, galleries, dialogs, formula bar, status bar; 59 commands with shortcuts vs Excel's 200+; key tips on part of the Home tab only; short context menu; a native window per workbook window on the desktop (one on the web). [ui-parity.md](ui-parity.md) |
 | Performance | 8 | ~35% | 35–55 | [Performance](#performance) |
 | Stability | 8 | ~60% | 15–25 | Never-crash rules enforced by lint, every command fuzzed with hostile params, random command sequences fuzzed against undo/redo, XLSX round-trip and full-recalc invariants, last-resort guard in `Session::execute`. Field reports: Windows Intel GPU crash (#120), error on close (#117), freeze opening from Finder (#166), screen flashing (#76) |
@@ -237,8 +238,11 @@ Linux, BSD and RISC-V, where Excel doesn't run.
 
 - **Add-ins:** Excel has Office JavaScript add-ins, COM/XLL add-ins, VBA, Office Scripts and
   Power Automate. GridCraft has its own recorded scripts, plus a control channel, MCP server and
-  CLI that reach every command. VBA is out of scope (owner decision). A plugin or custom-function
-  API (for example LAMBDA libraries and WASM custom functions) is the open-equivalent path: 25–40 h.
+  CLI that reach every command. GridCraft also has an optional bounded VBA adapter
+  for existing product capabilities; full Excel object-model parity, COM/XLL and
+  adding product features through that adapter are out of scope. A plugin or
+  custom-function API (for example LAMBDA libraries and WASM custom functions)
+  is the open-equivalent path: 25–40 h.
 - **AI:** Excel has Copilot, the COPILOT() function, Analyze Data, Python in Excel and Flash
   Fill. GridCraft has Flash Fill and best-in-class agent control (any MCP client can drive every
   command headless or live), but no in-app assistant, no natural-language formulas and no
@@ -338,6 +342,7 @@ The inventory carried over from the 2026-10-07 ROADMAP.md, updated for what land
 
 ## Revision history
 
+- 2026-11-03: Accept the existing-capability-only VBA scope; no parity score change.
 - 2026-10-28: Link the VBA object-model audit and explicit unchanged-workbook
   limitations; existing parity scores remain unchanged.
 
