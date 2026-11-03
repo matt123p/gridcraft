@@ -1,256 +1,63 @@
-# Optional tiny-vba integration
+# VBA in GridCraft
 
-Updated 2026-11-03. Profile: `GridCraft.Excel.v1`, over tiny-vba's M5 native
-protocol and M8 shared IDE. This is a bounded first integration, not full Excel VBA.
-The [Excel source-compatibility audit](vba-excel-compatibility.md) records corrected
-members, remaining mismatches and stages toward running existing workbooks
-unchanged. Arbitrary XLSM execution without source changes is not yet supported.
+GridCraft can run VBA macros and worksheet functions against its own workbooks.
+The optional integration includes a source editor, debugger and a subset of the
+Excel object model, backed by GridCraft's existing commands and calculator.
 
-For a separate desktop editor window, run
-`cargo +1.99.1 run -p gridcraft --features vba-window`.
-For an embedded desktop editor, use `--features vba`. The `vba-window` feature
-includes `vba`; it adds only native shell presentation, not another interpreter or
-process. Browser builds use `gridcraft-web/vba` and always embed the editor.
-Default application builds keep VBA disabled.
+Start with these references:
 
-## Scope contract
+- [Supported functions and features](vba/supported.md)
+- [Unsupported functions and features, and why](vba/unsupported.md)
+- [How the integration works](vba/integration.md)
 
-This project integrates VBA with capabilities GridCraft already has. It may add
-object-model bindings, typed adapters, dispatch, diagnostics and tests, but it
-does not add spreadsheet, UI, file, chart, pivot, provider, export or collaboration
-features merely because Excel exposes them through VBA. If the underlying behavior
-is not currently supported by GridCraft, the corresponding VBA member is
-`OUT_OF_SCOPE_GRIDCRAFT` and must fail explicitly or appear as unavailable in the
-compatibility report.
+## Enable VBA
 
-The accepted prioritization is in the
-[final v1 report](vba-object-model-v1-priority-final.md); the
-[implementation plan](vba-object-model-implementation-plan.md) applies its
-existing-capability gate before High/Medium/Low ordering. The
-[delivery stages](vba-object-model-implementation-plan.md#work-packets-and-delivery-order)
-put High roots/formulas/formatting/data/tables first, with events and protection
-alongside each operation, then selected Medium subsets. Low runtime work,
-including OM14/OM16/OM17 and Low members in mixed families, is deferred at this
-time. OM numbers are stable family IDs, not queue positions. A later GridCraft
-feature can make a member eligible, but that product work belongs to GridCraft's
-normal roadmap, not this integration workstream.
+VBA is disabled in the default application build. From the repository root, run:
 
-The [High family delivery](vba-object-model-implementation-plan.md#om07--om05--om06--om18-native-profile-delivery-2026-11-03)
-now includes formula/name/Evaluate/WorksheetFunction access, common formatting
-and conditional-format graphs, native sorting/filtering/validation/data tools,
-and local structured tables. Objects read the native workbook; changes retain
-native protection, recalc, undo and file persistence. The detailed table records
-unsupported options and interpreter limits. Compatibility tooling distinguishes
-`OUT_OF_SCOPE_GRIDCRAFT` from unavailable host services, and the audit retains
-`PARTIAL` for bounded Excel contracts. This is not whole-High or arbitrary-XLSM
-sign-off: Application.Run/interactive lifecycle obligations remain as documented.
+```sh
+# Embedded editor
+cargo run -p gridcraft --features vba
 
-`Application.Goto` accepts an explicit Range in the current workbook, activates
-its worksheet and selects its areas, with the first area's first cell active.
-Positional and named `Reference`/`Scroll` arguments are bound; `Scroll` may be
-omitted or False. String/procedure destinations, omitted-reference history,
-cross-workbook destinations and `Scroll:=True` explicitly fail.
+# Separate desktop editor window
+cargo run -p gridcraft --features vba-window
+```
 
-The recorded `Selection.Copy`, `Sheets(...).Select`, `Range.Select`,
-`ActiveSheet.Paste` sequence now uses the native engine clipboard. Single-area
-copies and paste footprints are capped at 65,536 cells, retain formulas/styles,
-obey sheet protection and share the macro undo group. Paste queues the existing
-Worksheet_Change callback with its full footprint. Worksheet.Activate and
-Select with Replace omitted/True are supported; Range.Select requires the active
-sheet. `Range.Copy Destination` now copies a bounded single-area range directly
-to a Range in the current workbook, including another worksheet, while preserving
-formulas/styles and delivering the destination Worksheet_Change callback.
-`Worksheet.Paste Destination` targets one Range in the current workbook and
-activates that destination worksheet. `Range.Cut` and `Application.CutCopyMode`
-stage bounded same-workbook moves; a rejected overlapping move leaves the source
-untouched. Linked pastes, grouped sheets, multi-area clipboard operations, Cut
-Destination and cross-workbook pastes explicitly refuse.
-`Range.PasteSpecial` supports the engine-backed XlPasteType subset, arithmetic
-operations, SkipBlanks and Transpose, using Excel's documented enum values;
-source-theme and conditional-format merge modes explicitly refuse.
-No system clipboard access is introduced.
+`vba-window` includes `vba` and uses the same project and execution session.
+Browser builds enable `gridcraft-web/vba` and embed the editor in the page.
+The pinned tiny-vba dependency supplies the compiler, interpreter and editor;
+you do not need a sibling repository checkout.
 
-GridCraft configures each macro invocation with bounded execution limits,
-including a 12,000 host-call cap and a 1 GiB payload cap for VM snapshots. The
-limits are cumulative across debugger pauses and resumes; worksheet UDFs retain
-their separate smaller budget. The fully populated 4x5/40-column ingredient
-loop passes the clipboard regression. This does not establish full Food.xlsm
-execution or Excel compatibility beyond the documented subset.
+## Run a macro
 
-The editor shows a blocked notice until workbook trust or explicit session consent
-permits execution. Click **Allow VBA for this editor session**, then Run or Into.
-The latest editor message is also shown above the toolbar, so host failures remain
-visible while Locals or another debugger tab is selected.
+1. Open or create a workbook. Enable **Developer** under **File → Options →
+   Customize Ribbon → Main Tabs** if the tab is hidden.
+2. Choose **Developer → Visual Basic**, or press **Alt+F11**. The editor opens
+   without executing imported source.
+3. Add a standard module and enter a procedure, for example:
 
-Developer → Visual Basic or Alt+F11 opens the editor; Macros → Edit selects a
-procedure in it. Enable Developer under File → Options → Customize Ribbon →
-Main Tabs. View → Macros → View Macros and Alt+F8 open the macro picker.
-There are no permanent VB/Macros launch buttons on the Quick Access Toolbar;
-only macros the user explicitly assigns appear there. Existing workbook source
-is read without execution; new projects start blank rather than loading a demo.
-No source change rewrites
-`vbaProject.bin`; save source to the workbook's GridCraft storage or export modules
-as plain source. The original binary project stays unchanged.
+   ```vb
+   Public Sub WriteTotal()
+       Dim sheet As Worksheet
+       Set sheet = ThisWorkbook.Worksheets(1)
+       sheet.Range("A1").Value2 = 12
+       sheet.Range("A2").Value2 = 30
+       sheet.Range("A3").Formula = "=SUM(A1:A2)"
+   End Sub
+   ```
 
-The interpreter, debugger, source importer and editor remain in the separate
-[tiny-vba repository](https://github.com/matt123p/tiny-vba), pinned by full Git
-revision in Cargo manifests/lockfile. No sibling checkout or copied interpreter
-code is needed. WordCraft can use the same native protocol and revision with its
-own document objects. Workspace-root egui patches select the shared reviewed fork.
-The pin is `8f4bebc3650cd51054fa6786f83a1ac73e07aeaf`; corpus/reference
-submodules are opt-in and are not fetched by dependency builds.
+4. Give explicit VBA permission when prompted, then select the procedure and
+   **Run**. Breakpoints, stepping, locals and diagnostics are available in the editor.
+5. Use **Save Source to Workbook** to retain standard-module source, then save
+   the workbook normally. You can also export modules as plain source files.
 
-## Ownership and commands
+**Alt+F8** or **View → Macros → View Macros** opens the macro picker. It lists
+public, no-argument Subs. **Edit** and **Step Into** open the selected procedure.
+Macro assignments to worksheet shapes and the Quick Access Toolbar are also
+available. Design Mode lets you edit assigned shapes without running them.
 
-`gridcraft-vba` is a toolkit-free L6 adapter above engine. The engine does not
-depend on it. `ui-egui/vba` adds a small shell module which mounts `vba-ui-egui`
-with existing GridCraft theme/font/scale tokens, source IO services and bounded
-logic ticks. Workbook writes call the native `Session::set_range_contents` API
-for the generic engine-owned `range.setContents` command;
-recalc, protection, recording and history stay in the engine. Typed native VBA
-values are converted only at that engine-command/workbook storage boundary;
-JSON is not the member-dispatch or mutation protocol. Successful writes serialize
-only their replayable journal/recording envelope. See [the native content API](native-cell-contents.md).
+## Use a worksheet function
 
-These UI-only command IDs go through `SheetApp::run` and `engine.execute` on the
-desktop control channel. Programmatic calls do not open dialogs:
-
-| Command | Parameters / behavior |
-|---|---|
-| `vba.open` | `{source?: string, project?: bool, separateWindow?: bool, entry?: string}`; open/focus shared project, optionally navigate to a procedure; never executes |
-| `vba.compile` | Compile current standard modules |
-| `vba.run` | `{entry?: string}`; Run/Continue, bounded by subsequent logic ticks |
-| `vba.stepInto`, `vba.stepOver`, `vba.stepOut` | Same shared debugger actions as toolbar |
-| `vba.pause`, `vba.reset` | Pause or stop; retain prior workbook writes |
-| `vba.status` | Mode, output and diagnostics |
-| `vba.showDeveloper` | `{on: bool}`; persisted ribbon preference, initially hidden |
-| `vba.apply` | Save current standard-module source to workbook and register its Functions |
-| `vba.entries` | Discover public no-argument Subs and public Functions, with signatures |
-| `vba.invoke` | `{entry: string}`; explicitly run a public no-argument Sub from an assignment |
-| `vba.assign` | `{entry, id?: shape id, at?: cell, caption?: string}`; assign existing shape or create a button at the selection/`at` |
-| `vba.pin` | `{entry, remove?: bool}`; add/remove a workbook macro on the Quick Access Toolbar |
-| `vba.designMode` | `{on: bool}`; select/move assigned shapes instead of executing them |
-| `vba.trust` | `{allow: bool}`; explicit consent for this editor/document instance |
-| `vba.return` | Return to the workbook, keeping source/debugger state |
-| `vba.close` | `{discard?: bool}`; refuse dirty source unless explicitly discarded |
-
-The shared editor's Save/Export writes plain source through the shell's existing
-file picker/download service. Import adds UTF-8 source. Browser source import can
-also use `vba.open {source: ...}`. This feature does not install a second editor.
-
-## Implemented object profile
-
-| Object | Supported members |
-|---|---|
-| Application | Application/Parent, ThisWorkbook/ActiveWorkbook, ActiveSheet, Worksheets/Sheets, Range, Cells, Rows, Columns |
-| Workbook | Name, Application/Parent, ActiveSheet, Worksheets/Sheets |
-| Worksheet | Name, Application/Parent, Range(Cell1, optional Cell2), Cells, Rows, Columns, UsedRange |
-| Range | Item/default Item, Cells/Rows/Columns, Areas, Row/Column/Count/CountLarge, relative Range, Offset/Resize, EntireRow/EntireColumn, End, Find/FindNext/FindPrevious, Insert/Delete; Value/Value2/Formula Get/Let and default Value, ClearContents, absolute Address; Application/Parent/Worksheet |
-| Worksheets/Sheets | Count, Item(index/name), default Item, bounded For Each, Parent/Application |
-| Areas | Count, Item/default Item, bounded For Each, Parent/Application |
-
-References are lightweight, including whole worksheets. Cells supports zero/one/two
-indexes, Excel Item argument names, column letters and shared VBA Long coercion.
-Rows/Columns expose subrange collections; Cells returns cell collections. Worksheet
-Range accepts A1, quoted sheet qualification, workbook/local reference names,
-colon, disjoint comma areas and intersections. Application.Range can resolve another
-worksheet; Worksheet/Range endpoints enforce ownership. Range.Range offsets literal
-addresses from its first area's origin; Range object endpoints remain absolute.
-Offset/Resize use checked bounds. Noncomputed defined names resolve with local-scope
-precedence and bounded recursion. See [M3 acceptance and exact boundaries](vba-m3-ranges-and-worksheets.md).
-
-Registered nominal types include Application, Workbook, Worksheet, Range,
-Worksheets, Sheets and Areas. Wrong classes fail with 13; stale/foreign/closed
-references fail with 91. Structural commands rebase existing references and deleted
-references fail with 1004. [M1.1 acceptance](vba-m1-types.md) records the generic type boundary.
-
-Imports include Application, ThisWorkbook, ActiveWorkbook, ActiveSheet, ActiveCell,
-Selection, Worksheets/Sheets, Range and Cells/Rows/Columns. Getter aliases resolve
-on each source access, while captured objects retain workbook/sheet ownership.
-ThisWorkbook is the code owner; active roots follow the visible application
-workbook. Scoped native targets restore the visible window after calls. Stable
-sheet identities preserve handles through rename/reorder; deleted sheets and
-closed workbooks fail explicitly. Consent remains per workbook.
-
-Value reads infer Date/Currency from formatting; Value2 retains Double. Typed
-Value writes respect date systems and atomically apply default formats to General
-cells, with Currency storage rounded to cents. Value2 preserves numeric storage.
-Reads return 1-based 2D Variant arrays; writes broadcast scalars or crop/fill a 2D
-array from arbitrary lower bounds (uncovered cells get CVErr(2042)). General
-strings use the engine's en-US input conversion; Text-formatted Value/Value2 text
-stays literal. Formula explicitly parses leading `=` even in Text cells.
-
-Address implements its five optional arguments and A1/R1C1, relative and external
-forms. Live NumberFormat, Font Bold/Italic/Name/Size/Color and Interior.Color use
-bounded protected native commands. Calculation settings and Calculate have real
-engine effects. Unsupported settings/members refuse explicitly; `ScreenUpdating`
-is out of scope while GridCraft has no matching behavior, while `EnableEvents`
-has the bounded M5 behavior below. See the
-[M4 contract and acceptance](vba-m4-identity-values-and-members.md) for exact
-boundaries, immutable dependency pin and executable evidence.
-
-Limits: 8,192 interned object handles; 64 disjoint areas; 65,536 materialized cells
-per read/write; 8 MiB value payload; 65,536 stored cells per End/Find scan, one million
-scanned entries and eight million wildcard matching steps per macro;
-tiny-vba's project/string/runtime budgets also apply. Unknown members fail with
-VBA error 438. Invalid indices/ranges, type errors, stale references and trust
-failures return explicit numbered errors and are visible to VBA handlers.
-
-## Lifecycle and boundaries
-
-File provenance requires explicit consent before **any** execution, including
-host-free code. Every tick and every late-bound host invocation rechecks trust
-and document identity. Script trust does not grant VBA consent or change file
-provenance. There is no automatic open-event execution.
-
-Each macro/event batch uses a spanning engine undo group, retained through
-break/step/resume. Completion and failure finalize successful writes as one undo
-entry; failures do not roll back earlier effects. Reset, close and trust revocation
-cancel queued callbacks. No mutable workbook borrow survives a host call or tick.
-The bridge remaps retained sheet references by stable sheet identity after topology
-changes; deleted or stale owners fail explicitly. Switching away from the workbook
-bound to this editor cancels active execution/event delivery.
-
-The implemented M5 slice supports inert import of standard, class and document
-modules, explicit trusted Workbook_Open, bounded Worksheet_Change delivery with
-EnableEvents, and the Range-aware worksheet-function surface documented below.
-Real Excel-authored packages decode: the MS-OVBA PROJECT stream's document-module
-cookie is read in its specified `&H` + 8-hex-digit form (a user-supplied workbook,
-`Food.xlsm`, previously refused, now imports its standard and document modules
-inertly with `vbaProject.bin` preserved byte-for-byte on save).
-The shared M2 designer/runtime can run `.tvform` forms through the workbook host;
-forms remain separate exchange files rather than workbook VBA metadata. The profile
-still lacks structural sheet/range mutations, cross-document objects, the complete
-Office event/catalogue surface, VBA binary project writeback/signature handling and
-external IO/COM. This remains a bounded compatibility projection, not general XLSM
-execution.
-
-## Spreadsheet workflows
-
-1. Build with `--features vba-window` for the separate desktop window or
-   `--features vba` for embedded mode. Developer → Code → **Visual Basic**, or
-   **Alt+F11**, opens/focuses the same shared editor. File → Options → Customize
-   Ribbon → Main Tabs → **Developer** exposes the initially hidden, persisted tab.
-   Developer → Code → **Macros**, View → Macros → **View Macros**, and **Alt+F8**
-   open the selectable procedure list. Choose **Edit** or **Step Into** to open
-   the selected procedure; **Run** executes it without opening the editor.
-2. Edit standard modules in the shared editor. **Save Source to Workbook** applies
-   source and registers public Functions; the workbook must then be saved normally.
-   Source is chunked through existing hidden-name storage, not a new VBA binary.
-   Opening/importing source never runs it. For file provenance, give explicit
-   session permission before running macros or calculating VBA functions.
-3. In Macros choose a public no-argument Sub and **Run**, **Edit** or **Step Into**.
-   Functions are excluded, as in Excel; they appear under Insert Function instead.
-   GridCraft-specific **Assign Button** / **Add to Toolbar** actions are under the
-   collapsed **GridCraft customizations** section. Developer → Controls → Insert
-   → Button opens the assignment picker with an **Assign** action. New buttons
-   are placed at the active cell (or `vba.assign.at`).
-   Right-click an existing shape → Assign Macro to assign/reassign it. Ordinary
-   clicks run its Sub; Design Mode allows selection, movement, resizing and deletion.
-   Source plus button insertion/assignment is one undo step, using engine commands.
-4. Public Functions are available in cell formulas and Insert Function's **User
-   Defined** results after applying source. For this independently authored example,
-   `=Triple(A1)` returns 21 when A1 is 7; normal dependency recalculation updates it:
+Apply a public Function with **Save Source to Workbook**, then use it in a cell:
 
 ```vb
 Public Function Triple(ByVal number As Double) As Double
@@ -258,386 +65,16 @@ Public Function Triple(ByVal number As Double) As Double
 End Function
 ```
 
-### Window ownership and launch overrides
+`=Triple(A1)` returns 21 when A1 contains 7. Applied Functions also appear in
+**Insert Function → User Defined**. Worksheet functions have a read-only workbook
+context and stricter execution limits than macros.
 
-With `vba-window`, the desktop shell creates one immediate native viewport after
-rendering workbook windows. Workbook editing stays visible and usable; the child
-renders the same `EditorUi`, `Ide` and `Bridge`. Only parent logic advances the VM.
-Macros launched from the worksheet bring the editor forward on a breakpoint or
-unhandled runtime failure.
-Repeated launch focuses the existing window. Alt+F11 or the editor's Return action
-returns focus to the workbook. Closing the editor's OS window hides it and retains
-source, breakpoints and state; closing the project or workbook still observes the
-existing dirty-source and cancellation guards. Native viewport state is excluded
-from the WASM build, which retains in-page presentation.
+## Opening Excel workbooks
 
-`vba.open {"separateWindow": false}` explicitly embeds even in a window-enabled
-desktop. `true` requires `vba-window` and a native window host; otherwise it returns
-an error. Omitting it chooses the build/host default on first launch and retains
-the current project's mode when reopening. Switching modes never creates another
-project or VM. `vba.status` reports `separateWindow` and `visible`.
+Imported VBA source is inert until you explicitly permit and run it. GridCraft
+preserves an existing `vbaProject.bin`, but source edits are saved in GridCraft's
+own workbook storage; they do not rewrite Excel's binary VBA project.
 
-The desktop feature uses the existing egui viewport backend, not IPC, filesystem
-source transfer, or a copied editor. `vba_windows` tests exercise nested native
-viewport input/close/focus and assert rendering does not run another VM slice.
-
-Functions accept scalar values and bounded rectangular reference values as
-one-based two-dimensional Variant arrays; return scalars or rectangular arrays
-through the normal spill engine. Ordinary ByRef parameters use owned temporaries,
-and omitted trailing optional parameters use the language compiler's defaults.
-Public Subs with parameters, Private procedures and Option Private Modules are
-excluded from the picker. Built-in worksheet functions retain precedence.
-
-The calculator exposes only the generic `calc::CustomFunctions` native provider,
-installed on one open document; no VBA dependency enters calc/engine. The adapter
-compiles independent wrapper procedures to retain the shared ByVal entry contract
-and VBA's own argument coercion/default handling. Each call has a fresh bounded VM:
-100,000 instructions, depth 64, 8 MiB payload; a pass shares one million instructions.
-Source is limited to 64 modules/4 MiB encoded storage; 256 functions, 32 MiB compiled
-estimate, 64 arguments, 65,536 cells per reference, 256 assignments per sheet and
-32 toolbar assignments. Exhausted/malformed calls return `#VALUE!` without writes;
-explicit supported CVErr values retain their worksheet errors.
-
-UDFs cannot invoke workbook operations, prompts or asynchronous host calls.
-The accepted M5 profile passes arguments declared `Range` or `Object` as read-only host Range
-objects. `Variant` and scalar parameters keep their normal value/array coercion while
-the calc bridge retains the original reference provenance. The profile also supports
-`Application.Caller`, `Application.Volatile`, workbook value reads and persistent
-project state. The read-only caller/range context exposes Value/Value2,
-Address, Row/Column, Count, Worksheet, Offset and Resize; worksheet Name/CodeName
-and parent workbook CodeName are readable. Cross-workbook/add-in registration and
-explicit interior omitted arguments remain unsupported. Consent
-is rechecked/revocable; closing the editor project or invalidating its document
-disables registered functions. Reopening stored source is inert; Apply or explicit
-consent re-registers it. Replaced/undone source cannot execute a stale compiled
-version: apply the desired source again. Sheet handles follow stable identities
-through supported topology changes; deleted owners/references fail instead of
-retargeting by ordinal. Authored acceptance confirms Caller/Row/Column, Address,
-Offset/Resize and Date/Currency `Value` typing versus numeric `Value2`; Currency
-coercion retains four decimal places. Shape-owned assignments survive sheet renames.
-
-`Worksheet_Change` currently covers VBA Range writes and native `cell.set`,
-`range.setContents`, `range.setValues`, `range.fill`, contents clear, Clear All,
-cut/paste, AutoFill, Series fill, directional fills, Flash Fill, sorting, removing
-duplicates and Text to Columns. Text to Columns reports its committed output range
-to the host event hook. Formats-only paste/fill operations are suppressed.
-The reviewed native mutation list is covered by authored event-source tests, including
-cell-editor commit, direct-control edits and pointer drag-cut delivery for both committed ranges.
-Format-only operations and no-op duplicate removal do not queue events.
-If a native edit commits but the bounded event queue is full, the edit remains
-committed and GridCraft reports that the event could not be queued. VBA Range
-writes, clears, clipboard operations, Replace and fills prepare the complete
-callback batch before mutation: queue/chain capacity, owner and Target handles,
-and callback arguments. A two-sheet cut reserves both events together. Event
-capacity or handle-allocation refusal therefore occurs before data, selection
-or clipboard effects. The post-success enqueue consumes the prepared batch
-without fallible allocation. Explicit, default and indexed assignments all use
-this path; ClearContents queues exactly one event. An unsuppressed write inside
-a callback queues a later event, including a default assignment.
-If a callback fails, remaining callbacks in the queued event batch are cancelled;
-successful writes already made remain in the grouped undo step. Reset, close and
-trust revocation also cancel queued callbacks before releasing the host.
-M5 document-event integration is accepted for the declared profile. Workbook and worksheet code names
-are imported inertly; `vba.workbookOpen` explicitly queues `Workbook_Open` after
-host authorization, including from Design mode without first running a separate macro.
-The IDE creates a verified idle session and delivers the handler through its normal
-debugger path. Worksheet callbacks scope
-unqualified Range/Cells/Rows/Columns construction to the owner sheet without
-changing active selection. `Me.Range` and declared sheet/workbook members dispatch
-through the captured live host owner; unsupported members still fail explicitly.
-Handlers belong to this bridge's workbook UID, so matching code names in another
-workbook cannot dispatch this project's handlers. Captured writes and callbacks
-continue to target the owning workbook while another workbook is active; scoped
-owner resolution restores the active workbook afterward.
-GridCraft's embedded IDE imports `.tvform` files through File → Import File (also
-available as the `vba.importSource` UI command) and runs the selected Label/TextBox/
-CommandButton profile through tiny-vba's shared form designer/runtime. TextBox and
-button callbacks use the workbook bridge; authored integration evidence covers cell
-writes and modal completion/close without a parked wait token. This does not add Office
-binary UserForm resources or workbook VBA project persistence for forms.
-Event notifications enter a FIFO queue and are delivered only after the current
-invocation/callback reaches a boundary; callback writes append later events instead
-of re-entering VBA. `EnableEvents = False` suppresses new notifications and discards
-the queued remainder; setting it True resumes future notifications. Each event chain
-is capped at 256 queued/delivered events. Reset/close/trust revocation and callback
-failure discard the remaining queue; an event is removed before dispatch and is never
-retried. A pause retains the undelivered tail until resume or cancellation.
-The complete scenario status and exact evidence are tracked in tiny-vba's
-[M5 acceptance map](../../tiny-vba/docs/m5-acceptance.md). The profile does not claim
-complete Excel compatibility: unsupported catalogue members, structural mutations,
-binary form resources and VBA project writeback remain outside scope.
-
-Buttons use original GridCraft shapes with inert `on_action` metadata.
-They implement the documented click/Assign Macro workflow, not Office Form Control
-or ActiveX serialization. `shape.setMacro {id, entry}` stores/removes an assignment
-without executing code. DrawingML's `macro` attribute and JSON preserve it on the
-shape itself; deletion and ID reuse cannot transfer it to an unrelated object.
-Source/toolbar data round-trip through GridCraft XLSX/JSON. Excel needs a real VBA
-project containing matching procedures: saving GridCraft source does not update
-that binary. Binary project writeback remains outside the shared import contract.
-
-### Public behavior references and provenance
-
-Consulted 2026-10-27: Microsoft's public tutorials for [running macros](https://support.microsoft.com/en-us/excel/run-a-macro-in-excel),
-[assigning worksheet buttons](https://support.microsoft.com/en-us/excel/assign-a-macro-to-a-form-or-a-control-button),
-[custom VBA functions](https://support.microsoft.com/en-us/excel/create-custom-functions-in-excel),
-[keyboard shortcuts](https://support.microsoft.com/en-us/accessibility/excel/keyboard-shortcuts-in-excel)
-and [Developer visibility](https://support.microsoft.com/en-us/office/add-ins/show-the-developer-tab).
-Shape metadata also follows public [OnAction](https://learn.microsoft.com/en-us/office/vba/api/excel.shape.onaction)
-and [DrawingML macro](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.drawing.spreadsheet.shape.macro)
-documentation.
-These are behavior references only. No tutorial code, text, images, Office binaries
-or external workbook fixtures were copied. Implementation, icons and test sources
-are independently authored; existing dependency licences remain unchanged. No
-fresh Microsoft oracle observation or complete Excel compatibility is claimed.
-
-## Validation and extension
-
-Window/launch correction acceptance (2026-10-28): `cargo xtask ci` passes all ten
-steps (2,553 tests). The full `vba-window` UI suite passes 1,150 tests, including
-21 VBA workflow and four native-viewport cases; the embedded-only workflow suite
-also passes. Strict all-target Clippy passes for embedded and window-enabled
-desktop builds. Browser application compilation and a WASM build with the window
-feature selected both pass; the latter still excludes native state and embeds.
-The real Windows desktop build was launched in an isolated, preferences-disabled
-session: distinct workbook/editor native windows were visually inspected, return
-to the workbook retained the project, and the smoke instance was closed afterward.
-Nine original light/dark/narrow renderings under ignored `target/vba-window-ui`
-were regenerated and reviewed. Logs are `target/vba-window-*`. No hosted CI run
-or manual macOS/Linux window test is claimed by this local evidence.
-
-`crates/vba/tests/workbooks.rs` owns real workbook acceptance, including undo,
-recalc, errors, typed arrays, trust, lifecycle and package preservation.
-`crates/vba/tests/worksheet.rs` covers UDF defaults, owned ByRef inputs, dependencies,
-scalar/errors/array spills, budgets, private scope and inert source/shape persistence.
-Repeated shared strings exceeding 32-bit logical byte totals are rejected before
-VBA UTF-16 allocation, with saturating payload accounting on native and WASM paths.
-`crates/engine/tests/shape_macros.rs` covers assignment protection, escaping,
-XLSX/JSON round trips and undo/removal; the authored ink case preserves inert
-imported action metadata without losing its geometry.
-`crates/ui-egui/tests/vba.rs` owns optional editor/control/accessibility acceptance.
-Run both plus the ordinary workspace CI/WASM gates; default CI does not enable
-optional features. Add any new Office member and its contract tests here, keeping
-language semantics and editor code in tiny-vba.
-
-Final acceptance evidence (2026-10-27): the complete ten-step GridCraft gate,
-the full optional UI suite (1,143 tests including 18 VBA interaction scenarios),
-strict optional all-target Clippy, actual desktop/browser builds and 25 adapter
-cases (2 project, 13 workbook, 10 worksheet) pass. Adapter cases execute both natively
-and in JavaScript-hosted WASM. Nine original editor/worksheet/picker PNGs were
-rendered in light, dark and narrow/scaled modes and visually reviewed in ignored
-`target/worksheet-ui`. The separate tiny-vba merged revision passes CI, WASM and
-WASI execution. Logs are ignored under `target/worksheet-final-*`; this is local
-acceptance, not a claim that the edited hosted CI workflow has already run.
-
-The same adapter tests also use `wasm-bindgen-test` on wasm32-unknown-unknown.
-Use Node 22 (matching CI), install `wasm-bindgen-cli` 0.2.129, set
-`CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner`, and run
-`cargo test -p gridcraft-vba --target wasm32-unknown-unknown`. These execute in
-JavaScript (Node), including GridCraft's browser clock imports. WASI is not a
-supported GridCraft target. The optional CI job runs native, shared UI, strict
-Clippy, browser compilation and JavaScript-hosted WASM acceptance explicitly.
-
-The staged cross-repository evidence and resumption record lives in tiny-vba's
-`docs/gridcraft-integration.md`.
-
-2026-10-29: M3 adds bounded range geometry, sparse navigation/search and native
-structural command coverage; see the M3 acceptance report for validation and gaps.
-
-The M3 dependency update includes the shared M2 class/form editor. Current workbook
-source persistence explicitly refuses classes/forms before effects; export them
-separately. Dirty design state blocks implicit close. Workbook form storage remains
-outside this profile; M5 document/event execution is partially implemented below.
-
-2026-10-29: M4 adds stable document/sheet ownership, dynamic active roots, typed
-Value conversion, Address arguments and live formatting/calculation. The shared getter prerequisite is published and pinned by immutable Git revision;
-the temporary local override is removed.
-
-## Event remediation revision (2026-11-03)
-
-Document-targeted callback ownership and complete pre-mutation event reservation
-are implemented in the optional adapter. The [implementation plan](vba-object-model-implementation-plan.md#event-remediation-2026-11-03)
-records the failing regressions, corrected assignment/ClearContents behavior and
-validation evidence.
-
-Remediation validation passes 121 native adapter tests, 119 JavaScript-hosted
-WASM tests (Node 22), and 32 VBA UI/event/form/window tests. The audit, strict
-Clippy, layering and VBA-enabled web build pass. Full workspace CI reaches two
-unrelated missing-glyph failures without the optional craft-fonts checkout;
-exact commands and limitations are recorded in the implementation plan.
-
-
-## OM03/OM04 lifecycle subset (2026-11-03)
-
-`Application.Workbooks` and unqualified `Workbooks` expose the live session through
-Count, one-based/name Item, default access and For Each. Add supports the native
-new-file preference or `xlWBATWorksheet`. Open uses an explicit file name and
-optional password, preserves the code-owner workbook, and never grants consent
-or executes imported code. Imported handles require consent in their own host;
-opening from VBA does not silently authorize another document.
-
-Workbook Activate, Path, FullName, CodeName and read-only Saved project native
-state. Save/SaveAs/SaveCopyAs use native OOXML persistence with limited format
-options. SaveCopyAs retains the original path/saved state. Explicitly injected
-open/save pickers and Save Changes decisions can suspend the existing VM; headless
-hosts without those services use explicit arguments or receive an error. Browser
-builds retain their filesystem/service limits. BeforeSave/BeforeClose hold native
-effects until document and connected Application callbacks finish, carrying ByRef
-Cancel in order. AfterSave follows actual IO with success/failure. Reset, stale
-source, trust revocation and close invalidate parked operations and prompt tokens.
-
-Worksheets/Sheets.Add accepts Before/After, Count and worksheet Type. Worksheet
-Move/Copy require a same-workbook destination; copying sheets with CodeName, tables or preserved package parts,
-new-workbook transfers and cross-workbook transfers require missing native project
-transfer services. Index and read-only CodeName use native metadata. Visible
-supports all three native visibility states, and Delete preserves the last visible
-sheet. Existing handles follow sheet identities across insert/move/delete.
-Workbook structure Protect/Unprotect uses native password checks.
-
-Application Name/Version/OperatingSystem report GridCraft metadata. CalculateFull
-and CalculateFullRebuild invoke the native full rebuild. Iteration, MaxIterations
-and MaxChange read active workbook settings; setters update currently open
-workbooks after consent/group preflight. New documents retain native iteration
-settings. Application.Run invokes public procedures in the current running project,
-including module/workbook qualification, optional/default/ParamArray arguments,
-nested results, catchable lookup failures and terminal unhandled child errors.
-Arguments are positional. It shares the live project's globals, debugger
-and cumulative budgets. Another project's macros require a missing native shared
-project host and refuse explicitly.
-
-These are bounded subsets. The [implementation progress ledger](vba-object-model-implementation-plan.md#om03om04-implementation-progress-2026-11-03)
-records exact options and engine evidence. The [High closure record](vba-object-model-implementation-plan.md#high-native-profile-closure-2026-11-03)
-and [evidence ledger](vba-object-model-high-acceptance.json) complete the selected
-High native profiles and retain exact platform/scope exclusions. The Microsoft
-source catalogue remains partial; general Medium and all Low work retain their
-accepted priority. Native save/close callbacks also apply to shell/control commands;
-`vba.status.lifecycle` exposes pending/completed/cancelled/failed state.
-
-
-Font-enabled retest (2026-11-03): enabling the existing CI-pinned
-`target/craft-fonts` checkout with `CRAFT_FONTS_DIR` and
-`CRAFT_FONTS_REQUIRED=1` resolves both missing-glyph failures. All 903 UI
-integration tests and all ten `cargo xtask ci` stages pass. The implementation
-plan records the exact invocation; no glyph assertions or font policy changed.
-
-## OM12 charts and drawings (2026-11-03)
-
-Existing native charts, series, trendlines, axes/titles/value labels, chart/plot
-areas and worksheet shapes are reachable through typed Excel objects. Shapes
-include native embedded pictures, textboxes and the supported presets. Text uses
-Characters and Office TextFrame2/TextRange2/Font2; fill/line colors and represented
-text formatting write the existing native model through commands. Collections,
-ShapeRange snapshots, placement, geometry, OnAction and native layer z-order
-retain document ownership, protection, grouped undo and lifetime identity.
-
-OM12 is complete for its existing basic native profile. Medium continues with
-OM13. The [completion record](vba-object-model-implementation-plan.md#om12-native-profile-completion-2026-11-03)
-and [acceptance ledger](vba-object-model-om12-acceptance.json) give exact bounds and
-exclusions: blank charts, chart sheets, persistent groups/connectors, object
-clipboard, chart-only export and independent unsupported child/effect state are
-not projected. Explicit native picture paths use the existing file service;
-browser filesystem calls refuse before insertion. No dummy data or inert group
-objects are created to satisfy an Excel-shaped call.
-
-
-## OM13 local pivots and table slicers (2026-11-03)
-
-Typed PivotTables, report-owned PivotCache views, fields/items, calculated fields,
-manual filters, native layouts/value settings and drilldown now use the existing
-pivot engine. Existing PivotCharts expose their real PivotLayout and report.
-Source changes and deleted/recreated definitions invalidate parked descendants;
-all effects retain native protection, overlap checks and grouped undo.
-
-Existing table slicers expose widget/cache/item views and native filtering,
-formatting and geometry. These are per-widget views, without shared/pivot/OLAP or
-timeline cache services. Native slicer widgets serialize in model snapshots and
-undo; **the native XLSX slicer codec is absent** and remains a product gap.
-
-OM13 is complete for its existing local native profile. Standalone/shared pivot
-caches, external model/provider services and unsupported Excel leaves remain
-explicit exclusions in the [acceptance ledger](vba-object-model-om13-acceptance.json)
-and [completion record](vba-object-model-implementation-plan.md#om13-native-local-pivot-profile-completion-2026-11-03).
-
-
-## OM08 windows, saved views and watches (2026-11-03)
-
-`ActiveWindow`, application/workbook Windows collections and native Window handles
-now preserve native window identity, per-window selection and active-sheet state.
-Read-only inspection restores both user focus and inactive workbooks' live views
-without changing activation order. Parent/Application, native captions and numbers,
-selected sheets, activation, new windows, visibility and close operations are
-available. Global collections remain valid when another workbook closes.
-Last-window Close shares the existing workbook callbacks/save prompts and returns
-Boolean completion, including False on cancellation. Trust checks still apply.
-
-CustomViews reuse native snapshots of sheet ordinal, selection, sheet zoom and
-sheet freeze; Add requires explicit False for PrintSettings and RowColSettings.
-Native XLSX preserves these snapshots. Recreate saved views after sheet topology
-changes: native snapshots retain ordinal references. Watches aggregate native
-workbook lists, support single-cell Range sources and use native deletion/undo
-behavior. Stored watch references are text and do not track sheet rename/deletion.
-Edits invalidate prior CustomView or Watch handles through their native stash
-identity; reacquire those handles after editing the collection.
-
-Zoom, freeze/split, gridlines/headings and display modes remain worksheet-owned
-native state. Their independent Window/Panes projections are explicitly unavailable.
-Goto Scroll=True refuses with multiple windows on one workbook before changing
-selection or history; its existing single-window saved-scroll behavior remains.
-Geometry, VisibleRange, pixel conversions and arrangement require a real native
-or browser window service. Headless does not report fabricated measurements.
-The [OM08 ledger](vba-object-model-om08-acceptance.json) and
-[completion record](vba-object-model-implementation-plan.md#om08-native-window-profile-completion-2026-11-03)
-record 50 tested contracts and the remaining backend/service gaps.
-
-
-## OM09 native protection permissions (2026-11-03)
-
-Worksheet.Protection now exposes native allowed-action flags and AllowEditRanges.
-Typed edit ranges support bounded lookup/enumeration, Add, Title rename, Range,
-ChangePassword, Unprotect and Delete using native commands. Handles follow native
-lifetimes through COW/undo; deletion/recreation cannot rebind them. Changing a
-definition or deleting its worksheet revokes its session authentication.
-Range.AllowEdit reports the native content-edit policy for up to 65,536 cells.
-XLSX preserves hashes/options/ranges, while session unlocks are never persisted.
-
-EnableSelection updates native protected-sheet selection flags while preserving
-the password and all edit rights. Setting it before Protect is unsupported because
-the native model has no dormant selection preference. UI-only protection remains
-unsupported, and unsupported grant options refuse before effects. Permission getters
-are read-only; status flags reflect native worksheet protection, not independent
-object/scenario protection modes.
-
-The [OM09 ledger](vba-object-model-om09-acceptance.json) records 33 required contracts
-and their bounds. IRM, resolved user ACLs, protected-view windows, independent chart
-protection, write reservation/sharing, signatures and encryption settings/writing
-have no eligible native backend. Stored Windows security descriptors remain opaque
-metadata. Existing encrypted-file opening still uses Workbooks.Open Password;
-code consent and a password string never imply document encryption or IRM.
-
-
-## OM10 page setup, printing and PDF export (2026-11-03)
-
-Worksheet.PageSetup now projects native paper/orientation/margins, print area and
-titles, scale/fit and layout flags, plus first/even-page header/footer definitions.
-Pages and automatic breaks use native pagination; numbered pages and break handles
-are revision-bound snapshots and must be reacquired after native commands change
-the revision. Manual break operations and setting mutations use existing engine
-commands, with input validation before effects. Native XLSX retains print settings.
-
-ExportAsFixedFormat supports native PDF for visible-workbook, worksheet and single-
-rectangle scopes, including IgnorePrintAreas and explicit inactive receivers.
-Native export uses the atomic writer or existing save picker; browser export uses
-the connected download callback. PrintOut uses the actual printer worker/browser
-print callback, and ActivePrinter accesses real UI printer settings. PrintPreview
-opens Backstage and waits until closed for workbook/single-sheet scope. Owned
-continuations carry tokens/bytes/identities across waits, recheck trust/liveness and
-propagate cancellation or service errors. Rendering a PDF alone never claims that
-printing, preview or download succeeded.
-
-The [OM10 ledger](vba-object-model-om10-acceptance.json) specifies 86 required
-contracts and exact limits: native paper enum subset, no dormant fit counts,
-255-character combined headers, 2000 pages, 1026 markers per axis, supported copies
-and actual printer selection. Unsupported page intervals, quality/metadata/viewer
-options, range/group preview, read-only preview controls, header pictures and
-independent chart print configuration refuse. No new renderer, codec, workflow,
-vendor asset or tiny-vba dependency revision is introduced.
+Compatibility depends on the functions, members, options and external services a
+macro uses. Check the [supported reference](vba/supported.md) and
+[known restrictions](vba/unsupported.md) before relying on an existing Excel macro.

@@ -1,16 +1,10 @@
-# VBA object-model audit report
+# VBA source catalogue
 
-Pinned source: MicrosoftDocs/VBA-Docs `b202c96d9d53896593b73d6fae57f5230601a5e3` (SHA256 `285218108a034fc33acc8296d714395fd182397ada27c848b93c3d5423efd75e`).
+This generated index maps the pinned public Excel reference to GridCraft's adapter. For practical feature guidance, read [supported features](../supported.md) and [unsupported features](../unsupported.md). Catalogue PARTIAL/MISSING states describe source coverage, not promises about every Excel option.
 
-5996 source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).
+Pinned source: MicrosoftDocs/VBA-Docs `b202c96d9d53896593b73d6fae57f5230601a5e3` (SHA256 `285218108a034fc33acc8296d714395fd182397ada27c848b93c3d5423efd75e`). 5996 source pages retained; source-page counts are not compatibility percentages.
 
-Selected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.
-
-OM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).
-
-OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). OM15 owned native dialogs/pickers, status visibility, autocomplete and cell-control acceptance: [evidence ledger](vba-object-model-om15-acceptance.json). These are native profiles, not whole-reference compatibility claims.
-
-## State counts
+## Source coverage
 
 - `MISSING`: 2676
 - `OUT_OF_SCOPE_GRIDCRAFT`: 1115
@@ -18,9 +12,9 @@ OM08 native window, saved-view and watch-list acceptance with ownership/service 
 - `PLATFORM_SERVICE_NEEDED`: 21
 - `REFERENCE_ALIAS`: 283
 
-## OM20 bounded-profile acceptance
+## Native profile evidence
 
-[Profile sign-off and scope](vba-object-model-profile-report.md) keeps planning disposition independent of raw catalogue evidence. Exact source paths and method/event kinds remain distinct.
+[Native profile and scope](vba-object-model-profile-report.md) keeps planning disposition independent of raw catalogue evidence. Exact source paths and method/event kinds remain distinct.
 
 ## Unresolved audit rows
 

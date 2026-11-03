@@ -34,8 +34,9 @@ fn scalar(ty: &str) -> bool {
 }
 
 pub(super) fn reconcile(root: &Path, rows: &mut [Value], descriptors: &BTreeMap<(String, String), MemberDescriptor>) -> Result<Value, String> {
-    let spec: Value = serde_json::from_slice(&fs::read(root.join("docs/vba-object-model-om20-acceptance.json")).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+    let spec: Value =
+        serde_json::from_slice(&fs::read(root.join("docs/vba/reference/vba-object-model-om20-acceptance.json")).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?;
     if spec["profile"] != "GridCraft.Excel.v1"
         || spec["documentation_commit"] != super::vba_audit::COMMIT
         || spec["status"] != "ACCEPTED_BOUNDED_NATIVE_PROFILE"
@@ -48,8 +49,8 @@ pub(super) fn reconcile(root: &Path, rows: &mut [Value], descriptors: &BTreeMap<
     if dependencies.is_empty() || dependencies.iter().any(|line| !line.contains(&format!("rev = \"{pin}\""))) {
         return Err("tiny-vba revision does not match profile sign-off".into());
     }
-    let expected_ledgers = std::iter::once("docs/vba-object-model-high-acceptance.json".to_owned())
-        .chain(["om12", "om13", "om08", "om09", "om10", "om19", "om15"].map(|p| format!("docs/vba-object-model-{p}-acceptance.json")))
+    let expected_ledgers = std::iter::once("docs/vba/reference/vba-object-model-high-acceptance.json".to_owned())
+        .chain(["om12", "om13", "om08", "om09", "om10", "om19", "om15"].map(|p| format!("docs/vba/reference/vba-object-model-{p}-acceptance.json")))
         .collect::<BTreeSet<_>>();
     let declared_ledgers = strings(&spec["accepted_ledgers"])?;
     if declared_ledgers.iter().cloned().collect::<BTreeSet<_>>() != expected_ledgers || declared_ledgers.len() != 8 {
@@ -458,7 +459,7 @@ fn reachability(root: &Path, descriptors: &BTreeMap<(String, String), MemberDesc
 }
 pub(super) fn report(profile: &Value) -> Result<String, String> {
     let mut out = format!(
-        "# Excel VBA bounded native profile sign-off\n\nProfile `{}` · reviewed 2026-11-03 · status **{}**.\n\n{}\n\n{} pinned source pages retained; **{} required source IDs** resolved, **{} nominal object types** reachable from Application, with checked signatures and reviewed dynamic edges. Source-page counts are not an Excel compatibility percentage.\n\n## Planning dispositions\n\n| Disposition | Source pages |\n|---|---:|\n",
+        "# VBA native object profile\n\nProfile `{}` · reviewed 2026-11-03 · status **{}**.\n\n{}\n\n{} pinned source pages retained; **{} required source IDs** resolved, **{} nominal object types** reachable from Application, with checked signatures and reviewed dynamic edges. Source-page counts are not an Excel compatibility percentage.\n\n## Source classification\n\n| Disposition | Source pages |\n|---|---:|\n",
         profile["profile"].as_str().unwrap_or(""),
         profile["status"].as_str().unwrap_or(""),
         profile["scope"].as_str().unwrap_or(""),
@@ -474,15 +475,15 @@ pub(super) fn report(profile: &Value) -> Result<String, String> {
     }
     out.push_str("\nHigh reference extensions retain High priority and their literal missing/partial catalogue state; they are outside the already accepted native obligations and are not certified or downgraded. A missing adapter does not establish a missing GridCraft feature. Unselected Medium and every Low runtime projection remain outside this sign-off.\n\n## Provenance and acceptance evidence\n\n");
     for path in strings(&profile["accepted_ledgers"])? {
-        let name = path.strip_prefix("docs/").unwrap_or(&path);
+        let name = path.strip_prefix("docs/vba/reference/").unwrap_or(&path);
         out.push_str(&format!("- [{name}]({name})\n"));
     }
     out.push_str(&format!("\nAll **{}** Graph topics are explicitly a separate legacy namespace and deferred Low. **{}** same-name source groups retain distinct method/property/event identities. Four deprecated enum pages contain no numeric table; no values are invented.\n\nThe [generated contracts](vba-object-model-contracts.json) contain the exact remaining source rows and per-row priority, disposition, eligibility-evidence boundary, namespace and stable source-path key. The [machine-checked profile](vba-object-model-profile.json) contains graph witnesses and collision/exception records. The [OM20 acceptance specification](vba-object-model-om20-acceptance.json) defines scope and dynamic factories. Existing native/wasm, UI, service, persistence and protection evidence remains owned by each ledger; current metadata does not imply new Excel event signals.\n",profile["legacy_graph_pages"],profile["source_identity_collisions"].as_array().map_or(0,Vec::len)));
     Ok(out)
 }
 pub(super) fn emit(root: &Path, profile: &Value, write: bool) -> Result<(), String> {
-    let path = root.join("docs/vba-object-model-profile.json");
-    let report_path = root.join("docs/vba-object-model-profile-report.md");
+    let path = root.join("docs/vba/reference/vba-object-model-profile.json");
+    let report_path = root.join("docs/vba/reference/vba-object-model-profile-report.md");
     let text = report(profile)?;
     if write {
         fs::write(&path, serde_json::to_vec_pretty(profile).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
@@ -505,7 +506,7 @@ mod tests {
         gridcraft_vba::member_descriptors().into_iter().map(|d| ((fold(d.owner), fold(d.name)), d)).collect()
     }
     fn spec() -> Value {
-        serde_json::from_slice(&fs::read(crate::root().join("docs/vba-object-model-om20-acceptance.json")).unwrap()).unwrap()
+        serde_json::from_slice(&fs::read(crate::root().join("docs/vba/reference/vba-object-model-om20-acceptance.json")).unwrap()).unwrap()
     }
     #[test]
     fn dangling_result_types_and_unreachable_dynamic_receivers_block_signoff() {
@@ -529,7 +530,8 @@ mod tests {
     }
     #[test]
     fn missing_required_evidence_blocks_acceptance_without_reclassifying_it() {
-        let doc: Value = serde_json::from_slice(&fs::read(crate::root().join("docs/vba-object-model-contracts.json")).unwrap()).unwrap();
+        let doc: Value =
+            serde_json::from_slice(&fs::read(crate::root().join("docs/vba/reference/vba-object-model-contracts.json")).unwrap()).unwrap();
         let mut rows = doc["pages"].as_array().unwrap().clone();
         let row = rows.iter_mut().find(|r| r["id"] == "Workbooks.Item").unwrap();
         row["implementation_symbol"] = Value::Null;

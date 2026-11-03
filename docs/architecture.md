@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 High-extension evidence and coverage validation) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (optional VBA integration) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -29,68 +29,10 @@ including tests, 2026-10-10.
 
 ## Data flow
 
-Optional VBA integration is isolated in toolkit-free `gridcraft-vba` at L6 above
-engine and the `ui-egui/vba` shell feature. The engine has no VBA dependency; the
-separate tiny-vba Git repository supplies the compiler/VM and reusable editor.
-Workbook mutations remain engine commands. See [the profile and lifecycle](vba.md).
-The [object-model architecture review](vba-object-model-implementation-plan.md#architecture-review-and-low-friction-delivery-2026-11-03)
-keeps this boundary: Excel semantics stay in private adapter family modules;
-engine changes may expose existing behavior through small host-neutral targeted,
-typed or preview APIs sharing command execution. No VBA types or dependency
-enter the engine. Formula/name, formatting/rules, data/outline/what-if/scenario
-and local-table projections now live in private family modules, sharing the same
-handle registry and member descriptors. Native name/rule/table/column identities
-reject stale recreated objects; native writer previews reserve computed callback
-destinations. Cell/calculator matrices convert row-major storage to the VM's
-column-major arrays at each boundary, including read-only worksheet UDFs.
-See the [High-family delivery](vba-object-model-implementation-plan.md#om07--om05--om06--om18-native-profile-delivery-2026-11-03)
-for native backing, limits and regression evidence.
-The adapter now prepares each synchronous mutation's entire event batch before
-engine effects: callback owner/Target handles, arguments and queue capacity.
-Commit queues that batch without fallible allocation. Callback lookup and delivery
-use the bound workbook identity; identical code names in another workbook cannot
-select its handlers. See the [remediation evidence](vba-object-model-implementation-plan.md#event-remediation-2026-11-03).
-Excel type descriptors and the type resolver live exclusively in `gridcraft-vba`.
-OM20 exports nominal metadata from the live ReferenceSet rather than a second
-registry. The optional offline audit checks typed reachability from Application,
-reviewed dynamic factories, enum dependencies and collection/default contracts.
-Source-kind and legacy namespace keys keep same-name methods/events distinct;
-static graph witnesses supplement the owning runtime evidence.
-The High-extension review adds a separate explicit source-path ledger. The
-offline audit rejects uncovered/duplicate pages and missing native evidence
-anchors, checks the ordered projection queue, and attaches capability decisions
-without changing priorities or runtime result states. Evidence-location checks
-do not prove complete Excel behavior or the continuing absence of a capability. See the
-[bounded profile sign-off](vba-object-model-profile-report.md).
-The resolver shares the bridge's existing object store with bounded read queries;
-no document borrow or store lock survives a query/host call. tiny-vba owns only
-generic identity, verified metadata and validation. [M1.1 evidence](vba-m1-types.md)
-records the ownership and lifecycle checks.
-OM15 interaction requests reuse the same bounded host-operation store. They own
-only tokens, payloads and native identity/selection snapshots across frames;
-UI modal effects recheck owner and consent and complete through actual command
-OK/Cancel. Native column completion is shared as a toolkit-free engine query
-rather than copied into the VBA adapter. Cell-checkbox binding keeps native
-commands, pre-reserved value-change events, protection and undo.
-
-Object-model scheduling follows the [priority delivery stages](vba-object-model-implementation-plan.md#work-packets-and-delivery-order):
-eligible High first, then selected Medium subsets; Low runtime work is deferred.
-OM IDs remain stable catalogue identifiers, with event/protection work attached
-to each supported operation rather than delayed to numeric packet order.
-The optional `vba-window` desktop feature presents the same editor/session in one
-immediate egui viewport, created by the native shell after workbook windows draw.
-The root remains the only execution driver; child rendering cannot replay host
-effects. `vba` retains embedded presentation, including browser/headless hosts.
-The calculator's optional `CustomFunctions` value-only native trait accepts an
-application provider per open workbook. Its default is absent; it introduces no
-VBA dependencies below L6. The fork owns bounded UDF execution and consent.
-Source/toolbar assignments use the existing chunked hidden-name store via the
-generic undoable `workbook.setItem` command. Shape-owned inert `on_action` data
-uses `shape.setMacro` and DrawingML's `macro` attribute, so assignments follow
-their objects through rename, copy, deletion, undo and package ID remapping.
-The engine's [native content API](native-cell-contents.md) shares the ordinary
-command executor and edit/commit path; it bypasses JSON mutation dispatch while
-producing the same journal/recording envelope for replay.
+Optional VBA runs in the toolkit-free `gridcraft-vba` adapter above the engine.
+It uses the separate tiny-vba compiler, VM and editor; workbook changes use native
+commands. See [VBA integration](vba/integration.md) for the architecture, object
+lifetimes, events and host services.
 
 1. **Every action is a command.** The UI, CLI, control channel and MCP call
    `Session::execute(id, params)`. Commands are `CommandSpec { id, label, menu, shortcut, params,
@@ -218,190 +160,13 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 - XLSX reader builds the whole workbook in memory; no streaming (#175).
 - Unmodelled XLSX parts are not carried through a save.
 
-The OM03/OM04 projections use private `vba::application` and `vba::lifecycle`
-family handlers behind the existing shared dispatcher and registry. Workbooks is
-a global collection; its items retain document-qualified identities. Workbook
-activation is committed after temporary targeting is restored. Native file-open
-and visibility seams expose existing engine behavior, while `file.saveCopy`
-reuses serialization/link rebasing without changing the saved snapshot. App-wide
-calculation reserves all groups and checks each participant's consent before
-mutation. Private `vba::host_ops` owns bounded Run/file/decision continuations;
-`vba::lifecycle_events` exposes cancellable precommit batches to the thin native
-shell. Both use tiny-vba's explicit parked frames and normal debugger ticks in the
-same VM. Generic typed result/error/ByRef and optional/default/ParamArray contracts
-stay upstream under ADR 0035. IO, consent, object identities, ordering and commit
-ownership stay here; no document borrow survives a callback or prompt. The
-[High closure record](vba-object-model-implementation-plan.md#high-native-profile-closure-2026-11-03)
-and machine-readable acceptance ledger define the exact delivered profile.
-
 ## Revision history
-
-- 2026-11-03: Added OM03/OM04 private projection handlers and native lifecycle seams; retained explicit invocation/transfer service gaps.
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-11-03 | minor | Checked High-extension capability ledger and generated queue; runtime acceptance independent |
-| 2026-11-03 | minor | OM20 live reference metadata, source-kind reconciliation and bounded graph sign-off |
-| 2026-11-03 | minor | OM15 owned interaction boundary and native column-completion sharing |
-| 2026-11-03 | minor | OM10 native print projections and owned printer/download/picker/preview continuations wired to real UI services |
-| 2026-11-03 | minor | OM09 native permission/edit-range projection, definition lifetimes, grant revocation and selection-only command plumbing |
-| 2026-11-03 | minor | OM08 native window scopes, session-owned window/watch collections, close continuations and explicit worksheet/window state boundary |
-| 2026-11-03 | minor | OM13 native local pivot/field/item/slicer graph, source lifetimes, report-owned cache views and explicit persistence/service boundaries |
-| 2026-11-03 | minor | Complete OM12 native chart/drawing graph, series/trendline/shape identities, Office child types and bounded snapshots |
-| 2026-11-03 | minor | First OM12 embedded chart projection, nonserialized chart identity, explicit native sheet routing and renderer/round-trip evidence |
-| 2026-11-03 | minor | OM03/OM04 suspended host operations, cancellable OM11 native lifecycle events and High evidence reconciliation |
 | 2026-11-03 | minor | Linked priority-based OM delivery: High first, selected Medium next, Low deferred; stable IDs retained |
-| 2026-11-03 | minor | Native-backed High VBA formula, formatting, data and table family modules; live identities, writer previews and matrix-layout conversion |
-| 2026-11-03 | minor | VBA event batches prepared before mutation; callback ownership remains bound across workbook activation |
-| 2026-11-03 | minor | Reviewed VBA boundary, narrow engine plumbing and incremental object-model delivery; linked concrete Rust findings |
-| 2026-10-28 | minor | Optional native VBA viewport with shared session, embedded override and Excel-style entry routes |
-| 2026-10-27 | minor | Generic custom calculation provider and workbook item command; fork-owned VBA worksheet functions and assigned UI controls |
-| 2026-10-27 | minor | Native typed cell-content command shares command lifecycle and removes VBA's Text-format write limitation |
-| 2026-10-27 | minor | Optional separate-repository tiny-vba adapter and shared editor; engine command/undo/recalc ownership retained |
-| 2026-10-28 | minor | Registered Excel nominal types and shared-store read-only resolver stay in the optional adapter; generic IR 5/type rules remain in tiny-vba |
 | 2026-10-25 | trivial | The hidden names that hold macros are `_gc_macro_<n>_<k>` |
 | 2026-10-24 | minor | Macro engine on the building blocks (`macros/`, `cmd/macros.rs`) |
 | 2026-10-24 | minor | Engine building blocks for multi-command actions: undo groups, recording buffer, document trust, chunked hidden-name storage |
 | 2026-10-14 | minor | Document Undo's retained-cell-storage budget and latest-step guarantee |
 | 2026-10-10 | major | Created from the code on main: crates, layers, data flow, agent control, known gaps |
-
-## M4 document/object identity amendment (2026-10-29)
-
-The model supplies process-local sheet identity tokens preserved by COW/undo;
-copy/import creates a new token. Tokens are excluded from serialized data and
-content equality. The fork-owned bridge qualifies handles with document UIDs,
-resolves dynamic getters on each source access and uses existing engine scoped
-targets, per-document consent and undo groups. No document borrow survives a call.
-External structural/undo epochs invalidate saved coordinates; native VBA structural
-commands still rebase them. Native typed values/formats and style changes share
-command protection/undo/recording. No new layer edge or Office definitions enter
-tiny-vba. See [the contract/evidence](vba-m4-identity-values-and-members.md).
-
-## OM12 embedded chart projection (2026-11-03)
-
-The private optional `vba::chart_api` projects existing chart containers/settings,
-source ranges, titles, legends and geometry through native chart/anchor commands.
-Explicit sheet parameters retain owner identity without switching the active view.
-Chart's nonserialized process-local identity follows the sheet/table COW/undo
-contract and prevents reused numeric IDs from retargeting captured VBA objects.
-The adapter snapshots bounded scalar metadata, not series payloads; the existing
-chart resolver/renderer and XLSX writer remain authoritative. See the
-[Medium kickoff record](vba-object-model-implementation-plan.md#medium-kickoff--om12-embedded-chart-slice-2026-11-03).
-
-
-## OM12 chart and drawing graph completion (2026-11-03)
-
-The optional bridge adds private `series_api`, `chart_parts_api` and `drawing_api`
-modules beside `chart_api`. All nodes use the existing document-qualified Feature
-registry and nominal type resolver. ShapeRange stores bounded flat child handles;
-its child weight is charged against the shared registry budget and sheet remaps
-update both the range and its children. Native series, trendlines, shapes and
-images use the same nonserialized lifetime-token pattern as charts and sheets.
-
-Mutations stay in engine commands, including narrow native-field patches for
-series/trendlines and ShapeFormat. Explicit sheet routing targets inactive owners
-without changing the user's view. `chart.move` separates owner and destination
-parameters. Renderer `render_layout` returns the computed automatic plot/axis
-layout alongside the same primitive output as `render`; the VBA adapter reuses
-that calculation. It does not contain a competing layout or chart algorithm.
-
-The reference set includes fork-owned Office child types and enum facts verified
-from the pinned archive. Shared Office contracts outside the Excel inventory are
-reported separately. The [OM12 native acceptance ledger](vba-object-model-om12-acceptance.json)
-records native capabilities, tests and unsupported product state/services.
-
-
-## OM13 local pivot graph (2026-11-03)
-
-Private optional bridge modules `pivot_api`, `pivot_fields_api` and `slicer_api`
-project native report definitions, source-qualified field/item views, local table
-widgets and PivotChart links. They use the same document-qualified Feature
-registry and nominal type resolver. Nonserialized identity tokens distinguish
-PivotTables/value fields/calculated fields/slicers; source epochs invalidate old
-field/item views after source rebinding. Name/label and collection budgets bound
-host metadata. The chart-owner repair path only scans chart-owned feature kinds.
-
-Mutations use native commands. Explicit sheet routing avoids changes to the user's
-view; native area placement and manual-filter batches retain one atomic report
-rewrite. Stored slicer caption/columns use the native object command. Report-cell
-and body-range views reuse native current-report validation. No alternate pivot
-aggregation, formula engine or provider service was added.
-
-Native XLSX writes one cache per report. Cache objects are report-owned source
-views, not a new shared runtime cache. Slicer views similarly reflect existing
-independent table widgets. Native model snapshots serialize those widgets, but
-XLSX does not implement their codec. The [OM13 ledger](vba-object-model-om13-acceptance.json)
-keeps this persistence gap and provider/model/timeline exclusions explicit.
-
-
-## OM08 window projection boundary (2026-11-03)
-
-The private VBA `window_api`, `custom_view_api` and `watch_api` project existing
-engine window IDs and hidden defined-name stashes. Window objects retain native
-session identity and document ownership; application-level Windows/Watches are
-session-owned. Read-only `Session::with_window_view` scopes swap parked selections
-without changing activation recency and restore the inactive document's live view
-as well as user focus. Mutating calls use native target scopes and commands.
-Native parked active-sheet snapshots use the existing SheetIdentity across rename
-and reorder. Last-window Close translates to the existing workbook lifecycle,
-retaining permission checks, callback cancellation, prompts and Boolean completion.
-
-Native WindowView contains selection and active/selected sheets. Zoom, display
-flags, freeze and saved scroll positions belong to Sheet; there is no independent
-split-pane model. VBA does not move or duplicate these into compatibility state.
-Native geometry/viewport/pixel services are absent from the adapter on desktop,
-browser and headless hosts. Saved views and watches use bounded native stash
-snapshots, with conservative collection-wide lifetime invalidation after edits.
-Saved views retain native sheet ordinals; watches retain native reference text.
-The [OM08 ledger](vba-object-model-om08-acceptance.json) records these narrower
-contracts, unsupported per-window settings and unconnected platform services.
-
-
-## OM09 native protection boundary (2026-11-03)
-
-The private `permission_api` projects native SheetProtection and EditRange state
-through the shared document/sheet-qualified registry. EditRange gains a session
-identity token, skipped by serialization and ignored by content equality, to
-preserve handles through native COW/undo while rejecting deletion/recreation.
-Definition changes and owner-sheet deletion revoke matching DocState unlocks.
-Range.AllowEdit calls the same native locked-cell policy as writes; bounded
-queries cannot create permissions. Existing Protect/Unprotect remain method calls.
-
-A narrow selectionOnly path in review.protectSheet changes existing selection
-flags without replacing password hashes or edit rights. It requires a protected
-sheet and rejects mixed permission/password parameters. No dormant selection
-state, UI-only bypass or independent protection mode is introduced. Native XLSX
-retains hashes/options/ranges; session unlocks remain outside file state.
-
-Opaque securityDescriptor metadata and code consent do not establish user ACLs,
-IRM or protected-view documents. Encrypted reading already exists; retained file
-password/encryption settings and writing do not. Those graphs/services, independent
-chart protection and named-style inclusion flags remain explicit native gaps in
-the [OM09 acceptance ledger](vba-object-model-om09-acceptance.json).
-
-
-## OM10 print projection and transport (2026-11-03)
-
-Private page_setup_api/page_break_api/print_api handlers project native PrintSettings,
-header/footer definitions, manual vectors and derived pagination. Page setup owns
-no shadow state. Numbered Page/HeaderFooter and page-break nodes carry document
-revision snapshots; stale nodes refuse instead of retargeting coordinates. Native
-settings/bounds are validated before direct layout queries. The print service gained
-explicit sheet/selected-group and ignore-print-area scope parameters, reusing its
-existing algorithms and atomic file writer.
-
-The existing host operation manager now carries owned PrintOperation requests and
-scalar responses. Native UI polling delegates to the actual printing::State worker,
-Services download/print/save callbacks and Backstage. Native receipts/errors resume
-the original wait once; preview waits until closed and temporarily leaves/restores
-the editor presentation so Backstage is actually visible. Request tokens, document IDs,
-sheet identities and range epochs guard waits; source/target consent and liveness
-are rechecked before service effects. No workbook borrow survives an asynchronous
-worker or modal picker. Reset invalidates unsubmitted requests; submitted jobs
-remain owned by the existing spooler state. Windows close completion is applied only
-to Close operations, not to newly deferred Window print requests.
-
-The [OM10 ledger](vba-object-model-om10-acceptance.json) distinguishes native rendering
-from connected transport/presentation services and records printer, preview-scope,
-PDF-option, header-graphic and independent-chart gaps. No new product renderer,
-codec, UI print controls or platform printing backend is added.

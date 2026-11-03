@@ -1,6 +1,6 @@
-# High VBA extension capability review
+# Unexposed VBA members and native capabilities
 
-Reviewed 2026-11-03 against the pinned public reference and native source. **885 source pages** in **71 review groups**, outside the accepted OM20 runtime obligations. Priorities, source identities and literal catalogue result states remain unchanged. These are capability decisions and projection candidates, not additional accepted runtime contracts.
+Reviewed 2026-11-03 against the pinned public reference and native source. **885 source pages** in **71 review groups**, outside the declared native adapter contracts. Priorities, source identities and literal catalogue result states remain unchanged. These are capability decisions and projection candidates, not additional accepted runtime contracts.
 
 | Review result | Source pages |
 |---|---:|
@@ -12,14 +12,8 @@ Reviewed 2026-11-03 against the pinned public reference and native source. **885
 
 Native-subset rows have related state or effects but still lack a named part of the Excel contract; they are not all eligible members. Host-service rows require an existing usable host seam. Exclusions are source-inspection judgments; checked anchors prove evidence freshness, not mathematical absence of every possible implementation.
 
-## Recommended next queue
 
-1. **high-formula-metadata**: Reconcile all 52 missing modern WorksheetFunction descriptors against the live calculator: expose verified native signatures, retain WEBSERVICE/FILTERXML as service gaps, and add representative native/WASM positional/named/optional/array/error regressions.
-2. **high-sheet-state**: Project captured-sheet Next/Previous/Type/StandardHeight and native formula-display preferences with no activation, stale-object and cross-document tests. Respect the existing shared sheet-backed view boundary.
-3. **high-tab-colors**: Add identity-bearing Tab receivers and native RGB/theme/tint color edits through sheet.tabColor; preserve protection, undo and XLSX round trips. Do not add a palette.
-4. **high-range-formatting**: Select bounded range text/indent/border and theme/tint extensions after mixed-cell and option-combination review.
-
-## Candidates with direct native backing
+## Native capabilities without a declared VBA contract
 
 - [Application.CentimetersToPoints](https://learn.microsoft.com/en-us/office/vba/api/excel.application.centimeterstopoints) — `application-unit-conversions`
 - [Application.DisplayFormulaBar](https://learn.microsoft.com/en-us/office/vba/api/excel.application.displayformulabar) — `application-formula-bar`

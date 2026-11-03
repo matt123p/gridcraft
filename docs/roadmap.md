@@ -1,31 +1,12 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 remaining High capability review completed; native projection queue recorded) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (optional VBA integration) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
 [`target-app-parity.md`](target-app-parity.md). Estimates are Opus 5.5 agent-hours.
 
 ## Current focus
-
-OM20 closes the declared High native obligations and selected Medium VBA profiles.
-The [profile sign-off](vba-object-model-profile-report.md) retains all 5,996
-source pages, resolves 673 required source IDs and checks receiver/type reachability.
-The [remaining High capability review](vba-object-model-high-extension-review.md)
-covers 885 source pages: 26 direct native candidates and 50 generic-dispatch
-metadata candidates lead the queue; partial native and host-service boundaries
-remain explicit. Unselected Medium and Low runtime work remain deferred.
-This bounded acceptance does not change product parity estimates.
-
-Optional VBA follows the accepted
-[v1 object-model profile](vba-object-model-v1-priority-final.md): expose only
-capabilities GridCraft already supports. Binding, object projection and adapter
-tests belong to the VBA workstream; missing GridCraft product features remain on
-this ordinary roadmap and are never added merely for Excel object-model parity.
-Further VBA work requires an explicitly reviewed extension to the bounded
-[implementation profile](vba-object-model-implementation-plan.md); the original
-High and selected Medium delivery sequence is complete.
-
 
 1. **Review and land the open PR queue** (50 PRs on 2026-10-10): recalc and spill fixes (#148,
    #155, #156, #157), whole-sheet and large-range fixes (#151, #152, #153, #154), chart kinds
@@ -135,10 +116,6 @@ to check our files, and Windows machines with the reported GPU drivers.
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-11-03 | minor | Reviewed all 885 remaining High VBA extension pages; checked native evidence and recorded the projection queue; no runtime/parity acceptance change |
-| 2026-11-03 | minor | OM20 bounded native VBA profile signed off; source provenance and deferred extensions retained; no product parity score change |
-| 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
-| 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-23 | minor | Measuring: tests run through `cargo xtask test` |
 | 2026-10-11 | minor | PivotTable calculated fields landed |
 | 2026-10-10 | minor | Current focus and M15 updated for the 10-10 merges |

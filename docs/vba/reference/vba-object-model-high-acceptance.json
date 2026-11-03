@@ -322,7 +322,7 @@
     {
       "id": "native-high-options",
       "status": "OUT_OF_SCOPE_GRIDCRAFT",
-      "reason": "Exact unavailable native formatting/data/table options remain documented in the implementation plan: palettes, collation, live TABLE recalculation, field converters and provider/model controls are not added for VBA."
+      "reason": "Exact unavailable native formatting/data/table options are listed in docs/vba/unsupported.md: palettes, collation, live TABLE recalculation, field converters and provider/model controls are not added for VBA."
     },
     {
       "id": "medium-low",

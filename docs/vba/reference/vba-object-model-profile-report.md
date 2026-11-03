@@ -1,4 +1,4 @@
-# Excel VBA bounded native profile sign-off
+# VBA native object profile
 
 Profile `GridCraft.Excel.v1` · reviewed 2026-11-03 · status **ACCEPTED_BOUNDED_NATIVE_PROFILE**.
 
@@ -6,7 +6,7 @@ Closes the declared High native profiles and selected Medium ledgers; does not c
 
 5996 pinned source pages retained; **673 required source IDs** resolved, **124 nominal object types** reachable from Application, with checked signatures and reviewed dynamic edges. Source-page counts are not an Excel compatibility percentage.
 
-## Planning dispositions
+## Source classification
 
 | Disposition | Source pages |
 |---|---:|

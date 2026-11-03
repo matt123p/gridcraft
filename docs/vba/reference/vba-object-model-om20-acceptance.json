@@ -7,14 +7,14 @@
   "status": "ACCEPTED_BOUNDED_NATIVE_PROFILE",
   "scope": "Closes the declared High native profiles and selected Medium ledgers; does not certify all Excel members, options or all Medium/Low families. Raw catalogue missing/partial states remain independent of planning disposition.",
   "accepted_ledgers": [
-    "docs/vba-object-model-high-acceptance.json",
-    "docs/vba-object-model-om12-acceptance.json",
-    "docs/vba-object-model-om13-acceptance.json",
-    "docs/vba-object-model-om08-acceptance.json",
-    "docs/vba-object-model-om09-acceptance.json",
-    "docs/vba-object-model-om10-acceptance.json",
-    "docs/vba-object-model-om19-acceptance.json",
-    "docs/vba-object-model-om15-acceptance.json"
+    "docs/vba/reference/vba-object-model-high-acceptance.json",
+    "docs/vba/reference/vba-object-model-om12-acceptance.json",
+    "docs/vba/reference/vba-object-model-om13-acceptance.json",
+    "docs/vba/reference/vba-object-model-om08-acceptance.json",
+    "docs/vba/reference/vba-object-model-om09-acceptance.json",
+    "docs/vba/reference/vba-object-model-om10-acceptance.json",
+    "docs/vba/reference/vba-object-model-om19-acceptance.json",
+    "docs/vba/reference/vba-object-model-om15-acceptance.json"
   ],
   "roots": [
     "Application"

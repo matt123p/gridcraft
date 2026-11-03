@@ -1,61 +1,5 @@
 # Decisions
 
-## VBA projects only existing GridCraft capabilities (2026-11-03)
-
-Treat Microsoft’s Excel object-model documentation as an audit catalogue, not
-as authority to expand GridCraft. The VBA workstream may add typed bindings,
-object projections, dispatch, diagnostics and tests around behavior GridCraft
-already provides. It must not add spreadsheet, UI, file, chart, pivot, provider,
-rendering or collaboration features merely to satisfy an Excel member.
-
-Apply capability eligibility before High/Medium/Low priority. Rows without an
-underlying GridCraft capability remain visible as `OUT_OF_SCOPE_GRIDCRAFT`; they
-are not unfinished VBA work. If the ordinary GridCraft roadmap later supplies
-the capability, a separate reviewed change may make its VBA projection eligible.
-The accepted profile and delivery order are recorded in the
-[v1 priority report](vba-object-model-v1-priority-final.md) and
-[object-model implementation plan](vba-object-model-implementation-plan.md).
-
-## VBA window presentation stays in the native shell (2026-10-28)
-
-`vba-window` implies `vba` and enables a separate immediate viewport on native
-window hosts; `vba` alone embeds. The command can override presentation at launch.
-Both use the existing single Ide/Bridge and root execution tick. Native window
-close hides the editor and preserves source; explicit project/workbook close
-retains the existing dirty-source and host-cancellation policy. Repeated launch
-focuses the same editor, and breakpoint/failure transitions reveal it. Browser
-builds exclude native viewport state and embed normally. No external editor
-process, IPC or source-copy synchronization layer is introduced.
-
-Use the documented Excel launch routes: Developer Code, View Macros, selected
-macro Edit/Step Into and keyboard shortcuts. Developer visibility belongs under
-File Options Customize Ribbon. Default quick-access launch buttons and automatic
-demo source were removed; explicit user-assigned toolbar macros remain available.
-Public references and build/launch contracts are in [vba.md](vba.md) and the
-cross-repository work log; no vendor art, reference code or private sources are used.
-
-## Spreadsheet VBA entry points remain fork-owned (2026-10-27)
-
-Use the existing chunked hidden-name store for plain standard-module source and
-toolbar assignments, through generic `workbook.setItem` so history, dirty
-state, package preservation and recordings keep their existing owner. Reuse
-GridCraft shapes and ribbon/dialog controls rather than introducing another
-control or document hierarchy. Assignments belong to `Shape.on_action`, set by
-the inert `shape.setMacro` engine command and preserved as DrawingML's `macro`
-attribute. Numeric IDs alone can be reused after deletion and cannot own an
-assignment: shape-owned data prevents accidental transfer and follows package
-ID remapping. Office Form Control/ActiveX serialization is not claimed. No binary
-project writeback is added.
-
-An optional, value-only native `calc::CustomFunctions` trait is the only formula
-seam; the default calculator has no provider. Calc/engine never depend on VBA.
-The L6 adapter installs a bounded read-only provider for one open workbook with
-explicit source/consent identity. Generated wrapper calls preserve the shared
-compiler's default/ByRef semantics without changing its ByVal launch contract.
-UDFs cannot access a mutable engine, await host requests or mutate cells; normal
-formula dependencies/spills remain calculator-owned. Public-source provenance,
-exact behavior, budgets and compatibility limits are in [vba.md](vba.md).
-
 ## Native typed contents share the command lifecycle (2026-10-27)
 
 Add generic `CellContent` and `Session::set_range_contents` in engine, with the
@@ -67,16 +11,6 @@ removes quote/error/formula corruption in Text-formatted cells without teaching
 engine about VBA or adding a second history/recalc/protection implementation.
 `range.setValues` keeps its existing typed-input semantics. Shape, payload,
 scalar/formula and protection failures are atomic. See [the contract](native-cell-contents.md).
-
-## Optional separate-repository VBA adapter (2026-10-27)
-
-Keep the interpreter and reusable editor in tiny-vba, pinned by Git revision.
-Place Office objects and the native host adapter in a toolkit-free L6 crate
-above engine; mount its shared editor through an opt-in UI feature. The engine
-retains command/protection/recalc/history ownership and has no VBA dependency.
-The bounded profile, explicit unsupported cases and lifecycle are in [vba.md](vba.md).
-This makes the integration reviewable without replacing existing scripts or
-embedding Office compatibility names in the shared language engine.
 
 ## Bound repeated XLSX column expansion (#1022)
 

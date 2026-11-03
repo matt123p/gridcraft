@@ -2,32 +2,11 @@
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 remaining High capability review completed; native projection queue recorded; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
-
-OM20 closes the declared High native obligations and selected Medium VBA profiles.
-The [profile sign-off](docs/vba-object-model-profile-report.md) retains all 5,996
-source pages, resolves 673 required source IDs and checks receiver/type reachability.
-The [remaining High capability review](docs/vba-object-model-high-extension-review.md)
-covers 885 source pages: 26 direct native candidates and 50 generic-dispatch
-metadata candidates lead the queue; partial native and host-service boundaries
-remain explicit. Unselected Medium and Low runtime work remain deferred.
-This bounded acceptance does not change product parity estimates.
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (optional VBA integration; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
 This page is the summary. The detail is in:
-
-The optional [tiny-vba baseline](docs/vba.md) is isolated behind `vba` and a pinned
-separate Git repository. It adds a bounded Excel object profile and the shared
-editor/debugger; existing estimates below do not claim full VBA compatibility.
-The VBA workstream projects only features GridCraft already supports; it does not
-add product capabilities for Excel object-model parity. See the
-[accepted v1 scope](docs/vba-object-model-v1-priority-final.md).
-Registered typed declarations now have [M1.1 native/WASM acceptance](docs/vba-m1-types.md).
-[M3 acceptance](docs/vba-m3-ranges-and-worksheets.md) adds lightweight ranges, sparse
-search/navigation and native structural commands. [M4](docs/vba-m4-identity-values-and-members.md)
-adds stable identities, dynamic roots and real value/format/calculation semantics;
-the shared dependency is published and pinned by Git revision. Excel definitions stay in this fork.
 
 - [`docs/target-app-parity.md`](docs/target-app-parity.md): the authoritative assessment, method and weights
 - [`docs/gaps.md`](docs/gaps.md): every known shortfall, ranked; the work list
@@ -156,15 +135,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | What landed |
 |---|---|
-| 2026-11-03 | Reviewed all 885 remaining High VBA extension pages; checked native evidence and recorded the projection queue; no runtime/parity acceptance change |
-| 2026-11-03 | OM20 bounded native VBA profile signed off; source provenance and deferred extensions retained; no product parity score change |
-| 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
-| 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
-| 2026-11-03 | Native-backed VBA formula/name/function, formatting/rule, data/outline/what-if and local table projections; native identities, matrix-layout conversions and explicit unsupported-option reporting. Bounded profile only; remaining invocation/continuation work still blocks whole-High sign-off. |
 | 2026-10-27 | Native typed `range.setContents` command and host API preserve literal/error/formula types and destination formats. VBA now writes Text-formatted cells through the shared engine lifecycle; recordings replay the exact typed contents. |
-| 2026-10-27 | Optional tiny-vba adapter and shared editor/debugger, pinned as a separate Git dependency; bounded workbook object profile, native/WASM acceptance and source/package preservation. See [the exact scope](docs/vba.md). |
-| 2026-10-28 | Optional native VBA editor window (`vba-window`) sharing the embedded session, revised Excel entry routes, selection-based macro Edit/Step Into and original native/window lifecycle acceptance. |
-| 2026-10-27 | Developer/toolbar/keyboard entry points, persistent assigned worksheet shapes and read-only VBA worksheet Functions through a generic calc provider; independently authored public-documentation behavior tests. |
 | 2026-10-25 | AutoSum over a selection does what Excel does: a selected row gets one total to its right (in its last cell if that is empty), not a one-cell total under each cell; a block whose last column is empty gets each row's total there, one whose last row is empty each column's, and with both the corner gets the total of the block; otherwise totals go under each column as before |
 | 2026-10-24 | Macro interface ([macros.md](docs/macros.md#in-the-window)): an Automate › Macros group (Record Macro, which turns into Stop Recording, Use Relative References, Run Macro with recent macros); "Recording · N steps" with Stop in the status bar; a Record Macro dialog (checked name, free Ctrl+Shift shortcut, description); the Macros dialog lists macros beside Automate scripts and a VBA project, with Run, Step Into, Edit, Create, Delete and Options; Ctrl+Shift+letter macro shortcuts; questions that offer Run, Overwrite, Shift Down or Shift Right; a step editor with a breakpoint gutter, drag to reorder, a command picker, reference boxes that switch between relative tokens and absolute references, Inputs and Output tabs, a debug bar (Check, Run, Step, Continue, Run to Here, Stop with keep or undo) and grid overlays for inputs, writes, conflicts and the current step |
 | 2026-10-24 | Go To lists the named ranges of every sheet (`Sheet2!Name` for a name scoped to another sheet; hidden names, constants and formulas left out) and the references entered before, a double-click goes to an entry, and the Reference box takes several names or references separated by commas (`Price, Type`, `B14:C22,F19:G30`) |
@@ -272,7 +243,6 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 ## Revision history
 
-- 2026-10-29: M3 range/navigation/structural coverage on its feature branch; no change to broad parity estimates.
 
 | Date | Change | Summary |
 |---|---|---|

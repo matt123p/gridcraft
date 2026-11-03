@@ -184,12 +184,9 @@ pointer and keyboard input, dialogs and screenshots. See [`docs/mcp.md`](docs/mc
 
 ## Architecture
 
-An opt-in [tiny-vba integration](docs/vba.md) embeds the separate interpreter and
-shared editor with `cargo +1.99.1 run -p gridcraft --features vba`. Its fork-owned adapter
-uses the existing workbook commands and undo/recalculation model. It projects
-only capabilities GridCraft already supports; it does not add missing GridCraft
-features for Excel object-model parity. See the
-[accepted v1 scope](docs/vba-object-model-v1-priority-final.md).
+An optional [VBA integration](docs/vba.md) provides an editor, debugger and
+Excel-style objects backed by GridCraft commands. See the
+[supported features](docs/vba/supported.md) and [feature limits](docs/vba/unsupported.md).
 
 GridCraft is an engine-first Cargo workspace with enforced layering (`cargo xtask layers`). The
 egui frontend is a separate crate, so the UI can be swapped without touching the engine.

@@ -1,13 +1,13 @@
 {
   "accepted_ledgers": [
-    "docs/vba-object-model-high-acceptance.json",
-    "docs/vba-object-model-om12-acceptance.json",
-    "docs/vba-object-model-om13-acceptance.json",
-    "docs/vba-object-model-om08-acceptance.json",
-    "docs/vba-object-model-om09-acceptance.json",
-    "docs/vba-object-model-om10-acceptance.json",
-    "docs/vba-object-model-om19-acceptance.json",
-    "docs/vba-object-model-om15-acceptance.json"
+    "docs/vba/reference/vba-object-model-high-acceptance.json",
+    "docs/vba/reference/vba-object-model-om12-acceptance.json",
+    "docs/vba/reference/vba-object-model-om13-acceptance.json",
+    "docs/vba/reference/vba-object-model-om08-acceptance.json",
+    "docs/vba/reference/vba-object-model-om09-acceptance.json",
+    "docs/vba/reference/vba-object-model-om10-acceptance.json",
+    "docs/vba/reference/vba-object-model-om19-acceptance.json",
+    "docs/vba/reference/vba-object-model-om15-acceptance.json"
   ],
   "catalogue_policy": {
     "capability_evidence": "Only classify OUT_OF_SCOPE_GRIDCRAFT/SERVICE_UNAVAILABLE when there is a recorded native capability gate; a missing VBA descriptor alone is not proof of a missing spreadsheet feature.",
@@ -56,49 +56,8 @@
       "new_runtime_implementation": "NONE"
     },
     "groups": 71,
-    "ledger": "docs/vba-object-model-high-extension-review.json",
-    "next_queue": [
-      {
-        "goal": "Reconcile all 52 missing modern WorksheetFunction descriptors against the live calculator: expose verified native signatures, retain WEBSERVICE/FILTERXML as service gaps, and add representative native/WASM positional/named/optional/array/error regressions.",
-        "groups": [
-          "function-generic-metadata",
-          "function-service-placeholders"
-        ],
-        "id": "high-formula-metadata",
-        "order": 1
-      },
-      {
-        "goal": "Project captured-sheet Next/Previous/Type/StandardHeight and native formula-display preferences with no activation, stale-object and cross-document tests. Respect the existing shared sheet-backed view boundary.",
-        "groups": [
-          "worksheet-neighbours-and-kind",
-          "application-formula-bar",
-          "formula-display"
-        ],
-        "id": "high-sheet-state",
-        "order": 2
-      },
-      {
-        "goal": "Add identity-bearing Tab receivers and native RGB/theme/tint color edits through sheet.tabColor; preserve protection, undo and XLSX round trips. Do not add a palette.",
-        "groups": [
-          "worksheet-tab",
-          "tab-rgb-and-theme",
-          "tab-palette"
-        ],
-        "id": "high-tab-colors",
-        "order": 3
-      },
-      {
-        "goal": "Select bounded range text/indent/border and theme/tint extensions after mixed-cell and option-combination review.",
-        "groups": [
-          "range-text-and-indent",
-          "range-border-around",
-          "border-theme"
-        ],
-        "id": "high-range-formatting",
-        "order": 4
-      }
-    ],
-    "report": "docs/vba-object-model-high-extension-review.md",
+    "ledger": "docs/vba/reference/vba-object-model-high-extension-review.json",
+    "report": "docs/vba/reference/vba-object-model-high-extension-review.md",
     "reviewed": "2026-11-03",
     "source_pages": 885,
     "status_counts": {

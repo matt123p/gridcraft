@@ -16,6 +16,8 @@ mod stats;
 #[cfg(feature = "vba-audit")]
 mod vba_audit;
 #[cfg(feature = "vba-audit")]
+mod vba_docs;
+#[cfg(feature = "vba-audit")]
 mod vba_extensions;
 #[cfg(feature = "vba-audit")]
 mod vba_profile;

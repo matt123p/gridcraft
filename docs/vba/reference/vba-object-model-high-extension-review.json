@@ -2257,47 +2257,6 @@
       ]
     }
   ],
-  "next_queue": [
-    {
-      "id": "high-formula-metadata",
-      "groups": [
-        "function-generic-metadata",
-        "function-service-placeholders"
-      ],
-      "goal": "Reconcile all 52 missing modern WorksheetFunction descriptors against the live calculator: expose verified native signatures, retain WEBSERVICE/FILTERXML as service gaps, and add representative native/WASM positional/named/optional/array/error regressions.",
-      "order": 1
-    },
-    {
-      "id": "high-sheet-state",
-      "groups": [
-        "worksheet-neighbours-and-kind",
-        "application-formula-bar",
-        "formula-display"
-      ],
-      "goal": "Project captured-sheet Next/Previous/Type/StandardHeight and native formula-display preferences with no activation, stale-object and cross-document tests. Respect the existing shared sheet-backed view boundary.",
-      "order": 2
-    },
-    {
-      "id": "high-tab-colors",
-      "groups": [
-        "worksheet-tab",
-        "tab-rgb-and-theme",
-        "tab-palette"
-      ],
-      "goal": "Add identity-bearing Tab receivers and native RGB/theme/tint color edits through sheet.tabColor; preserve protection, undo and XLSX round trips. Do not add a palette.",
-      "order": 3
-    },
-    {
-      "id": "high-range-formatting",
-      "groups": [
-        "range-text-and-indent",
-        "range-border-around",
-        "border-theme"
-      ],
-      "goal": "Select bounded range text/indent/border and theme/tint extensions after mixed-cell and option-combination review.",
-      "order": 4
-    }
-  ],
   "evidence_boundary": {
     "method": "Pinned public source extraction plus direct native/model/adapter source inspection. Evidence anchors are checked against the current checkout; exclusions are snapshot review judgments, not an automated proof of absence.",
     "fresh_excel_observation": "NOT_RUN",

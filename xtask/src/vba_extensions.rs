@@ -6,8 +6,8 @@ use std::{
     path::Path,
 };
 
-const LEDGER: &str = "docs/vba-object-model-high-extension-review.json";
-const REPORT: &str = "docs/vba-object-model-high-extension-review.md";
+const LEDGER: &str = "docs/vba/reference/vba-object-model-high-extension-review.json";
+const REPORT: &str = "docs/vba/reference/vba-object-model-high-extension-review.md";
 const STATUSES: &[&str] = &["ELIGIBLE_NATIVE", "NATIVE_SUBSET", "NO_NATIVE_CAPABILITY", "HOST_SERVICE_REVIEW", "GENERIC_DISPATCH"];
 fn array<'a>(v: &'a Value, field: &str) -> Result<&'a Vec<Value>, String> {
     v[field].as_array().ok_or_else(|| format!("High extension review missing {field}"))
@@ -56,17 +56,6 @@ fn validate(root: &Path, rows: &[Value], ledger: &Value) -> Result<BTreeMap<Stri
     if reviews.keys().cloned().collect::<BTreeSet<_>>() != expected {
         return Err("High extension capability review does not cover every remaining High source page".into());
     }
-    let mut queue_ids = BTreeSet::new();
-    let mut queue_orders = BTreeSet::new();
-    for q in array(ledger, "next_queue")? {
-        if !queue_ids.insert(text(q, "id")?) || !queue_orders.insert(q["order"].as_u64().ok_or("High extension queue order missing")?) {
-            return Err("duplicate High extension queue ID/order".into());
-        }
-        text(q, "goal")?;
-        if array(q, "groups")?.is_empty() || array(q, "groups")?.iter().any(|g| g.as_str().is_none_or(|id| !groups.contains(id))) {
-            return Err("High extension queue references unknown review group".into());
-        }
-    }
     Ok(reviews)
 }
 
@@ -96,9 +85,9 @@ pub(super) fn reconcile(root: &Path, rows: &mut [Value], profile: &mut Value, wr
     }
     profile["high_extension_capability_review"] = json!({"ledger":LEDGER,"report":REPORT,"reviewed":ledger["reviewed"],
         "source_pages":reviews.len(),"groups":array(&ledger,"groups")?.len(),"status_counts":counts,
-        "next_queue":ledger["next_queue"],"evidence_boundary":ledger["evidence_boundary"]});
+        "evidence_boundary":ledger["evidence_boundary"]});
     let mut out = format!(
-        "# High VBA extension capability review\n\nReviewed {} against the pinned public reference and native source. **{} source pages** in **{} review groups**, outside the accepted OM20 runtime obligations. Priorities, source identities and literal catalogue result states remain unchanged. These are capability decisions and projection candidates, not additional accepted runtime contracts.\n\n| Review result | Source pages |\n|---|---:|\n",
+        "# Unexposed VBA members and native capabilities\n\nReviewed {} against the pinned public reference and native source. **{} source pages** in **{} review groups**, outside the declared native adapter contracts. Priorities, source identities and literal catalogue result states remain unchanged. These are capability decisions and projection candidates, not additional accepted runtime contracts.\n\n| Review result | Source pages |\n|---|---:|\n",
         text(&ledger, "reviewed")?,
         reviews.len(),
         array(&ledger, "groups")?.len()
@@ -106,11 +95,8 @@ pub(super) fn reconcile(root: &Path, rows: &mut [Value], profile: &mut Value, wr
     for (status, count) in &counts {
         out.push_str(&format!("| `{status}` | {count} |\n"));
     }
-    out.push_str("\nNative-subset rows have related state or effects but still lack a named part of the Excel contract; they are not all eligible members. Host-service rows require an existing usable host seam. Exclusions are source-inspection judgments; checked anchors prove evidence freshness, not mathematical absence of every possible implementation.\n\n## Recommended next queue\n\n");
-    for q in array(&ledger, "next_queue")? {
-        out.push_str(&format!("{}. **{}**: {}\n", q["order"], text(q, "id")?, text(q, "goal")?));
-    }
-    out.push_str("\n## Candidates with direct native backing\n\n");
+    out.push_str("\nNative-subset rows have related state or effects but still lack a named part of the Excel contract; they are not all eligible members. Host-service rows require an existing usable host seam. Exclusions are source-inspection judgments; checked anchors prove evidence freshness, not mathematical absence of every possible implementation.\n\n");
+    out.push_str("\n## Native capabilities without a declared VBA contract\n\n");
     for row in rows.iter().filter(|r| r["extension_capability_review"]["status"] == "ELIGIBLE_NATIVE") {
         out.push_str(&format!("- [{}]({}) — `{}`\n", text(row, "id")?, text(row, "url")?, text(&row["extension_capability_review"], "group")?));
     }
@@ -142,7 +128,7 @@ mod tests {
     #[test]
     fn capability_labels_do_not_promote_runtime_or_lower_priority() {
         let root = crate::root();
-        let doc: Value = serde_json::from_slice(&fs::read(root.join("docs/vba-object-model-contracts.json")).unwrap()).unwrap();
+        let doc: Value = serde_json::from_slice(&fs::read(root.join("docs/vba/reference/vba-object-model-contracts.json")).unwrap()).unwrap();
         let mut rows = doc["pages"].as_array().unwrap().clone();
         let before = rows.clone();
         let mut profile = json!({});
@@ -161,7 +147,7 @@ mod tests {
     #[test]
     fn generic_function_review_matches_the_live_calculator() {
         let root = crate::root();
-        let doc: Value = serde_json::from_slice(&fs::read(root.join("docs/vba-object-model-contracts.json")).unwrap()).unwrap();
+        let doc: Value = serde_json::from_slice(&fs::read(root.join("docs/vba/reference/vba-object-model-contracts.json")).unwrap()).unwrap();
         let mut count = 0;
         for row in doc["pages"].as_array().unwrap().iter().filter(|r| r["extension_capability_review"]["status"] == "GENERIC_DISPATCH") {
             let function = row["member"].as_str().unwrap().replace('_', ".").to_ascii_uppercase();
@@ -173,7 +159,7 @@ mod tests {
     #[test]
     fn capability_review_rejects_uncovered_duplicate_and_stale_evidence() {
         let root = crate::root();
-        let doc: Value = serde_json::from_slice(&fs::read(root.join("docs/vba-object-model-contracts.json")).unwrap()).unwrap();
+        let doc: Value = serde_json::from_slice(&fs::read(root.join("docs/vba/reference/vba-object-model-contracts.json")).unwrap()).unwrap();
         let rows = doc["pages"].as_array().unwrap();
         let ledger: Value = serde_json::from_slice(&fs::read(root.join(LEDGER)).unwrap()).unwrap();
         assert_eq!(validate(&root, rows, &ledger).unwrap().len(), 885);

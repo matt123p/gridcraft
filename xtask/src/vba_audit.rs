@@ -38,7 +38,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     }
     let cache = root.join("target/vba-docs-audit");
     let archive_path = cache.join("reference.zip");
-    let inventory_path = root.join("docs/vba-object-model-inventory.json");
+    let inventory_path = root.join("docs/vba/reference/vba-object-model-inventory.json");
     let archive_bytes = std::fs::read(&archive_path)
         .map_err(|e| format!("{}: {e}; cache the pinned MicrosoftDocs/VBA-Docs archive first", archive_path.display()))?;
     let digest = Sha256::digest(&archive_bytes).iter().map(|byte| format!("{byte:02x}")).collect::<String>();
@@ -292,9 +292,10 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     let mut profile = super::vba_profile::reconcile(root, &mut contracts, &descriptors)?;
     super::vba_extensions::reconcile(root, &mut contracts, &mut profile, write)?;
     super::vba_profile::emit(root, &profile, write)?;
-    let contract_file = root.join("docs/vba-object-model-contracts.json");
+    super::vba_docs::emit(root, &contracts, &descriptors, write)?;
+    let contract_file = root.join("docs/vba/reference/vba-object-model-contracts.json");
     let enum_file = root.join("crates/vba/src/vba_enum_data.rs");
-    let report_file = root.join("docs/vba-object-model-audit-report.md");
+    let report_file = root.join("docs/vba/reference/vba-object-model-audit-report.md");
     let contract_value = json!({
         "schema": 3,
         "documentation_commit": COMMIT,
@@ -362,7 +363,7 @@ fn validate_native_acceptance(
     descriptors: &BTreeMap<(String, String), MemberDescriptor>,
     packet: &str,
 ) -> Result<BTreeMap<String, Vec<String>>, String> {
-    let path = root.join(format!("docs/vba-object-model-{}-acceptance.json", packet.to_ascii_lowercase()));
+    let path = root.join(format!("docs/vba/reference/vba-object-model-{}-acceptance.json", packet.to_ascii_lowercase()));
     let value: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     if value["packet"] != packet || value["documentation_commit"] != COMMIT {
         return Err("native ledger provenance mismatch".into());
@@ -697,7 +698,7 @@ pub(super) fn validate_test_reference(root: &Path, test: &str) -> Result<(), Str
 
 /// Evidence ledger for the selected High profiles, independent of historical source counts.
 fn validate_high_acceptance(root: &Path, source_rows: &[Value]) -> Result<BTreeMap<String, BTreeSet<String>>, String> {
-    let path = root.join("docs/vba-object-model-high-acceptance.json");
+    let path = root.join("docs/vba/reference/vba-object-model-high-acceptance.json");
     let ledger: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?).map_err(|e| e.to_string())?;
     if ledger.get("schema").and_then(Value::as_u64) != Some(1) {
         return Err("unsupported High acceptance schema".into());
@@ -1244,13 +1245,13 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         *counts.entry(state.to_owned()).or_default() += 1;
     }
     let mut out = format!(
-        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\nOM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).\n\nOM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). OM15 owned native dialogs/pickers, status visibility, autocomplete and cell-control acceptance: [evidence ledger](vba-object-model-om15-acceptance.json). These are native profiles, not whole-reference compatibility claims.\n\n## State counts\n\n",
+        "# VBA source catalogue\n\nThis generated index maps the pinned public Excel reference to GridCraft's adapter. For practical feature guidance, read [supported features](../supported.md) and [unsupported features](../unsupported.md). Catalogue PARTIAL/MISSING states describe source coverage, not promises about every Excel option.\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`). {} source pages retained; source-page counts are not compatibility percentages.\n\n## Source coverage\n\n",
         pages.len()
     );
     for (state, count) in counts {
         out.push_str(&format!("- `{state}`: {count}\n"));
     }
-    out.push_str("\n## OM20 bounded-profile acceptance\n\n[Profile sign-off and scope](vba-object-model-profile-report.md) keeps planning disposition independent of raw catalogue evidence. Exact source paths and method/event kinds remain distinct.\n\n## Unresolved audit rows\n\nRows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain unresolved against the Microsoft catalogue. They are not automatically in-scope implementation requirements: the existing-GridCraft-capability gate is applied first. This report deliberately does not calculate an overall compatibility percentage.\n\n| ID | Source path | State | Priority | Profile disposition | Signature review |\n|---|---|---|---|---|---|\n");
+    out.push_str("\n## Native profile evidence\n\n[Native profile and scope](vba-object-model-profile-report.md) keeps planning disposition independent of raw catalogue evidence. Exact source paths and method/event kinds remain distinct.\n\n## Unresolved audit rows\n\nRows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain unresolved against the Microsoft catalogue. They are not automatically in-scope implementation requirements: the existing-GridCraft-capability gate is applied first. This report deliberately does not calculate an overall compatibility percentage.\n\n| ID | Source path | State | Priority | Profile disposition | Signature review |\n|---|---|---|---|---|---|\n");
     for row in pages {
         let state = row.get("result_state").and_then(Value::as_str).unwrap_or("LEGACY_REVIEW");
         if state == "IMPLEMENTED_TESTED" {

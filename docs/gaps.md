@@ -13,13 +13,6 @@ Kinds: **F** feature · **U** UI/UX · **FF** file format · **H** hardware · *
 
 ## Beta blockers
 
-VBA feature-branch audit (2026-11-03): the optional adapter remains a bounded
-standard-module subset. It projects only behavior GridCraft already supports;
-the VBA project does not add missing GridCraft features. Existing Excel workbooks
-are not generally executable without modification. See the
-[accepted scope](vba-object-model-v1-priority-final.md) and
-[detailed compatibility audit](vba-excel-compatibility.md).
-
 No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-gate).
 
 
