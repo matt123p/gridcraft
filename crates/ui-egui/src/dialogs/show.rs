@@ -408,6 +408,14 @@ pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
     } else if confirm {
         open = false;
     }
+    #[cfg(feature = "vba")]
+    if (!win_open || ctx.input(|i| i.key_pressed(Key::Escape))) && d.name == "saveChanges" {
+        crate::vba::answer_native_close(app, crate::SaveAnswer::Cancel, false, ctx);
+    }
+    #[cfg(feature = "vba")]
+    if !open && d.name == "saveChanges" && d.values.contains_key("vbaToken") {
+        crate::vba::answer_save_prompt(app, crate::SaveAnswer::Cancel);
+    }
     if app.ui_window() != home {
         // A command run from the dialog switched windows: whatever it opened shows in the new
         // window, and this dialog (or the one it returns to) stays in its own.

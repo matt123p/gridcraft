@@ -1,0 +1,333 @@
+{
+  "schema": 1,
+  "reviewed": "2026-11-03",
+  "profile": "GridCraft.Excel.v1",
+  "scope": "Selected High native profiles, not full Microsoft member/option parity. Historical 5996-page inventory migration remains separate.",
+  "requirements": [
+    {
+      "id": "roots",
+      "packet": "OM03",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Live Workbooks/default/enumeration and active/code-owner separation",
+      "source_ids": [
+        "Application.Workbooks",
+        "Workbooks.Item",
+        "Workbooks.Count"
+      ],
+      "native_evidence": [
+        "crates/engine/src/windows.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::workbooks_are_live_nominal_collections_and_activation_preserves_code_owner"
+      ]
+    },
+    {
+      "id": "calculation",
+      "packet": "OM03",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Live native application calculation and iteration settings, all-participant trust/undo preflight",
+      "source_ids": [
+        "Application.CalculateFull",
+        "Application.CalculateFullRebuild",
+        "Application.Iteration",
+        "Application.MaxIterations",
+        "Application.MaxChange"
+      ],
+      "native_evidence": [
+        "crates/engine/src/styles.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::application_calculation_settings_are_live_validated_and_grouped_across_documents",
+        "crates/vba/tests/workbooks.rs::application_wide_calculation_refuses_untrusted_participants_before_mutation"
+      ]
+    },
+    {
+      "id": "run",
+      "packet": "OM03",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Public standard procedure in running project; positional typed arguments, defaults and ParamArray, shared globals/budgets. Lookup errors are catchable; unhandled child errors stop the caller. Callback ByRef changes do not flow back to Run arguments.",
+      "source_ids": [
+        "Application.Run"
+      ],
+      "native_evidence": [
+        "crates/vba/src/host_ops.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/continuations.rs::application_run_returns_values_preserves_globals_and_routes_nested_errors",
+        "crates/vba/tests/continuations.rs::unhandled_run_error_stops_the_caller_but_child_handled_errors_return_normally"
+      ]
+    },
+    {
+      "id": "files",
+      "packet": "OM04",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Native Open/Add/Save/SaveAs/SaveCopyAs/Close; explicit OOXML formats/password-open, stable owner and saved state",
+      "source_ids": [
+        "Workbooks.Add",
+        "Workbooks.Open",
+        "Workbook.Save",
+        "Workbook.SaveAs",
+        "Workbook.SaveCopyAs",
+        "Workbook.Close"
+      ],
+      "native_evidence": [
+        "crates/engine/src/cmd/file.rs",
+        "crates/engine/src/styles.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner",
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds"
+      ]
+    },
+    {
+      "id": "prompts",
+      "packet": "OM04",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Owned open/save/Save Changes continuations through explicitly configured native services; one delivery, exact tokens, reset and revocation cancellation",
+      "source_ids": [
+        "Workbooks.Open",
+        "Workbook.Save",
+        "Workbook.SaveAs",
+        "Workbook.Close"
+      ],
+      "native_evidence": [
+        "crates/vba/src/host_ops.rs",
+        "crates/ui-egui/src/app/quit.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/continuations.rs::save_prompt_is_delivered_once_and_reset_invalidates_its_token",
+        "crates/vba/tests/continuations.rs::dirty_close_prompt_cancel_does_not_close_or_replay",
+        "crates/vba/tests/continuations.rs::named_format_survives_save_picker_and_open_import_is_inert",
+        "crates/vba/tests/continuations.rs::revoking_consent_during_picker_cancels_without_a_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_unsaved_close_uses_picker_once_and_does_not_repeat_before_save"
+      ]
+    },
+    {
+      "id": "sheets",
+      "packet": "OM04",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Native worksheet Add/Copy/Move/Delete/Visible/Index/CodeName, stable tombstones and protected structure",
+      "source_ids": [
+        "Worksheets.Add",
+        "Worksheet.Copy",
+        "Worksheet.Move",
+        "Worksheet.Delete",
+        "Worksheet.Visible",
+        "Worksheet.Index",
+        "Worksheet.CodeName"
+      ],
+      "native_evidence": [
+        "crates/engine/src/cmd/sheet.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies",
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table"
+      ]
+    },
+    {
+      "id": "protection",
+      "packet": "OM09",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Ordinary native sheet/workbook protection and enforcement",
+      "source_ids": [
+        "Workbook.Protect",
+        "Workbook.Unprotect",
+        "Worksheet.Protect",
+        "Worksheet.Unprotect"
+      ],
+      "native_evidence": [
+        "crates/vba/src/protection_api.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle",
+        "crates/vba/tests/workbooks.rs::protection_is_enforced_and_range_payload_is_bounded"
+      ]
+    },
+    {
+      "id": "formulas",
+      "packet": "OM07",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Native formula/name/worksheet-function profile, explicit scalar/array/reference/error semantics",
+      "source_ids": [
+        "Application.Evaluate",
+        "Worksheet.Evaluate",
+        "Workbook.Names",
+        "WorksheetFunction.Sum"
+      ],
+      "native_evidence": [
+        "crates/vba/src/formula_api.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/high.rs::formula_function_proxy_preserves_references_arrays_errors_and_names",
+        "crates/vba/tests/high.rs::formula_arrays_scoped_names_and_named_styles_use_native_state",
+        "crates/vba/tests/high.rs::localized_formulas_round_trip_without_changing_canonical_source",
+        "crates/vba/tests/nominal.rs::qualified_excel_name_type_binds_to_the_live_native_name"
+      ]
+    },
+    {
+      "id": "formatting",
+      "packet": "OM05",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Native styles, dimensions, geometry, borders and conditional-format graphs",
+      "source_ids": [
+        "Range.Font",
+        "Range.Interior",
+        "Range.Borders",
+        "Range.FormatConditions"
+      ],
+      "native_evidence": [
+        "crates/vba/src/format_api.rs",
+        "crates/vba/src/conditional_api.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/high.rs::formatting_uses_native_styles_theme_geometry_borders_merges_and_rules",
+        "crates/vba/tests/high.rs::condition_specific_graphs_follow_native_rules_and_priority_identity"
+      ]
+    },
+    {
+      "id": "data",
+      "packet": "OM06",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Native sort/filter/validation/data writers/outline/what-if profile",
+      "source_ids": [
+        "Range.Sort",
+        "Range.AutoFilter",
+        "Range.Validation",
+        "Range.TextToColumns"
+      ],
+      "native_evidence": [
+        "crates/vba/src/data_api.rs",
+        "crates/vba/src/whatif_api.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/high.rs::persistent_sort_filter_and_validation_use_explicit_inactive_worksheet",
+        "crates/vba/tests/high.rs::data_tool_writers_preview_exact_output_and_preserve_native_results",
+        "crates/vba/tests/high.rs::scenarios_goal_seek_and_data_tables_preserve_typed_values"
+      ]
+    },
+    {
+      "id": "tables",
+      "packet": "OM18",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Native ListObject graph, stable identity, table sort/filter and content mutations",
+      "source_ids": [
+        "Worksheet.ListObjects",
+        "ListObject.Resize",
+        "ListObject.Unlist",
+        "ListRows.Add"
+      ],
+      "native_evidence": [
+        "crates/vba/src/table_api.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/high.rs::structured_tables_are_live_across_rename_resize_insert_delete_totals_and_unlist",
+        "crates/vba/tests/high.rs::table_views_do_not_retarget_when_native_table_ids_are_reused",
+        "crates/vba/tests/high.rs::table_sort_and_filters_remain_table_owned_and_clear_without_stuck_hidden_rows"
+      ]
+    },
+    {
+      "id": "precommit-events",
+      "packet": "OM11",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "BeforeSave/BeforeClose document then live Application sinks, ByRef Cancel carried in order; native commit held through debugger waits; AfterSave follows actual IO",
+      "source_ids": [
+        "Workbook.BeforeSave",
+        "Workbook.BeforeClose",
+        "Workbook.AfterSave",
+        "Application.WorkbookBeforeSave",
+        "Application.WorkbookBeforeClose",
+        "Application.WorkbookAfterSave"
+      ],
+      "native_evidence": [
+        "crates/vba/src/lifecycle_events.rs",
+        "crates/ui-egui/src/vba.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation"
+      ]
+    },
+    {
+      "id": "mutation-events",
+      "packet": "OM11",
+      "required": true,
+      "status": "IMPLEMENTED_NATIVE_PROFILE",
+      "contract": "Existing explicit Workbook_Open and bounded Worksheet_Change signals, FIFO/suppression/error/undo/cancellation ownership",
+      "source_ids": [
+        "Workbook.Open",
+        "Worksheet.Change"
+      ],
+      "native_evidence": [
+        "crates/vba/src/lib.rs"
+      ],
+      "test_ids": [
+        "crates/vba/tests/events.rs::workbook_open_requires_explicit_trusted_queueing",
+        "crates/vba/tests/events.rs::worksheet_event_queue_is_fifo_and_disabling_discards_only_the_pending_tail",
+        "crates/vba/tests/events.rs::failed_event_cancels_the_tail_and_keeps_prior_writes_undoable",
+        "crates/vba/tests/events.rs::inactive_workbook_write_delivers_one_event_to_its_owner",
+        "crates/vba/tests/high.rs::native_data_writer_events_report_the_computed_destination"
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "foreign-project-run",
+      "status": "OUT_OF_SCOPE_GRIDCRAFT",
+      "reason": "No native shared-project runtime/consent registry; Run refuses another project rather than loading or executing imported code."
+    },
+    {
+      "id": "lossless-sheet-transfer",
+      "status": "OUT_OF_SCOPE_GRIDCRAFT",
+      "reason": "Native cross-workbook/no-destination transfers do not preserve tables/document modules/package parts. Projection refuses those variants."
+    },
+    {
+      "id": "unrepresented-lifecycle",
+      "status": "OUT_OF_SCOPE_GRIDCRAFT",
+      "reason": "Read-only documents, chartsheets, file templates, workbook routing/provider refresh, alternate file formats and edited binary VBA project writeback have no eligible native implementation."
+    },
+    {
+      "id": "browser-headless-prompts",
+      "status": "SERVICE_REQUIRED",
+      "reason": "Explicit paths work where native IO is available. Missing picker/decision service returns an explicit error; browser does not gain filesystem authority."
+    },
+    {
+      "id": "additional-event-signals",
+      "status": "OUT_OF_SCOPE_GRIDCRAFT",
+      "reason": "Only existing explicit Open, Change and native persistence/close seams are selected. Additional Excel event notifications without native event hooks are not synthesized from polling. Medium window/chart and Low provider/remote events retain their owning-feature deferral."
+    },
+    {
+      "id": "native-high-options",
+      "status": "OUT_OF_SCOPE_GRIDCRAFT",
+      "reason": "Exact unavailable native formatting/data/table options remain documented in the implementation plan: palettes, collation, live TABLE recalculation, field converters and provider/model controls are not added for VBA."
+    },
+    {
+      "id": "medium-low",
+      "status": "DEFERRED",
+      "reason": "General OM08/OM10/OM12/OM13/OM15/OM19 Medium and every Low runtime family remain deferred by accepted priority, including eligible Low members."
+    }
+  ]
+}

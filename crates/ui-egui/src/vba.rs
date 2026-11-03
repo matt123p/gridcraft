@@ -1,7 +1,10 @@
 //! Optional shell glue; the editor/debugger itself is rendered by tiny-vba.
 use crate::{SheetApp, theme};
 use gridcraft_vba::worksheet::{Functions, Project};
-use gridcraft_vba::{Action, Bridge, Ide, Mode, vba_ide::HostRequest};
+use gridcraft_vba::{
+    Action, Bridge, Ide, LifecycleEvent, LifecycleEventBatch, LifecyclePrompt, Mode, PromptRequest, PromptResponse, PromptServices,
+    vba_ide::HostRequest,
+};
 use serde_json::{Value as Json, json};
 use std::sync::{Arc, atomic::Ordering};
 use vba_ui_egui::{Command, EditorUi, Theme};
@@ -12,6 +15,13 @@ pub struct Editor {
     pub view: EditorUi,
     pub visible: bool,
     confirm_close: bool,
+    pub(crate) pending_prompt: Option<PromptRequest>,
+    external_lifecycle: Option<ExternalLifecycle>,
+    lifecycle_commit: bool,
+    approved_close: Option<u64>,
+    close_after_save: Option<(u64, bool)>,
+    lifecycle_result: Option<Json>,
+    saved_events: std::collections::VecDeque<(u64, bool)>,
     pub design_mode: bool,
     functions: Option<Arc<Functions>>,
     pub separate_window: bool,
@@ -133,23 +143,109 @@ pub fn commands(app: &SheetApp) -> Vec<Json> {
     commands
 }
 
-pub fn before_command(app: &mut SheetApp, id: &str) -> Result<()> {
-    if matches!(id, "file.close" | "window.close" | "app.quit")
-        && let Some(editor) = app.vba.as_mut()
-    {
-        if editor.ide.modules.iter().any(|m| m.dirty()) || editor.ide.has_modified_forms() {
-            return Err("Save VBA source or explicitly discard it with vba.close before closing the workbook.".into());
-        }
-        if editor.ide.enabled(Action::Reset) {
-            editor.bridge.dispatch(&mut app.session, &mut editor.ide, Action::Reset).map_err(error)?;
-        }
+struct ExternalLifecycle {
+    doc: u64,
+    id: String,
+    params: Json,
+    batch: Option<LifecycleEventBatch>,
+    event: LifecycleEvent,
+    after: bool,
+    save: bool,
+}
+pub fn before_command(app: &mut SheetApp, id: &str, params: &Json) -> Result<bool> {
+    let Some(editor) = app.vba.as_mut() else {
+        return Ok(true);
+    };
+    if editor.lifecycle_commit {
+        return Ok(true);
     }
-    Ok(())
+    if id == "ui.dialog.cancel" && editor.pending_prompt.as_ref().is_some_and(|p| matches!(p.prompt, LifecyclePrompt::SaveChanges { .. })) {
+        let token = editor.pending_prompt.as_ref().map(|p| p.token).ok_or("missing save prompt")?;
+        editor.bridge.respond_to_prompt(token, PromptResponse::Cancel).map_err(|e| e.description)?;
+        editor.pending_prompt = None;
+    }
+    if id == "ui.dialog.cancel" {
+        editor.approved_close = None;
+        editor.close_after_save = None;
+    }
+    if !matches!(id, "file.save" | "file.saveAs" | "file.close" | "window.close") {
+        return Ok(true);
+    }
+    if editor.external_lifecycle.is_some() {
+        return Err("A workbook lifecycle event is still in progress.".into());
+    }
+    let close = matches!(id, "file.close" | "window.close");
+    if close && (editor.ide.modules.iter().any(|m| m.dirty()) || editor.ide.has_modified_forms()) {
+        return Err("Save VBA source or explicitly discard it with vba.close before closing the workbook.".into());
+    }
+    let doc = if id == "window.close" {
+        let target = gridcraft_engine::Target::from_json(params).map_err(error)?;
+        let window = app.session.target_window(target).map_err(error)?;
+        let uid = app.session.window(window).ok_or("window closed")?.doc_uid;
+        app.session.document(uid)
+    } else {
+        app.session.active()
+    };
+    let Some(doc) = doc else {
+        return Ok(true);
+    };
+    let doc_id = doc.uid;
+    if close && editor.approved_close == Some(doc_id) && params.get("force").and_then(Json::as_bool) == Some(true) {
+        editor.approved_close = None;
+        return Ok(true);
+    }
+    if !close && editor.saved_events.len() >= 256 {
+        return Err("VBA lifecycle event queue limit reached; finish queued events before saving.".into());
+    }
+    if editor.bridge.permitted(&app.session) && editor.bridge.has_lifecycle_handlers(&editor.ide) {
+        if !matches!(editor.ide.mode(), Mode::Design | Mode::Completed) {
+            return Err("Finish or reset VBA before a native save/close; its lifecycle callbacks cannot run during another invocation.".into());
+        }
+        if ((id == "window.close") || (id == "file.close" && params.get("document").and_then(Json::as_bool) != Some(true)))
+            && app.session.windows().iter().filter(|w| w.doc_uid == doc_id).count() > 1
+        {
+            return Ok(true);
+        }
+        let event =
+            if close { LifecycleEvent::BeforeClose } else { LifecycleEvent::BeforeSave { save_as_ui: id == "file.saveAs" || doc.path.is_none() } };
+        let mut command_params = params.clone();
+        if id == "window.close" {
+            let window = app.session.target_window(gridcraft_engine::Target::from_json(params).map_err(error)?).map_err(error)?;
+            if let Some(map) = command_params.as_object_mut() {
+                map.remove("doc");
+                map.insert("window".into(), json!(window));
+            } else {
+                command_params = json!({"window":window});
+            }
+        }
+        editor.external_lifecycle =
+            Some(ExternalLifecycle { doc: doc_id, id: id.into(), params: command_params, batch: None, event, after: false, save: !close });
+        editor.lifecycle_result = Some(json!({"state":"pending","command":id}));
+        return Ok(false);
+    }
+    if close && editor.ide.enabled(Action::Reset) {
+        editor.bridge.dispatch(&mut app.session, &mut editor.ide, Action::Reset).map_err(error)?;
+    }
+    Ok(true)
 }
 
 /// Capture supported cell/range content edits after the engine commits them. VBA-authored
 /// writes queue events at the native host boundary instead, avoiding dispatch before commit.
 pub fn after_engine_command(app: &mut SheetApp, id: &str, params: &Json, result: &Json) {
+    if matches!(id, "file.save" | "file.saveAs")
+        && result.get("path").and_then(Json::as_str).is_some()
+        && result.get("bytes").and_then(Json::as_u64).is_some()
+        && let Some(editor) = app.vba.as_mut()
+        && editor.bridge.permitted(&app.session)
+        && editor.bridge.has_lifecycle_handlers(&editor.ide)
+        && let Some(doc) = app.session.active()
+    {
+        if editor.saved_events.len() < 256 {
+            editor.saved_events.push_back((doc.uid, true));
+        } else {
+            editor.ide.message("VBA lifecycle event queue limit reached");
+        }
+    }
     if !matches!(
         id,
         "cell.set"
@@ -303,6 +399,13 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             view: EditorUi::default(),
             visible: true,
             confirm_close: false,
+            pending_prompt: None,
+            external_lifecycle: None,
+            lifecycle_commit: false,
+            approved_close: None,
+            close_after_save: None,
+            lifecycle_result: None,
+            saved_events: Default::default(),
             design_mode: false,
             functions: None,
             separate_window: separate,
@@ -346,7 +449,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
         }
         "vba.status" => {
             return Ok(
-                json!({"mode":editor.ide.mode().label(),"separateWindow":editor.separate_window,"visible":editor.visible,"output":editor.ide.output(),"diagnostics":editor.ide.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>()}),
+                json!({"mode":editor.ide.mode().label(),"separateWindow":editor.separate_window,"visible":editor.visible,"output":editor.ide.output(),"lifecycle":editor.lifecycle_result,"diagnostics":editor.ide.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>()}),
             );
         }
         "vba.trust" => {
@@ -382,6 +485,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
                 return Err("Finish or reset the current macro first.".into());
             }
             editor.ide.entry = entry.into();
+            editor.bridge.set_prompt_services(prompt_services(&app.services));
             editor.bridge.dispatch(&mut app.session, &mut editor.ide, Action::Run).map_err(error)?;
             editor.visible = false;
         }
@@ -411,6 +515,15 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             if let Some(entry) = p.get("entry") {
                 editor.ide.entry = entry.as_str().ok_or("entry must be a procedure name")?.into();
             }
+            if matches!(action, Action::Reset) {
+                editor.external_lifecycle = None;
+                editor.approved_close = None;
+                editor.close_after_save = None;
+                editor.saved_events.clear();
+                editor.pending_prompt = None;
+                editor.lifecycle_result = Some(json!({"state":"cancelled"}));
+            }
+            editor.bridge.set_prompt_services(prompt_services(&app.services));
             editor.bridge.dispatch(&mut app.session, &mut editor.ide, action).map_err(error)?;
         }
     }
@@ -425,17 +538,172 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
             let _ = recalculate(&mut app.session);
         }
     }
+    editor.bridge.set_prompt_services(prompt_services(&app.services));
     editor.bridge.set_formula_locale(app.ui.language.formula_locale());
-    if let Err(e) = editor.bridge.tick(&mut app.session, &mut editor.ide) {
+    let progress = if editor.external_lifecycle.as_ref().is_some_and(|p| p.batch.is_some()) {
+        editor.bridge.tick_lifecycle(&mut app.session, &mut editor.ide)
+    } else {
+        editor.bridge.tick(&mut app.session, &mut editor.ide)
+    };
+    if let Err(e) = progress {
         editor.ide.message(e.to_string());
+    }
+    if !matches!(editor.ide.mode(), Mode::Running | Mode::Waiting | Mode::Break | Mode::Stale) {
+        editor.pending_prompt = None;
+    }
+    if editor.pending_prompt.is_none() && app.dialog.as_ref().is_some_and(|d| d.values.contains_key("vbaToken")) {
+        app.dialog = None;
+    }
+    if editor.pending_prompt.is_none() {
+        editor.pending_prompt = editor.bridge.take_prompt_request();
+    }
+    if let Some(request) = editor.pending_prompt.clone() {
+        let response = match request.prompt {
+            LifecyclePrompt::OpenFile => Some(PromptResponse::Path(app.services.pick_open.as_ref().and_then(|pick| pick()))),
+            LifecyclePrompt::SaveFile { suggested } => Some(PromptResponse::Path(app.services.pick_save.as_ref().and_then(|pick| pick(&suggested)))),
+            LifecyclePrompt::SaveChanges { workbook } => {
+                if app.dialog.is_none() {
+                    app.dialog =
+                        Some(crate::dialogs::Dialog::custom("saveChanges", "Save Changes", json!({"title":workbook,"vbaToken":request.token})));
+                }
+                None
+            }
+        };
+        if let Some(response) = response {
+            if let Err(e) = editor.bridge.respond_to_prompt(request.token, response) {
+                editor.ide.message(e.description);
+            }
+            editor.pending_prompt = None;
+        }
     }
     if was_running && matches!(editor.ide.mode(), Mode::Break | Mode::Failed) {
         editor.visible = true;
         editor.focus_window = true;
     }
-    if matches!(editor.ide.mode(), Mode::Running | Mode::Waiting) {
+    if matches!(editor.ide.mode(), Mode::Running | Mode::Waiting) || editor.external_lifecycle.is_some() {
         ctx.request_repaint();
     }
+    if editor.external_lifecycle.is_none()
+        && matches!(editor.ide.mode(), Mode::Design | Mode::Completed)
+        && let Some((doc, success)) = editor.saved_events.pop_front()
+    {
+        editor.external_lifecycle = Some(ExternalLifecycle {
+            doc,
+            id: "file.save".into(),
+            params: Json::Null,
+            batch: None,
+            event: LifecycleEvent::AfterSave { success },
+            after: true,
+            save: false,
+        });
+    }
+    let commit = poll_external_lifecycle(editor, &mut app.session);
+    if let Some((doc, id, params, save)) = commit {
+        commit_lifecycle(app, ctx, doc, id, params, save);
+    }
+    finish_native_close(app, ctx);
+}
+fn commit_lifecycle(app: &mut SheetApp, ctx: &egui::Context, doc: u64, id: String, params: Json, save: bool) {
+    let quitting = params.get("vbaQuitting").and_then(Json::as_bool) == Some(true);
+    let result = match app.session.enter_target(gridcraft_engine::Target::Doc(doc)) {
+        Ok(guard) => {
+            let result = app.run(&id, params);
+            app.session.leave_target(guard);
+            result
+        }
+        Err(e) => Err(e.to_string()),
+    };
+    if let Some(editor) = app.vba.as_mut() {
+        editor.lifecycle_commit = false;
+        if !save && result.as_ref().is_ok_and(|v| v.get("dirty").and_then(Json::as_bool) == Some(true)) {
+            editor.approved_close = Some(doc);
+        }
+        editor.lifecycle_result = Some(match &result {
+            Ok(_) => json!({"state":"completed","command":id}),
+            Err(e) => json!({"state":"failed","command":id,"error":e}),
+        });
+        if save && result.is_err() && app.session.document(doc).is_some() {
+            editor.saved_events.push_back((doc, false));
+        }
+    }
+    if quitting {
+        if result.as_ref().is_ok_and(|v| v.get("closed").and_then(Json::as_bool) == Some(true)) {
+            app.continue_quit(ctx);
+        } else if result.as_ref().is_ok_and(|v| v.get("dirty").and_then(Json::as_bool) == Some(true))
+            && let Some(dialog) = app.dialog.as_mut().filter(|d| d.name() == "saveChanges")
+        {
+            dialog.values.insert("quit".into(), json!(true));
+        }
+    }
+    if let Err(e) = result {
+        app.message = Some(("VBA".into(), e));
+    }
+}
+fn finish_native_close(app: &mut SheetApp, ctx: &egui::Context) {
+    let close = app.vba.as_mut().and_then(|editor| {
+        if editor.external_lifecycle.is_some() || !editor.saved_events.is_empty() || !matches!(editor.ide.mode(), Mode::Design | Mode::Completed) {
+            return None;
+        }
+        editor.close_after_save.take()
+    });
+    if let Some((doc, quitting)) = close {
+        if app.session.document(doc).is_some_and(|d| !d.is_dirty()) {
+            if let Ok(guard) = app.session.enter_target(gridcraft_engine::Target::Doc(doc)) {
+                let result = app.run("file.close", json!({"force":true,"document":true}));
+                app.session.leave_target(guard);
+                if let Err(e) = result {
+                    app.message = Some(("VBA".into(), e));
+                }
+            }
+            if quitting {
+                app.continue_quit(ctx);
+            }
+        } else if let Some(editor) = app.vba.as_mut() {
+            editor.approved_close = None;
+        }
+    }
+}
+fn poll_external_lifecycle(editor: &mut Editor, session: &mut gridcraft_engine::Session) -> Option<(u64, String, Json, bool)> {
+    let mut pending = editor.external_lifecycle.take()?;
+    if !editor.bridge.permitted(session) || session.document(pending.doc).is_none() {
+        editor.lifecycle_result = Some(json!({"state":"cancelled","command":pending.id}));
+        return None;
+    }
+    if pending.batch.is_none() {
+        if editor.bridge.has_pending_events() || matches!(editor.ide.mode(), Mode::Running | Mode::Waiting | Mode::Break) {
+            editor.external_lifecycle = Some(pending);
+            return None;
+        }
+        match editor.bridge.prepare_lifecycle_events(session, &mut editor.ide, pending.doc, pending.event) {
+            Ok(batch) => pending.batch = Some(batch),
+            Err(e) => {
+                editor.lifecycle_result = Some(json!({"state":"failed","command":pending.id,"error":e.description}));
+                editor.ide.message(e.description);
+                return None;
+            }
+        }
+    }
+    let batch = pending.batch.as_mut()?;
+    match batch.poll(&mut editor.bridge, session, &mut editor.ide) {
+        Ok(None) => editor.external_lifecycle = Some(pending),
+        Ok(Some(cancelled)) => {
+            if pending.after {
+                if !editor.lifecycle_result.as_ref().is_some_and(|r| r.get("state").and_then(Json::as_str) == Some("failed")) {
+                    editor.lifecycle_result = Some(json!({"state":"completed","command":pending.id}));
+                }
+            } else if cancelled {
+                editor.lifecycle_result = Some(json!({"state":"cancelled","command":pending.id}));
+            } else {
+                editor.lifecycle_commit = true;
+                return Some((pending.doc, pending.id, pending.params, pending.save));
+            }
+        }
+        Err(e) => {
+            editor.ide.message(e.description.clone());
+            editor.lifecycle_result = Some(json!({"state":"failed","command":pending.id,"error":e.description}));
+        }
+    }
+    None
 }
 pub fn host_theme(tokens: theme::Tokens) -> Theme {
     Theme {
@@ -698,6 +966,7 @@ pub fn macro_picker(app: &mut SheetApp, ui: &mut egui::Ui, values: &mut serde_js
 
 pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let Some(mut editor) = app.vba.take() else { return };
+    editor.bridge.set_prompt_services(prompt_services(&app.services));
     let mut commands = Vec::new();
     let mut save_workbook = false;
     let mut allow = false;
@@ -731,7 +1000,17 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     commands.extend(editor.view.show(ui, &editor.ide, host_theme(theme::Tokens::get(ui.ctx()))));
     for command in commands {
         let result = match command {
-            Command::Action(a) => editor.bridge.dispatch(&mut app.session, &mut editor.ide, a),
+            Command::Action(a) => {
+                if a == Action::Reset {
+                    editor.external_lifecycle = None;
+                    editor.saved_events.clear();
+                    editor.pending_prompt = None;
+                    editor.approved_close = None;
+                    editor.close_after_save = None;
+                    editor.lifecycle_result = Some(json!({"state":"cancelled"}));
+                }
+                editor.bridge.dispatch(&mut app.session, &mut editor.ide, a)
+            }
             Command::RunToCursor => {
                 editor.bridge.begin(&mut app.session).and_then(|()| editor.ide.run_to_cursor(&mut editor.bridge.host(&mut app.session)))
             }
@@ -844,4 +1123,83 @@ fn read_source(path: &str) -> Result<Vec<u8>> {
 #[cfg(target_arch = "wasm32")]
 fn read_source(_path: &str) -> Result<Vec<u8>> {
     Err("Use vba.open with source text in the browser.".into())
+}
+
+fn prompt_services(services: &crate::services::Services) -> PromptServices {
+    PromptServices { open: services.pick_open.is_some(), save: services.pick_save.is_some(), close: true }
+}
+pub fn has_quit_hooks(app: &SheetApp) -> bool {
+    app.vba.as_ref().is_some_and(|e| e.bridge.permitted(&app.session) && e.bridge.has_lifecycle_handlers(&e.ide))
+}
+/// A native quit first closes the explicitly attached project through its ordinary command.
+/// Other packages remain inert; they do not acquire a project runtime during shutdown.
+pub fn begin_quit(app: &mut SheetApp) -> bool {
+    if !has_quit_hooks(app) {
+        return false;
+    }
+    let owner = app.vba.as_ref().map(|e| e.bridge.document());
+    if let Some(window) = owner.and_then(|doc| app.session.doc_window(doc)) {
+        app.enter_window(window);
+    }
+    app.run_or_alert("file.close", json!({"document":true,"vbaQuitting":true}));
+    true
+}
+/// Retain the one approved BeforeClose across the native Save Changes dialog.
+pub fn answer_native_close(app: &mut SheetApp, answer: crate::SaveAnswer, quitting: bool, ctx: &egui::Context) -> bool {
+    let Some(doc) = app.vba.as_ref().and_then(|e| e.approved_close) else {
+        return false;
+    };
+    let Ok(guard) = app.session.enter_target(gridcraft_engine::Target::Doc(doc)) else {
+        if let Some(e) = app.vba.as_mut() {
+            e.approved_close = None;
+            e.close_after_save = None;
+        }
+        return true;
+    };
+    match answer {
+        crate::SaveAnswer::Cancel => {
+            if let Some(e) = app.vba.as_mut() {
+                e.approved_close = None;
+                e.close_after_save = None;
+            }
+        }
+        crate::SaveAnswer::DontSave => {
+            app.run_or_alert("file.close", json!({"force":true,"document":true}));
+            if quitting {
+                app.continue_quit(ctx);
+            }
+        }
+        crate::SaveAnswer::Save => {
+            if let Some(e) = app.vba.as_mut() {
+                e.close_after_save = Some((doc, quitting));
+            }
+            if let Err(error) = app.run("file.save", json!({})) {
+                if let Some(e) = app.vba.as_mut() {
+                    e.close_after_save = None;
+                    e.approved_close = None;
+                }
+                app.message = Some(("VBA".into(), error));
+            }
+        }
+    }
+    app.session.leave_target(guard);
+    true
+}
+pub fn answer_save_prompt(app: &mut SheetApp, answer: crate::SaveAnswer) -> bool {
+    let Some(editor) = app.vba.as_mut() else {
+        return false;
+    };
+    let Some(request) = editor.pending_prompt.as_ref().filter(|r| matches!(r.prompt, LifecyclePrompt::SaveChanges { .. })) else {
+        return false;
+    };
+    let response = match answer {
+        crate::SaveAnswer::Save => PromptResponse::Save,
+        crate::SaveAnswer::DontSave => PromptResponse::Discard,
+        crate::SaveAnswer::Cancel => PromptResponse::Cancel,
+    };
+    if let Err(error) = editor.bridge.respond_to_prompt(request.token, response) {
+        editor.ide.message(error.description);
+    }
+    editor.pending_prompt = None;
+    true
 }

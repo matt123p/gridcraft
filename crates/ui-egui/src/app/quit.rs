@@ -25,6 +25,12 @@ impl SheetApp {
             crate::macro_editor::request_close(self, true);
             return;
         }
+        #[cfg(feature = "vba")]
+        if crate::vba::has_quit_hooks(self) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.request_quit(ctx);
+            return;
+        }
         if !self.session.documents().iter().any(|d| d.is_dirty()) {
             return;
         }
@@ -41,6 +47,10 @@ impl SheetApp {
     /// Asks about the next unsaved workbook before quitting, in its window, or closes the app
     /// once none is left.
     pub(crate) fn continue_quit(&mut self, ctx: &egui::Context) {
+        #[cfg(feature = "vba")]
+        if crate::vba::begin_quit(self) {
+            return;
+        }
         let dirty = self.session.documents().iter().find(|d| d.is_dirty()).map(|d| d.uid);
         match dirty.and_then(|uid| self.session.doc_window(uid)) {
             Some(window) => {
@@ -61,6 +71,10 @@ impl SheetApp {
     /// Returns whether the question is settled: Save keeps it open when the cell being edited
     /// can't be entered.
     pub fn answer_save_changes(&mut self, answer: SaveAnswer, quitting: bool, ctx: &egui::Context) -> bool {
+        #[cfg(feature = "vba")]
+        if crate::vba::answer_save_prompt(self, answer) || crate::vba::answer_native_close(self, answer, quitting, ctx) {
+            return true;
+        }
         match answer {
             SaveAnswer::Cancel => {}
             SaveAnswer::DontSave => {

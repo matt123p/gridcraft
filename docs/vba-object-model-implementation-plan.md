@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: implementation in progress. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; selected Medium work remains. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -306,7 +306,7 @@ Detailed packet contracts below remain in numeric order for reference only.
 | High: reachable roots | OM03 + OM04 synchronous roots, collections, identity and existing sheet operations | Establish the object paths needed by later slices. Review ordinary protection members from OM09 here where they support these operations. |
 | High: formula and function access | OM07 | Reachable WorksheetFunction proxy, then eligible formula/name/Evaluate slices. Do not wait for blocking file lifecycle operations to finish. |
 | High: everyday workbook operations | OM05 → OM06 → OM18 | Common formatting, then sort/filter/validation/data tools, then structured tables. OM18 comes before general Medium work. |
-| High: remaining invocation/lifecycle work | Remaining eligible OM03/OM04 slices as their contracts are ready; complete before High sign-off | Run/reentrancy and Open/Save/Close waits are separate slices. Implement earlier when their actual dependencies are ready; they do not block unrelated synchronous High work. |
+| High: invocation/lifecycle (delivered) | Remaining eligible OM03/OM04 slices as their contracts are ready; complete before High sign-off | Run/reentrancy and Open/Save/Close waits are separate slices. Implement earlier when their actual dependencies are ready; they do not block unrelated synchronous High work. |
 | Alongside every implemented slice | OM11 events; OM09 protection enforcement; OM00 metadata and OM20 reconciliation | Event ordering/cancellation and existing protection gates land with the operation, not in a later catch-up packet. Events follow their owning feature's tier. |
 | Medium: first subsets | OM12 → OM13 | Reachable basic charts/drawings first, then existing local pivot behavior. No provider/OLAP expansion. |
 | Medium: remaining selected subsets | OM08 → remaining OM09 → OM10 → OM19 → OM15 | Views, additional protection/permission projections, print/export, local annotations and interaction/controls, taking only slices whose dependencies and services exist. |
@@ -783,15 +783,12 @@ Do not infer broad Excel parity from the absence of runtime error 438.
 
 ## Recommended next Luna assignment
 
-Take one synchronous High OM03/OM04 roots/collection slice with existing engine
-backing, supported paths and identity tests. Verify the existing calculation
-baseline rather than recreating it. Then take the reachable OM07 WorksheetFunction
-proxy or formula/name slice; continue OM05 → OM06 → OM18 by actual prerequisites.
-Keep OM11 events and OM09 protection obligations in each relevant slice. Return
-to remaining eligible High OM03/OM04 lifecycle/Run work as its invocation/wait
-contracts are ready, and finish it before High sign-off.
+The selected High native profiles are delivered; see the
+[closure record](#high-native-profile-closure-2026-11-03) and checked acceptance ledger.
+OM03/OM04 continuations and the selected High OM11 persistence events no longer
+block the next stage. Do not broaden a bounded native profile into an Excel parity
+claim; retain its explicit unsupported variants and service limits.
 
-Do not start general Medium work while required High behavior remains incomplete.
 The first Medium delivery is a basic OM12 chart/drawing slice, then OM13 local
 pivots, followed by selected OM08/OM09/OM10/OM19/OM15 subsets. OM14/OM16/OM17 and
 all other Low members receive classification/diagnostics only; no Low runtime
@@ -992,6 +989,8 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## Revision history
 
+- 2026-11-03: Delivered remaining OM03/OM04 continuations and selected OM11 persistence events; reconciled High native-profile evidence and exact exclusions.
+
 - 2026-11-03: Delivered native-profile OM07 → OM05 → OM06 → OM18 projections, interleaved ordinary sheet protection, and recorded exact limits and regression evidence. This does not close remaining High invocation/continuation work.
 
 - 2026-11-03: Replaced numeric OM delivery order with High-first/selected-Medium stages; moved OM18 ahead of Medium, interleaved OM11/protection, and explicitly deferred all Low runtime work. IDs and source routing unchanged.
@@ -1019,10 +1018,9 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## OM03/OM04 implementation progress (2026-11-03)
 
-Status: **eligible synchronous and explicit-file subsets implemented; packets remain
-open for invocation/continuations and transfer services**. No full-packet or Excel
-parity claim is made. The dependency remains tiny-vba
-`12f56c647103255966ee6d978a62fb63ce06ef70`.
+Historical synchronous delivery; superseded by the [High closure record](#high-native-profile-closure-2026-11-03)
+below. The old invocation/service gaps in this table describe the earlier pin,
+not the current runtime. Current tiny-vba pin: `8f4bebc3650cd51054fa6786f83a1ac73e07aeaf`.
 
 | Projection | Eligibility and native evidence | Delivered contract |
 |---|---|---|
@@ -1098,12 +1096,12 @@ This delivers the bounded `GridCraft.Excel.v1` behavior below, rather than
 certifying every source page or optional Excel behavior in those families.
 The shared semantic exporter continues to label projected Microsoft contracts
 `PARTIAL`; supported execution and complete Excel parity are separate claims.
-The historical inventory and Low deferrals are unchanged. Remaining OM03
-invocation/continuation obligations above still prevent whole-High sign-off.
+The historical inventory and Low deferrals are unchanged. The later High closure
+record below delivers the remaining OM03/OM04 invocation/continuation obligations.
 
 | Packet | Delivered native projection | Deliberate limits |
 |---|---|---|
-| OM07 | Application/Worksheet/Range Evaluate; live workbook/sheet Names and identity-qualified Name objects; scoped names, visibility, comments, RefersTo A1/R1C1/local variants and RefersToRange; Formula2, R1C1, local and legacy FormulaArray; generic WorksheetFunction dispatch using the existing calculator registry, typed scalar/array/reference arguments, CVErr versus runtime-error behavior | No mathematical implementations or UDF mutation privilege added. Missing native functions are `OUT_OF_SCOPE_GRIDCRAFT`. Formula2 uses the native dynamic-array evaluator; this does not implement an additional Excel implicit-intersection dialect. Formula locales follow the native English/Spanish entry tables. The pinned parser treats `Name` as a keyword in `Dim … As Excel.Name`; use Object/Variant for that receiver. Range.Evaluate is an explicitly requested GridCraft extension, without a corresponding pinned Excel Range reference page. |
+| OM07 | Application/Worksheet/Range Evaluate; live workbook/sheet Names and identity-qualified Name objects; scoped names, visibility, comments, RefersTo A1/R1C1/local variants and RefersToRange; Formula2, R1C1, local and legacy FormulaArray; generic WorksheetFunction dispatch using the existing calculator registry, typed scalar/array/reference arguments, CVErr versus runtime-error behavior | No mathematical implementations or UDF mutation privilege added. Missing native functions are `OUT_OF_SCOPE_GRIDCRAFT`. Formula2 uses the native dynamic-array evaluator; this does not implement an additional Excel implicit-intersection dialect. Formula locales follow the native English/Spanish entry tables. Qualified `Excel.Name` declarations now bind through the shared contextual type parser and the native Name resolver. Range.Evaluate is an explicitly requested GridCraft extension, without a corresponding pinned Excel Range reference page. |
 | OM05 | Native font/fill/theme/tint and mixed reads; alignment, wrap/shrink/indent/orientation, protection and number formats; row/column dimensions, Hidden and AutoFit; merge geometry; Borders/Border; Styles catalog, Add from a native range, and Range.Style application; live FormatConditions, cell/expression rules, scales/bars/icons/top/unique/average rules, criteria/color objects, AppliesTo, priorities, StopIfTrue and native rule modifications | Native style model has no indexed palette, independent RGB tint, localized number-format language or separate named-style editing/deletion command. Non-English NumberFormatLocal and unavailable options refuse. Named-style reads require an exact native style match. Native row/column metrics remain the product's own metrics. Conditional formatting exposes model-backed fields, not all Excel differential-style, icon-override or data-bar UI variants. |
 | OM06 | Persistent worksheet/table Sort/SortFields/SortField configuration; explicit keys, headers, stable native ordering, multiple levels, custom order, case and orientation; live sheet/table AutoFilter/Filters/Filter and native criteria; Validation; RemoveDuplicates; delimited/fixed-width TextToColumns; Subtotal; row/column grouping, Outline and ShowLevels; AdvancedFilter, Consolidate, GoalSeek, snapshot data tables and Scenarios | SortMethod Pinyin/Stroke is `OUT_OF_SCOPE_GRIDCRAFT`; native codepoint ordering is not those collations. Excel color-priority/icon/DataOption sorting, per-column dropdown visibility, typed field-conversion options, linked consolidation, selected-copy header lists, replacement of existing subtotal rows, scenario locking/visibility and other unrepresented options refuse. Data tables retain the native static snapshot contract, not live TABLE formulas. Nested Array(Array(...)) is rejected by tiny-vba before dispatch; FieldInfo accepts a two-column VBA array. |
 | OM18 | Local range-backed ListObjects/ListObject, ListRows/ListRow, ListColumns/ListColumn; headers/data/totals ranges, names, style flags, resize, insert/delete, Unlist, calculated range writes, native total calculations, table Sort/AutoFilter and structured-reference resolution | Provider-backed sources, refresh/publishing/connection variants remain Low/deferred. ShowHeaders reads existing state; a separate header-visibility toggle is unavailable. Local native table styles are used. No provider or new calculation behavior added. |
@@ -1143,7 +1141,7 @@ remain required. Final validation results are recorded with this delivery below.
 
 Final validation for the native-profile delivery:
 
-- `CRAFT_FONTS_DIR=target/craft-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci`:
+- `CRAFT_FONTS_DIR=/home/coder/src/gridcraft/target/craft-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci`:
   all 10 stages passed (i18n-report, formatting, strict workspace Clippy,
   workspace tests, doctests, assets, layers, WASM, parity and keytips). The fonts
   are the existing external pinned checkout, not new repository assets.
@@ -1163,3 +1161,100 @@ Final validation for the native-profile delivery:
   compilation on `wasm32-unknown-unknown`: passed. The optional web build still
   emits the pre-existing UI `Modified::Unknown` dead-code warning.
 - `git diff --check`: passed. No dependency pin or CI workflow changed.
+
+## High native profile closure (2026-11-03)
+
+Status: **OM03, OM04 and selected High OM11 contracts delivered**, completing the
+selected High native profiles after OM07 → OM05 → OM06 → OM18. The machine-readable
+[High acceptance ledger](vba-object-model-high-acceptance.json) lists 13 required
+obligation groups, exact native evidence, source IDs and authored Rust tests.
+`vba-audit` rejects missing test functions/native evidence, duplicate obligation IDs,
+unknown source IDs and unresolved required obligations. Exclusions remain separate.
+This closes implementation against the accepted existing-capability profile; it
+does not certify every option on a Microsoft page or migrate all historical inventory
+rows into v1 priority/disposition fields. Source contracts remain PARTIAL and the
+full unresolved source catalogue is retained. General Medium work can follow; Low
+runtime work remains deferred.
+
+Current dependency: published tiny-vba commit
+`8f4bebc3650cd51054fa6786f83a1ac73e07aeaf` on `feat/suspended-host-project-calls`,
+with ADR 0035 and generic native/WASI regressions. All GridCraft tiny-vba packages
+use that immutable revision. No local path override or sibling checkout is required.
+The additive IDE/IR8 capability preserves older consumer targets and the existing
+foreign protocol; WordCraft's independently pinned existing API needs no migration.
+
+- **OM03 Run:** public standard procedures in the running project, optional module
+  qualifier and matching workbook qualifier; up to 30 typed arguments with Missing,
+  optional defaults and ParamArray. Nested results resume the parked caller in the same VM. Arguments are positional.
+  Lookup/signature failures are catchable, while an unhandled child runtime error
+  stops the entire invocation, even when the caller has On Error Resume Next. Globals, classes, debugging, undo ownership and
+  lifetime budgets survive suspension. Run argument snapshots do not write callback
+  ByRef outputs into the original call's argument slots. Ambiguous/private/missing
+  targets and another project's macros refuse explicitly; there is no native shared
+  project registry to authorize and route a different project.
+- **OM04 waits:** native open/save pickers and Save Changes decisions are explicitly
+  injected services. The bridge owns one bounded operation/token through prompt,
+  callbacks and commit; idle prompt frames do not consume VM host-poll budget.
+  Named/omitted arguments and unsupported options are checked before callback or
+  picker effects. Wrong/duplicate/stale tokens cannot replay an operation. Reset,
+  source staleness, trust revocation and close retain existing cancellation policy.
+  SaveCopyAs retains the native path/saved-state contract. Imported code stays inert.
+- **OM11 persistence:** Workbook_BeforeSave/BeforeClose precede native effects,
+  then connected Application WorkbookBeforeSave/WorkbookBeforeClose sinks run in
+  connection order with the current ByRef Cancel. Signatures and complete handler
+  snapshots are validated before callbacks. The shell collects a lifecycle batch's
+  ByRef outputs before ordinary queued Change callbacks can replace them. Cancellation prevents persistence/close;
+  VBA errors propagate without pretending success. AfterSave receives actual native
+  success/failure after IO. SaveCopyAs does not manufacture Save events. Existing
+  EnableEvents suppression, FIFO mutation events, owner binding and undo survive.
+- **Native shell:** save/Save As and final document close hold their engine command
+  while callbacks run/pause/wait. The existing Save Changes dialog resumes the
+  approved close once, including asynchronous Save; closing one of multiple views
+  does not fire Workbook.BeforeClose. Native quit and root close honor cancellation
+  for the explicitly attached project, including clean documents. Other imported
+  packages do not acquire executable projects during shutdown. Control callers see
+  an explicit pending lifecycle result and can inspect `vba.status.lifecycle`.
+  Deferred commands and Save Changes decisions retain document IDs across activation;
+  a callback or user window switch cannot redirect the final save/close.
+- **Platform/scope:** headless callers configure prompt services or use explicit
+  arguments. Browser builds retain no native path picker/filesystem authority.
+  Lossless cross-project sheet transfers, chartsheets/templates/read-only mode,
+  providers and edited binary VBA writeback remain out of scope. Additional Excel
+  event pages without existing native event hooks are not inferred from polling;
+  Medium window/chart and Low provider/remote events retain their feature priority.
+
+The earlier OM03/OM04 progress table and its service-unavailable Run/prompt statements
+are historical. Current reference/diagnostic metadata marks Application.Run implemented;
+the audit records all six persistence event pages and their acceptance test IDs.
+Qualified `Dim item As Excel.Name` is covered by a native/WASM nominal regression.
+
+Validation results are recorded after the final native/font, optional-VBA and WASM
+gates below; no fresh Excel oracle comparison is claimed by these authored tests.
+
+Final closure validation (published pin `8f4bebc3650cd51054fa6786f83a1ac73e07aeaf`):
+
+- `CRAFT_FONTS_DIR=/home/coder/src/gridcraft/target/craft-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci`:
+  all 10 stages passed, including 163 native adapter tests.
+- Strict Clippy for the VBA adapter, `ui-egui/vba-window` and audit-enabled xtask:
+  passed with `-D warnings`. The five optional VBA UI suites passed **42 tests**,
+  including 10 lifecycle tests for cancellation, Reset, save ordering, failed IO,
+  native quit, multiple views, pickers and document identity across activation.
+- Node 22.23.4 with wasm-bindgen-test-runner 0.2.129:
+  `cargo test -p gridcraft-vba --target wasm32-unknown-unknown` passed **156 tests**.
+  Use the cached Node 22 path as in the earlier remediation command; system Node
+  18 is unsuitable for this runner. Native filesystem-only tests remain native.
+- `cargo run -p xtask --features vba-audit -- vba-audit --write`, followed by its
+  non-writing check: passed for 5,996 source pages, 272 enum types, 2,260 typed
+  constants and all 13 required High obligation groups. Audit-enabled xtask:
+  **28 tests passed**. ScreenUpdating and unsupported external-format/image
+  clipboard services are classified out of scope, rather than unfinished High.
+- `cargo check -p gridcraft-web --features vba --target wasm32-unknown-unknown`:
+  passed. The reused native Save Changes dialog was rendered offscreen and visually
+  inspected; no assets or new application UI were introduced.
+- tiny-vba at the published revision: full CI, WASM and WASI gates passed; all
+  **7** generic suspended-call tests also passed under WASI, including fatal policy,
+  wrong/stale tokens, pause/Reset, optional/ParamArray values and shared budgets.
+  Earlier compiler/default capability and contextual type cases also passed WASI.
+- All 13 tiny-vba lockfile packages use the published immutable Git revision;
+  no local path patch is part of this checkout. Fresh Office oracle comparisons,
+  general Medium delivery and Low runtime implementation were not performed.

@@ -5537,6 +5537,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.CalculateFull",
       "implementation_symbol": "crates/vba/src/application.rs::Bridge::application_state",
       "kind": "method",
@@ -5565,7 +5566,10 @@
       ],
       "source_path": "api/Excel.Application.CalculateFull.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::application_calculation_settings_are_live_validated_and_grouped_across_documents",
+        "crates/vba/tests/workbooks.rs::application_wide_calculation_refuses_untrusted_participants_before_mutation"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.calculatefull"
     },
     {
@@ -5582,6 +5586,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.CalculateFullRebuild",
       "implementation_symbol": "crates/vba/src/application.rs::Bridge::application_state",
       "kind": "method",
@@ -5610,7 +5615,10 @@
       ],
       "source_path": "api/Excel.Application.CalculateFullRebuild.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::application_calculation_settings_are_live_validated_and_grouped_across_documents",
+        "crates/vba/tests/workbooks.rs::application_wide_calculation_refuses_untrusted_participants_before_mutation"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.calculatefullrebuild"
     },
     {
@@ -9384,6 +9392,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.Evaluate",
       "implementation_symbol": "crates/vba/src/formula_api.rs::Bridge::formula_api",
       "kind": "method",
@@ -9414,7 +9423,12 @@
       ],
       "source_path": "api/Excel.Application.Evaluate.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::formula_arrays_scoped_names_and_named_styles_use_native_state",
+        "crates/vba/tests/high.rs::formula_function_proxy_preserves_references_arrays_errors_and_names",
+        "crates/vba/tests/high.rs::localized_formulas_round_trip_without_changing_canonical_source",
+        "crates/vba/tests/nominal.rs::qualified_excel_name_type_binds_to_the_live_native_name"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.evaluate"
     },
     {
@@ -12033,6 +12047,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.Iteration",
       "implementation_symbol": "crates/vba/src/application.rs::Bridge::application_state",
       "kind": "property",
@@ -12061,7 +12076,10 @@
       ],
       "source_path": "api/Excel.Application.Iteration.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::application_calculation_settings_are_live_validated_and_grouped_across_documents",
+        "crates/vba/tests/workbooks.rs::application_wide_calculation_refuses_untrusted_participants_before_mutation"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.iteration"
     },
     {
@@ -12773,6 +12791,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.MaxChange",
       "implementation_symbol": "crates/vba/src/application.rs::Bridge::application_state",
       "kind": "property",
@@ -12801,7 +12820,10 @@
       ],
       "source_path": "api/Excel.Application.MaxChange.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::application_calculation_settings_are_live_validated_and_grouped_across_documents",
+        "crates/vba/tests/workbooks.rs::application_wide_calculation_refuses_untrusted_participants_before_mutation"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.maxchange"
     },
     {
@@ -12818,6 +12840,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.MaxIterations",
       "implementation_symbol": "crates/vba/src/application.rs::Bridge::application_state",
       "kind": "property",
@@ -12846,7 +12869,10 @@
       ],
       "source_path": "api/Excel.Application.MaxIterations.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::application_calculation_settings_are_live_validated_and_grouped_across_documents",
+        "crates/vba/tests/workbooks.rs::application_wide_calculation_refuses_untrusted_participants_before_mutation"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.maxiterations"
     },
     {
@@ -16040,25 +16066,26 @@
       "baseline_status": "not-exposed",
       "cancellation_parameters": [],
       "dependencies": [],
-      "descriptor_availability": "SERVICE_REQUIRED",
+      "descriptor_availability": "IMPLEMENTED",
       "dispatch_evidence": "shared-member-descriptor",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.Run",
-      "implementation_symbol": "crates/vba/src/application.rs::Bridge::application_state",
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::defer_call",
       "kind": "method",
       "member": "Run",
       "owner": "Application",
       "packet": "OM03",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "PLATFORM_SERVICE_NEEDED",
+      "result_state": "PARTIAL",
       "return_type": "Variant",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -16107,7 +16134,10 @@
       ],
       "source_path": "api/Excel.Application.Run.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/continuations.rs::application_run_returns_values_preserves_globals_and_routes_nested_errors",
+        "crates/vba/tests/continuations.rs::unhandled_run_error_stops_the_caller_but_child_handled_errors_return_normally"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.run"
     },
     {
@@ -16178,7 +16208,7 @@
       "baseline_status": "not-exposed",
       "cancellation_parameters": [],
       "dependencies": [],
-      "descriptor_availability": "SERVICE_REQUIRED",
+      "descriptor_availability": "OUT_OF_SCOPE_GRIDCRAFT",
       "dispatch_evidence": "shared-member-descriptor",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
@@ -16196,7 +16226,7 @@
       "profile": null,
       "read_write": "READ_WRITE",
       "related_member_ids": [],
-      "result_state": "PLATFORM_SERVICE_NEEDED",
+      "result_state": "OUT_OF_SCOPE_GRIDCRAFT",
       "return_type": null,
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -20934,24 +20964,25 @@
       "cancellation_parameters": [],
       "dependencies": [],
       "descriptor_availability": null,
-      "dispatch_evidence": "none",
+      "dispatch_evidence": "explicit-event-or-enum",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.WorkbookAfterSave",
-      "implementation_symbol": null,
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls",
       "kind": "event",
       "member": "WorkbookAfterSave",
       "owner": "Application",
       "packet": "OM11",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "MISSING",
+      "result_state": "PARTIAL",
       "return_type": "Nothing",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -20971,7 +21002,21 @@
       ],
       "source_path": "api/Excel.Application.WorkbookAfterSave.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.workbookaftersave"
     },
     {
@@ -21217,24 +21262,25 @@
       ],
       "dependencies": [],
       "descriptor_availability": null,
-      "dispatch_evidence": "none",
+      "dispatch_evidence": "explicit-event-or-enum",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.WorkbookBeforeClose",
-      "implementation_symbol": null,
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls",
       "kind": "event",
       "member": "WorkbookBeforeClose",
       "owner": "Application",
       "packet": "OM11",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "MISSING",
+      "result_state": "PARTIAL",
       "return_type": "Nothing",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -21254,7 +21300,21 @@
       ],
       "source_path": "api/Excel.Application.WorkbookBeforeClose.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.workbookbeforeclose"
     },
     {
@@ -21445,24 +21505,25 @@
       ],
       "dependencies": [],
       "descriptor_availability": null,
-      "dispatch_evidence": "none",
+      "dispatch_evidence": "explicit-event-or-enum",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.WorkbookBeforeSave",
-      "implementation_symbol": null,
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls",
       "kind": "event",
       "member": "WorkbookBeforeSave",
       "owner": "Application",
       "packet": "OM11",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "MISSING",
+      "result_state": "PARTIAL",
       "return_type": "Nothing",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -21483,7 +21544,21 @@
       ],
       "source_path": "api/Excel.Application.WorkbookBeforeSave.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.workbookbeforesave"
     },
     {
@@ -22328,6 +22403,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Application.Workbooks",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "property",
@@ -22356,7 +22432,9 @@
       ],
       "source_path": "api/Excel.Application.Workbooks.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::workbooks_are_live_nominal_collections_and_activation_preserves_code_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.application.workbooks"
     },
     {
@@ -104265,6 +104343,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "ListObject.Resize",
       "implementation_symbol": "crates/vba/src/table_api.rs::Bridge::table_api",
       "kind": "method",
@@ -104295,7 +104374,11 @@
       ],
       "source_path": "api/Excel.ListObject.Resize.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::structured_tables_are_live_across_rename_resize_insert_delete_totals_and_unlist",
+        "crates/vba/tests/high.rs::table_sort_and_filters_remain_table_owned_and_clear_without_stuck_hidden_rows",
+        "crates/vba/tests/high.rs::table_views_do_not_retarget_when_native_table_ids_are_reused"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.listobject.resize"
     },
     {
@@ -105073,6 +105156,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "ListObject.Unlist",
       "implementation_symbol": "crates/vba/src/table_api.rs::Bridge::table_api",
       "kind": "method",
@@ -105101,7 +105185,11 @@
       ],
       "source_path": "api/Excel.ListObject.Unlist.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::structured_tables_are_live_across_rename_resize_insert_delete_totals_and_unlist",
+        "crates/vba/tests/high.rs::table_sort_and_filters_remain_table_owned_and_clear_without_stuck_hidden_rows",
+        "crates/vba/tests/high.rs::table_views_do_not_retarget_when_native_table_ids_are_reused"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.listobject.unlist"
     },
     {
@@ -105918,6 +106006,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "ListRows.Add",
       "implementation_symbol": "crates/vba/src/table_api.rs::Bridge::table_api",
       "kind": "method",
@@ -105949,7 +106038,11 @@
       ],
       "source_path": "api/Excel.ListRows.Add.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::structured_tables_are_live_across_rename_resize_insert_delete_totals_and_unlist",
+        "crates/vba/tests/high.rs::table_sort_and_filters_remain_table_owned_and_clear_without_stuck_hidden_rows",
+        "crates/vba/tests/high.rs::table_views_do_not_retarget_when_native_table_ids_are_reused"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.listrows.add"
     },
     {
@@ -169796,6 +169889,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.AutoFilter",
       "implementation_symbol": "crates/vba/src/data_api.rs::Bridge::data_api",
       "kind": "method",
@@ -169831,7 +169925,11 @@
       ],
       "source_path": "api/Excel.Range.AutoFilter.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::data_tool_writers_preview_exact_output_and_preserve_native_results",
+        "crates/vba/tests/high.rs::persistent_sort_filter_and_validation_use_explicit_inactive_worksheet",
+        "crates/vba/tests/high.rs::scenarios_goal_seek_and_data_tables_preserve_typed_values"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.autofilter"
     },
     {
@@ -170055,6 +170153,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.Borders",
       "implementation_symbol": "crates/vba/src/format_api.rs::Bridge::format_api",
       "kind": "property",
@@ -170083,7 +170182,10 @@
       ],
       "source_path": "api/Excel.Range.Borders.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::condition_specific_graphs_follow_native_rules_and_priority_identity",
+        "crates/vba/tests/high.rs::formatting_uses_native_styles_theme_geometry_borders_merges_and_rules"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.borders"
     },
     {
@@ -171427,7 +171529,7 @@
       "baseline_status": "platform-service-needed",
       "cancellation_parameters": [],
       "dependencies": [],
-      "descriptor_availability": "SERVICE_REQUIRED",
+      "descriptor_availability": "OUT_OF_SCOPE_GRIDCRAFT",
       "dispatch_evidence": "shared-member-descriptor",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
@@ -171445,7 +171547,7 @@
       "profile": null,
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "PLATFORM_SERVICE_NEEDED",
+      "result_state": "OUT_OF_SCOPE_GRIDCRAFT",
       "return_type": "Variant",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -173460,6 +173562,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.Font",
       "implementation_symbol": "crates/vba/src/objects.rs::Bridge::invoke_object",
       "kind": "property",
@@ -173488,7 +173591,10 @@
       ],
       "source_path": "api/Excel.Range.Font.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::condition_specific_graphs_follow_native_rules_and_priority_identity",
+        "crates/vba/tests/high.rs::formatting_uses_native_styles_theme_geometry_borders_merges_and_rules"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.font"
     },
     {
@@ -173505,6 +173611,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.FormatConditions",
       "implementation_symbol": "crates/vba/src/conditional_api.rs::Bridge::conditional_api",
       "kind": "property",
@@ -173533,7 +173640,10 @@
       ],
       "source_path": "api/Excel.Range.FormatConditions.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::condition_specific_graphs_follow_native_rules_and_priority_identity",
+        "crates/vba/tests/high.rs::formatting_uses_native_styles_theme_geometry_borders_merges_and_rules"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.formatconditions"
     },
     {
@@ -174727,6 +174837,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.Interior",
       "implementation_symbol": "crates/vba/src/objects.rs::Bridge::invoke_object",
       "kind": "property",
@@ -174755,7 +174866,10 @@
       ],
       "source_path": "api/Excel.Range.Interior.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::condition_specific_graphs_follow_native_rules_and_priority_identity",
+        "crates/vba/tests/high.rs::formatting_uses_native_styles_theme_geometry_borders_merges_and_rules"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.interior"
     },
     {
@@ -178871,6 +178985,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.Sort",
       "implementation_symbol": "crates/vba/src/data_api.rs::Bridge::data_api",
       "kind": "method",
@@ -178915,7 +179030,11 @@
       ],
       "source_path": "api/Excel.Range.Sort.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::data_tool_writers_preview_exact_output_and_preserve_native_results",
+        "crates/vba/tests/high.rs::persistent_sort_filter_and_validation_use_explicit_inactive_worksheet",
+        "crates/vba/tests/high.rs::scenarios_goal_seek_and_data_tables_preserve_typed_values"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.sort"
     },
     {
@@ -180076,6 +180195,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.TextToColumns",
       "implementation_symbol": "crates/vba/src/data_api.rs::Bridge::data_api",
       "kind": "method",
@@ -180119,7 +180239,11 @@
       ],
       "source_path": "api/Excel.Range.TextToColumns.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::data_tool_writers_preview_exact_output_and_preserve_native_results",
+        "crates/vba/tests/high.rs::persistent_sort_filter_and_validation_use_explicit_inactive_worksheet",
+        "crates/vba/tests/high.rs::scenarios_goal_seek_and_data_tables_preserve_typed_values"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.texttocolumns"
     },
     {
@@ -180363,6 +180487,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Range.Validation",
       "implementation_symbol": "crates/vba/src/data_api.rs::Bridge::data_api",
       "kind": "property",
@@ -180391,7 +180516,11 @@
       ],
       "source_path": "api/Excel.Range.Validation.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::data_tool_writers_preview_exact_output_and_preserve_native_results",
+        "crates/vba/tests/high.rs::persistent_sort_filter_and_validation_use_explicit_inactive_worksheet",
+        "crates/vba/tests/high.rs::scenarios_goal_seek_and_data_tables_preserve_typed_values"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.range.validation"
     },
     {
@@ -243957,24 +244086,25 @@
       "cancellation_parameters": [],
       "dependencies": [],
       "descriptor_availability": null,
-      "dispatch_evidence": "none",
+      "dispatch_evidence": "explicit-event-or-enum",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.AfterSave",
-      "implementation_symbol": null,
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls",
       "kind": "event",
       "member": "AfterSave",
       "owner": "Workbook",
       "packet": "OM11",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "MISSING",
+      "result_state": "PARTIAL",
       "return_type": "Nothing",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -243993,7 +244123,21 @@
       ],
       "source_path": "api/Excel.Workbook.AfterSave.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.aftersave"
     },
     {
@@ -244439,24 +244583,25 @@
       ],
       "dependencies": [],
       "descriptor_availability": null,
-      "dispatch_evidence": "none",
+      "dispatch_evidence": "explicit-event-or-enum",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.BeforeClose",
-      "implementation_symbol": null,
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls",
       "kind": "event",
       "member": "BeforeClose",
       "owner": "Workbook",
       "packet": "OM11",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "MISSING",
+      "result_state": "PARTIAL",
       "return_type": "Nothing",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -244475,7 +244620,21 @@
       ],
       "source_path": "api/Excel.Workbook.BeforeClose.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.beforeclose"
     },
     {
@@ -244623,24 +244782,25 @@
       ],
       "dependencies": [],
       "descriptor_availability": null,
-      "dispatch_evidence": "none",
+      "dispatch_evidence": "explicit-event-or-enum",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.BeforeSave",
-      "implementation_symbol": null,
+      "implementation_symbol": "crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls",
       "kind": "event",
       "member": "BeforeSave",
       "owner": "Workbook",
       "packet": "OM11",
       "platform_notes": [],
       "platform_review": "SOURCE_REVIEWED",
-      "profile": null,
+      "profile": "GridCraft.Excel.v1",
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "MISSING",
+      "result_state": "PARTIAL",
       "return_type": "Nothing",
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -244660,7 +244820,21 @@
       ],
       "source_path": "api/Excel.Workbook.BeforeSave.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::closing_one_of_two_windows_does_not_fire_before_close",
+        "crates/ui-egui/tests/vba_lifecycle.rs::dirty_close_decision_keeps_single_before_close_and_save_continues_asynchronously",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_before_and_after_save_surround_the_physical_write",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_cancel_outputs_survive_queued_change_callbacks",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_dirty_close_decision_is_bound_to_its_dialog_owner_after_activation",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_io_failure_retains_failed_status_after_after_save_false",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_quit_obeys_before_close_cancel_even_for_clean_documents",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_cancels_before_write_and_reset_discards_parked_commit",
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_save_keeps_target_identity_when_before_save_activates_another_book",
+        "crates/vba/tests/continuations.rs::application_sink_receives_document_cancel_in_connection_order_during_wait",
+        "crates/vba/tests/continuations.rs::before_save_is_cancellable_and_after_save_runs_after_native_persistence",
+        "crates/vba/tests/continuations.rs::failed_save_reports_after_save_false_and_does_not_close",
+        "crates/vba/tests/continuations.rs::malformed_event_signature_refuses_native_effect_before_any_callback"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.beforesave"
     },
     {
@@ -245714,6 +245888,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.Close",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -245746,7 +245921,15 @@
       ],
       "source_path": "api/Excel.Workbook.Close.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_unsaved_close_uses_picker_once_and_does_not_repeat_before_save",
+        "crates/vba/tests/continuations.rs::dirty_close_prompt_cancel_does_not_close_or_replay",
+        "crates/vba/tests/continuations.rs::named_format_survives_save_picker_and_open_import_is_inert",
+        "crates/vba/tests/continuations.rs::revoking_consent_during_picker_cancels_without_a_write",
+        "crates/vba/tests/continuations.rs::save_prompt_is_delivered_once_and_reset_invalidates_its_token",
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds",
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.close"
     },
     {
@@ -249281,6 +249464,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.Names",
       "implementation_symbol": "crates/vba/src/formula_api.rs::Bridge::formula_api",
       "kind": "property",
@@ -249309,7 +249493,12 @@
       ],
       "source_path": "api/Excel.Workbook.Names.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::formula_arrays_scoped_names_and_named_styles_use_native_state",
+        "crates/vba/tests/high.rs::formula_function_proxy_preserves_references_arrays_errors_and_names",
+        "crates/vba/tests/high.rs::localized_formulas_round_trip_without_changing_canonical_source",
+        "crates/vba/tests/nominal.rs::qualified_excel_name_type_binds_to_the_live_native_name"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.names"
     },
     {
@@ -249493,8 +249682,9 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.Open",
-      "implementation_symbol": "crates/vba/src/lib.rs::Bridge::dispatch_document_event",
+      "implementation_symbol": "crates/vba/src/lib.rs::Bridge::tick",
       "kind": "event",
       "member": "Open",
       "owner": "Workbook",
@@ -249523,7 +249713,13 @@
       ],
       "source_path": "api/Excel.Workbook.Open.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/events.rs::failed_event_cancels_the_tail_and_keeps_prior_writes_undoable",
+        "crates/vba/tests/events.rs::inactive_workbook_write_delivers_one_event_to_its_owner",
+        "crates/vba/tests/events.rs::workbook_open_requires_explicit_trusted_queueing",
+        "crates/vba/tests/events.rs::worksheet_event_queue_is_fifo_and_disabling_discards_only_the_pending_tail",
+        "crates/vba/tests/high.rs::native_data_writer_events_report_the_computed_destination"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.open"
     },
     {
@@ -250665,6 +250861,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.Protect",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -250699,7 +250896,10 @@
       ],
       "source_path": "api/Excel.Workbook.Protect.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::protection_is_enforced_and_range_payload_is_bounded",
+        "crates/vba/tests/workbooks.rs::workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.protect"
     },
     {
@@ -252056,6 +252256,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.Save",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -252084,7 +252285,15 @@
       ],
       "source_path": "api/Excel.Workbook.Save.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_unsaved_close_uses_picker_once_and_does_not_repeat_before_save",
+        "crates/vba/tests/continuations.rs::dirty_close_prompt_cancel_does_not_close_or_replay",
+        "crates/vba/tests/continuations.rs::named_format_survives_save_picker_and_open_import_is_inert",
+        "crates/vba/tests/continuations.rs::revoking_consent_during_picker_cancels_without_a_write",
+        "crates/vba/tests/continuations.rs::save_prompt_is_delivered_once_and_reset_invalidates_its_token",
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds",
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.save"
     },
     {
@@ -252258,6 +252467,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.SaveAs",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -252299,7 +252509,15 @@
       ],
       "source_path": "api/Excel.Workbook.SaveAs.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_unsaved_close_uses_picker_once_and_does_not_repeat_before_save",
+        "crates/vba/tests/continuations.rs::dirty_close_prompt_cancel_does_not_close_or_replay",
+        "crates/vba/tests/continuations.rs::named_format_survives_save_picker_and_open_import_is_inert",
+        "crates/vba/tests/continuations.rs::revoking_consent_during_picker_cancels_without_a_write",
+        "crates/vba/tests/continuations.rs::save_prompt_is_delivered_once_and_reset_invalidates_its_token",
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds",
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.saveas"
     },
     {
@@ -252405,6 +252623,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.SaveCopyAs",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -252435,7 +252654,10 @@
       ],
       "source_path": "api/Excel.Workbook.SaveCopyAs.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds",
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.savecopyas"
     },
     {
@@ -255264,6 +255486,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbook.Unprotect",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -255294,7 +255517,10 @@
       ],
       "source_path": "api/Excel.Workbook.Unprotect.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::protection_is_enforced_and_range_payload_is_bounded",
+        "crates/vba/tests/workbooks.rs::workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbook.unprotect"
     },
     {
@@ -257860,6 +258086,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbooks.Add",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -257890,7 +258117,10 @@
       ],
       "source_path": "api/Excel.Workbooks.Add.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds",
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbooks.add"
     },
     {
@@ -258119,6 +258349,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbooks.Count",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "property",
@@ -258147,7 +258378,9 @@
       ],
       "source_path": "api/Excel.Workbooks.Count.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::workbooks_are_live_nominal_collections_and_activation_preserves_code_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbooks.count"
     },
     {
@@ -258225,6 +258458,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbooks.Item",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "property",
@@ -258255,7 +258489,9 @@
       ],
       "source_path": "api/Excel.Workbooks.Item.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::workbooks_are_live_nominal_collections_and_activation_preserves_code_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbooks.item"
     },
     {
@@ -258508,6 +258744,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Workbooks.Open",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -258554,7 +258791,15 @@
       ],
       "source_path": "api/Excel.Workbooks.Open.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_lifecycle.rs::native_unsaved_close_uses_picker_once_and_does_not_repeat_before_save",
+        "crates/vba/tests/continuations.rs::dirty_close_prompt_cancel_does_not_close_or_replay",
+        "crates/vba/tests/continuations.rs::named_format_survives_save_picker_and_open_import_is_inert",
+        "crates/vba/tests/continuations.rs::revoking_consent_during_picker_cancels_without_a_write",
+        "crates/vba/tests/continuations.rs::save_prompt_is_delivered_once_and_reset_invalidates_its_token",
+        "crates/vba/tests/workbooks.rs::failed_save_and_close_preserve_document_then_explicit_save_close_succeeds",
+        "crates/vba/tests/workbooks.rs::workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.workbooks.open"
     },
     {
@@ -259698,8 +259943,9 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Change",
-      "implementation_symbol": "crates/vba/src/lib.rs::Bridge::dispatch_document_event",
+      "implementation_symbol": "crates/vba/src/lib.rs::Bridge::tick",
       "kind": "event",
       "member": "Change",
       "owner": "Worksheet",
@@ -259728,7 +259974,13 @@
       ],
       "source_path": "api/Excel.Worksheet.Change.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/events.rs::failed_event_cancels_the_tail_and_keeps_prior_writes_undoable",
+        "crates/vba/tests/events.rs::inactive_workbook_write_delivers_one_event_to_its_owner",
+        "crates/vba/tests/events.rs::workbook_open_requires_explicit_trusted_queueing",
+        "crates/vba/tests/events.rs::worksheet_event_queue_is_fifo_and_disabling_discards_only_the_pending_tail",
+        "crates/vba/tests/high.rs::native_data_writer_events_report_the_computed_destination"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.change"
     },
     {
@@ -260089,6 +260341,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.CodeName",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "property",
@@ -260117,7 +260370,11 @@
       ],
       "source_path": "api/Excel.Worksheet.CodeName.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.codename"
     },
     {
@@ -260431,6 +260688,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Copy",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -260462,7 +260720,11 @@
       ],
       "source_path": "api/Excel.Worksheet.Copy.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.copy"
     },
     {
@@ -260619,6 +260881,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Delete",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -260647,7 +260910,11 @@
       ],
       "source_path": "api/Excel.Worksheet.Delete.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.delete"
     },
     {
@@ -261038,6 +261305,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Evaluate",
       "implementation_symbol": "crates/vba/src/formula_api.rs::Bridge::formula_api",
       "kind": "method",
@@ -261068,7 +261336,12 @@
       ],
       "source_path": "api/Excel.Worksheet.Evaluate.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::formula_arrays_scoped_names_and_named_styles_use_native_state",
+        "crates/vba/tests/high.rs::formula_function_proxy_preserves_references_arrays_errors_and_names",
+        "crates/vba/tests/high.rs::localized_formulas_round_trip_without_changing_canonical_source",
+        "crates/vba/tests/nominal.rs::qualified_excel_name_type_binds_to_the_live_native_name"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.evaluate"
     },
     {
@@ -261454,6 +261727,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Index",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "property",
@@ -261482,7 +261756,11 @@
       ],
       "source_path": "api/Excel.Worksheet.Index.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.index"
     },
     {
@@ -261542,6 +261820,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.ListObjects",
       "implementation_symbol": "crates/vba/src/table_api.rs::Bridge::table_api",
       "kind": "property",
@@ -261570,7 +261849,11 @@
       ],
       "source_path": "api/Excel.Worksheet.ListObjects.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::structured_tables_are_live_across_rename_resize_insert_delete_totals_and_unlist",
+        "crates/vba/tests/high.rs::table_sort_and_filters_remain_table_owned_and_clear_without_stuck_hidden_rows",
+        "crates/vba/tests/high.rs::table_views_do_not_retarget_when_native_table_ids_are_reused"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.listobjects"
     },
     {
@@ -261701,6 +261984,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Move",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -261732,7 +262016,11 @@
       ],
       "source_path": "api/Excel.Worksheet.Move.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.move"
     },
     {
@@ -262240,7 +262528,7 @@
       "baseline_status": "platform-service-needed",
       "cancellation_parameters": [],
       "dependencies": [],
-      "descriptor_availability": "SERVICE_REQUIRED",
+      "descriptor_availability": "OUT_OF_SCOPE_GRIDCRAFT",
       "dispatch_evidence": "shared-member-descriptor",
       "enum_alias_review": "NOT_APPLICABLE",
       "enum_aliases": [],
@@ -262258,7 +262546,7 @@
       "profile": null,
       "read_write": "NOT_APPLICABLE",
       "related_member_ids": [],
-      "result_state": "PLATFORM_SERVICE_NEEDED",
+      "result_state": "OUT_OF_SCOPE_GRIDCRAFT",
       "return_type": null,
       "signature_review": "SOURCE_EXTRACTED_WITH_PROVENANCE",
       "signatures": [
@@ -263661,6 +263949,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Protect",
       "implementation_symbol": "crates/vba/src/protection_api.rs::Bridge::protection_api",
       "kind": "method",
@@ -263706,7 +263995,10 @@
       ],
       "source_path": "api/Excel.Worksheet.Protect.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::protection_is_enforced_and_range_payload_is_bounded",
+        "crates/vba/tests/workbooks.rs::workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.protect"
     },
     {
@@ -265157,6 +265449,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Unprotect",
       "implementation_symbol": "crates/vba/src/protection_api.rs::Bridge::protection_api",
       "kind": "method",
@@ -265187,7 +265480,10 @@
       ],
       "source_path": "api/Excel.Worksheet.Unprotect.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::protection_is_enforced_and_range_payload_is_bounded",
+        "crates/vba/tests/workbooks.rs::workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.unprotect"
     },
     {
@@ -265251,6 +265547,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheet.Visible",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "property",
@@ -265279,7 +265576,11 @@
       ],
       "source_path": "api/Excel.Worksheet.Visible.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheet.visible"
     },
     {
@@ -307804,6 +308105,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "WorksheetFunction.Sum",
       "implementation_symbol": "crates/vba/src/formula_api.rs::Bridge::formula_api",
       "kind": "method",
@@ -307863,7 +308165,12 @@
       ],
       "source_path": "api/Excel.WorksheetFunction.Sum.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/high.rs::formula_arrays_scoped_names_and_named_styles_use_native_state",
+        "crates/vba/tests/high.rs::formula_function_proxy_preserves_references_arrays_errors_and_names",
+        "crates/vba/tests/high.rs::localized_formulas_round_trip_without_changing_canonical_source",
+        "crates/vba/tests/nominal.rs::qualified_excel_name_type_binds_to_the_live_native_name"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheetfunction.sum"
     },
     {
@@ -315293,6 +315600,7 @@
       "enum_type": null,
       "enum_values": [],
       "enum_values_complete": false,
+      "high_acceptance": "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions",
       "id": "Worksheets.Add",
       "implementation_symbol": "crates/vba/src/lifecycle.rs::Bridge::lifecycle",
       "kind": "method",
@@ -315326,7 +315634,11 @@
       ],
       "source_path": "api/Excel.Worksheets.Add.md",
       "syntax_member_aliases": [],
-      "test_ids": [],
+      "test_ids": [
+        "crates/vba/tests/workbooks.rs::copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table",
+        "crates/vba/tests/workbooks.rs::sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones",
+        "crates/vba/tests/workbooks.rs::sheet_transfers_refuse_cross_document_and_document_module_copies"
+      ],
       "url": "https://learn.microsoft.com/en-us/office/vba/api/excel.worksheets.add"
     },
     {

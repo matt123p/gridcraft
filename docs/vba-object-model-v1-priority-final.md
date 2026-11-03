@@ -447,3 +447,10 @@ revision changes delivery instructions, not the generated audit schema or counts
 - 2026-11-03: Recorded completed event targeting, batch reservation and assignment notification remediation.
 
 - 2026-11-03: Added Rust architecture review amendment and incremental delivery constraints; retained corpus priority findings.
+
+Implementation update (2026-11-03): the selected High native profiles are delivered
+in the [closure record](vba-object-model-implementation-plan.md#high-native-profile-closure-2026-11-03)
+and [machine-readable evidence ledger](vba-object-model-high-acceptance.json).
+This does not change accepted eligibility/deferral or turn the historical full
+source catalogue into a compatibility percentage. Its wider priority/disposition
+migration remains separate from implementation acceptance.

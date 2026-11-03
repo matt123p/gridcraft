@@ -93,6 +93,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
             return Err(format!("duplicate VBA member descriptor: {}.{}", descriptor.owner, descriptor.name));
         }
     }
+    let acceptance = validate_high_acceptance(root, rows)?;
     let mut contracts = Vec::with_capacity(rows.len());
     let mut enums = Vec::new();
     let mut enum_types = BTreeSet::new();
@@ -102,7 +103,12 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         let mut entry = archive.by_name(&archive_name).map_err(|e| format!("missing {source_path}: {e}"))?;
         let mut markdown = String::new();
         entry.read_to_string(&mut markdown).map_err(|e| format!("invalid UTF-8 in {source_path}: {e}"))?;
-        let contract = contract_row(row, &markdown, &descriptors)?;
+        let mut contract = contract_row(row, &markdown, &descriptors)?;
+        if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| acceptance.get(&fold_identifier(id))) {
+            contract["test_ids"] = json!(tests);
+            contract["high_acceptance"] =
+                json!("IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions");
+        }
         if contract.get("enum_type").is_some_and(|ty| !ty.is_null()) {
             if let Some(ty) = contract.get("enum_type").and_then(Value::as_str) {
                 enum_types.insert(ty.to_owned());
@@ -184,6 +190,63 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
+/// Evidence ledger for the selected High profiles, independent of historical source counts.
+fn validate_high_acceptance(root: &Path, source_rows: &[Value]) -> Result<BTreeMap<String, BTreeSet<String>>, String> {
+    let path = root.join("docs/vba-object-model-high-acceptance.json");
+    let ledger: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?).map_err(|e| e.to_string())?;
+    if ledger.get("schema").and_then(Value::as_u64) != Some(1) {
+        return Err("unsupported High acceptance schema".into());
+    }
+    let rows = ledger.get("requirements").and_then(Value::as_array).ok_or("missing High requirements")?;
+    let ids = source_rows.iter().filter_map(|row| row.get("id").and_then(Value::as_str)).map(fold_identifier).collect::<BTreeSet<_>>();
+    let mut tests_by_source = BTreeMap::<String, BTreeSet<String>>::new();
+    let mut obligations = BTreeSet::new();
+    for row in rows {
+        let id = string(row, "id")?;
+        if !obligations.insert(id.to_owned()) {
+            return Err(format!("duplicate High obligation: {id}"));
+        }
+        if row.get("required").and_then(Value::as_bool) != Some(true) || string(row, "status")? != "IMPLEMENTED_NATIVE_PROFILE" {
+            return Err(format!("unresolved required High obligation: {id}"));
+        }
+        let tests = row.get("test_ids").and_then(Value::as_array).ok_or("High obligation without tests")?;
+        if tests.is_empty() {
+            return Err(format!("High obligation without test evidence: {id}"));
+        }
+        let mut test_ids = BTreeSet::new();
+        for test in tests {
+            let test = test.as_str().ok_or("invalid High test id")?;
+            let (file, function) = test.split_once("::").ok_or("invalid High test reference")?;
+            if !file.starts_with("crates/") || !file.ends_with(".rs") || file.contains("..") {
+                return Err(format!("invalid High test path: {file}"));
+            }
+            let source = fs::read_to_string(root.join(file)).map_err(|e| format!("{file}: {e}"))?;
+            if !source.contains(&format!("fn {function}(")) {
+                return Err(format!("missing High test function: {test}"));
+            }
+            test_ids.insert(test.to_owned());
+        }
+        for file in row.get("native_evidence").and_then(Value::as_array).ok_or("High obligation without native evidence")? {
+            let file = file.as_str().ok_or("invalid native evidence")?;
+            if !file.starts_with("crates/") || file.contains("..") || !root.join(file).is_file() {
+                return Err(format!("missing native High evidence: {file}"));
+            }
+        }
+        for source in row.get("source_ids").and_then(Value::as_array).ok_or("High obligation without source ids")? {
+            let source = fold_identifier(source.as_str().ok_or("invalid High source id")?);
+            if !ids.contains(&source) {
+                return Err(format!("unknown High source contract: {source}"));
+            }
+            tests_by_source.entry(source).or_default().extend(test_ids.iter().cloned());
+        }
+    }
+    println!(
+        "High native acceptance: {} required obligations with linked Rust tests; platform/scope exclusions retained separately",
+        obligations.len()
+    );
+    Ok(tests_by_source)
+}
+
 fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, String), MemberDescriptor>) -> Result<Value, String> {
     let id = string(row, "id")?;
     let kind = string(row, "kind")?;
@@ -204,7 +267,19 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
     let implementation_symbol = if kind == "enumeration" {
         Some("crates/vba/src/vba_enum_data.rs::EXCEL_ENUM_CONSTANTS")
     } else if kind == "event" && matches!(id, "Workbook.Open" | "Worksheet.Change") {
-        Some("crates/vba/src/lib.rs::Bridge::dispatch_document_event")
+        Some("crates/vba/src/lib.rs::Bridge::tick")
+    } else if kind == "event"
+        && matches!(
+            id,
+            "Workbook.BeforeSave"
+                | "Workbook.BeforeClose"
+                | "Workbook.AfterSave"
+                | "Application.WorkbookBeforeSave"
+                | "Application.WorkbookBeforeClose"
+                | "Application.WorkbookAfterSave"
+        )
+    {
+        Some("crates/vba/src/host_ops.rs::Bridge::lifecycle_event_calls")
     } else {
         descriptor.map(|item| item.implementation_symbol)
     };
@@ -233,6 +308,10 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
             result_state = "MISSING";
             profile = None;
         }
+    }
+    if kind == "event" && implementation_symbol.is_some() {
+        result_state = "PARTIAL";
+        profile = Some("GridCraft.Excel.v1");
     }
     let mut arguments = Vec::new();
     for (signature_index, signature) in signatures.iter().enumerate() {
@@ -658,7 +737,7 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         *counts.entry(state.to_owned()).or_default() += 1;
     }
     let mut out = format!(
-        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\n## State counts\n\n",
+        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\n## State counts\n\n",
         pages.len()
     );
     for (state, count) in counts {
@@ -727,7 +806,7 @@ mod tests {
     fn current_dispatch_updates_result_without_rewriting_historical_inventory() -> Result<(), String> {
         let descriptors =
             gridcraft_vba::member_descriptors().into_iter().map(|d| ((d.owner.to_ascii_lowercase(), d.name.to_ascii_lowercase()), d)).collect();
-        for (member, expected) in [("Workbooks", "PARTIAL"), ("Run", "PLATFORM_SERVICE_NEEDED")] {
+        for (member, expected) in [("Workbooks", "PARTIAL"), ("Run", "PARTIAL"), ("ScreenUpdating", "OUT_OF_SCOPE_GRIDCRAFT")] {
             let row = serde_json::json!({
                 "id":format!("Application.{member}"), "kind":"property", "owner":"Application", "member":member,
                 "status":"not-exposed", "source_path":format!("api/Excel.Application.{member}.md"), "packet":"OM03",

@@ -4,13 +4,14 @@ Pinned source: MicrosoftDocs/VBA-Docs `b202c96d9d53896593b73d6fae57f5230601a5e3`
 
 5996 source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).
 
+Selected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.
+
 ## State counts
 
 - `LEGACY_REVIEW`: 283
-- `MISSING`: 4543
-- `OUT_OF_SCOPE_GRIDCRAFT`: 2
-- `PARTIAL`: 1164
-- `PLATFORM_SERVICE_NEEDED`: 4
+- `MISSING`: 4537
+- `OUT_OF_SCOPE_GRIDCRAFT`: 5
+- `PARTIAL`: 1171
 
 ## Unresolved audit rows
 
@@ -312,9 +313,9 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.RollZoom` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Rows` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.RTD` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.Run` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.Run` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.SaveWorkspace` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.ScreenUpdating` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.ScreenUpdating` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Selection` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.SendKeys` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.SensitivityLabelPolicy` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -391,13 +392,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.WorkbookAddinInstall` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookAddinUninstall` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookAfterRemoteChange` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.WorkbookAfterSave` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.WorkbookAfterSave` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookAfterXmlExport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookAfterXmlImport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.WorkbookBeforeClose` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.WorkbookBeforeClose` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookBeforePrint` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookBeforeRemoteChange` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.WorkbookBeforeSave` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.WorkbookBeforeSave` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookBeforeXmlExport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookBeforeXmlImport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.WorkbookDeactivate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3461,7 +3462,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.ConvertToLinkedDataType` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Copy` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.CopyFromRecordset` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.CopyPicture` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.CopyPicture` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Count` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.CountLarge` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.CreateNames` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4883,7 +4884,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.AddinUninstall` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.AddToFavorites` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.AfterRemoteChange` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.AfterSave` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.AfterSave` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.AfterXmlExport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.AfterXmlImport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4891,10 +4892,10 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.AutoSaveOn` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.AutoUpdateFrequency` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.AutoUpdateSaveChanges` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.BeforeClose` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.BeforeClose` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BeforePrint` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BeforeRemoteChange` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.BeforeSave` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.BeforeSave` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BeforeXmlExport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BeforeXmlImport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BreakLink` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5197,7 +5198,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Worksheet.PageSetup` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Paste` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.PasteSpecial` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.PasteSpecial` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.PivotTableAfterValueChange` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.PivotTableBeforeAllocateChanges` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.PivotTableBeforeCommitChanges` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |

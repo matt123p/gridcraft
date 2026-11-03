@@ -97,7 +97,7 @@ The interpreter, debugger, source importer and editor remain in the separate
 revision in Cargo manifests/lockfile. No sibling checkout or copied interpreter
 code is needed. WordCraft can use the same native protocol and revision with its
 own document objects. Workspace-root egui patches select the shared reviewed fork.
-The pin is `12f56c647103255966ee6d978a62fb63ce06ef70`; corpus/reference
+The pin is `8f4bebc3650cd51054fa6786f83a1ac73e07aeaf`; corpus/reference
 submodules are opt-in and are not fetched by dependency builds.
 
 ## Ownership and commands
@@ -477,11 +477,14 @@ or executes imported code. Imported handles require consent in their own host;
 opening from VBA does not silently authorize another document.
 
 Workbook Activate, Path, FullName, CodeName and read-only Saved project native
-state. Save requires an existing path; SaveAs and SaveCopyAs support explicit
-OOXML paths with limited format options. SaveCopyAs leaves the original's file
-and saved state alone. Dirty Close requires explicit SaveChanges, plus Filename
-if saving an unsaved workbook. Programmatic lifecycle calls do not open dialogs.
-The existing filesystem service returns a clear error in browser builds.
+state. Save/SaveAs/SaveCopyAs use native OOXML persistence with limited format
+options. SaveCopyAs retains the original path/saved state. Explicitly injected
+open/save pickers and Save Changes decisions can suspend the existing VM; headless
+hosts without those services use explicit arguments or receive an error. Browser
+builds retain their filesystem/service limits. BeforeSave/BeforeClose hold native
+effects until document and connected Application callbacks finish, carrying ByRef
+Cancel in order. AfterSave follows actual IO with success/failure. Reset, stale
+source, trust revocation and close invalidate parked operations and prompt tokens.
 
 Worksheets/Sheets.Add accepts Before/After, Count and worksheet Type. Worksheet
 Move/Copy require a same-workbook destination; copying sheets with CodeName, tables or preserved package parts,
@@ -495,12 +498,20 @@ Application Name/Version/OperatingSystem report GridCraft metadata. CalculateFul
 and CalculateFullRebuild invoke the native full rebuild. Iteration, MaxIterations
 and MaxChange read active workbook settings; setters update currently open
 workbooks after consent/group preflight. New documents retain native iteration
-settings. Application.Run returns an explicit service-unavailable diagnostic;
-the pinned interpreter still needs a generic nested invocation contract.
+settings. Application.Run invokes public procedures in the current running project,
+including module/workbook qualification, optional/default/ParamArray arguments,
+nested results, catchable lookup failures and terminal unhandled child errors.
+Arguments are positional. It shares the live project's globals, debugger
+and cumulative budgets. Another project's macros require a missing native shared
+project host and refuse explicitly.
 
 These are bounded subsets. The [implementation progress ledger](vba-object-model-implementation-plan.md#om03om04-implementation-progress-2026-11-03)
-records exact options, engine evidence and remaining work. OM03/OM04 are not fully
-complete. No lifecycle event cancellation or interactive wait is simulated.
+records exact options and engine evidence. The [High closure record](vba-object-model-implementation-plan.md#high-native-profile-closure-2026-11-03)
+and [evidence ledger](vba-object-model-high-acceptance.json) complete the selected
+High native profiles and retain exact platform/scope exclusions. The Microsoft
+source catalogue remains partial; general Medium and all Low work retain their
+accepted priority. Native save/close callbacks also apply to shell/control commands;
+`vba.status.lifecycle` exposes pending/completed/cancelled/failed state.
 
 
 Font-enabled retest (2026-11-03): enabling the existing CI-pinned

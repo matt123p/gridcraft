@@ -16,18 +16,121 @@ fn unsupported(args: &[Value], start: usize) -> HostResult<()> {
     }
     Ok(())
 }
-fn file_name(value: &Value) -> HostResult<String> {
+pub(crate) fn file_name(value: &Value) -> HostResult<String> {
     let name = string(value)?;
     if name.is_empty() || name.len() > 4096 || name.contains('\0') {
         return Err(failure(1004, "invalid workbook file name"));
     }
     Ok(name)
 }
-fn workbook_format(path: &str) -> HostResult<()> {
+pub(crate) fn workbook_format(path: &str) -> HostResult<()> {
     if !matches!(gridcraft_engine::io::FileKind::from_path(path), Some(gridcraft_engine::io::FileKind::Xlsx)) {
         return Err(failure(1004, "VBA workbook persistence currently requires an .xlsx/.xlsm/.xltx/.xltm destination"));
     }
     Ok(())
+}
+pub(crate) const SAVE_AS_ARGS: &[&str] = &[
+    "Filename",
+    "FileFormat",
+    "Password",
+    "WriteResPassword",
+    "ReadOnlyRecommended",
+    "CreateBackup",
+    "AccessMode",
+    "ConflictResolution",
+    "AddToMru",
+    "TextCodepage",
+    "TextVisualLayout",
+    "Local",
+];
+pub(crate) const OPEN_ARGS: &[&str] = &[
+    "Filename",
+    "UpdateLinks",
+    "ReadOnly",
+    "Format",
+    "Password",
+    "WriteResPassword",
+    "IgnoreReadOnlyRecommended",
+    "Origin",
+    "Delimiter",
+    "Editable",
+    "Notify",
+    "Converter",
+    "AddToMru",
+    "Local",
+    "CorruptLoad",
+];
+/// Validate the complete call before exposing a picker or executing user callbacks.
+/// A missing path is deliberately retained for the configured prompt service.
+pub(crate) fn preflight(call: &HostCall) -> HostResult<Vec<Value>> {
+    let member = call.member.to_ascii_lowercase();
+    let names = match member.as_str() {
+        "save" => &[][..],
+        "saveas" => SAVE_AS_ARGS,
+        "savecopyas" => &["Filename"][..],
+        "close" => &["SaveChanges", "Filename", "RouteWorkbook"][..],
+        "open" => OPEN_ARGS,
+        _ => return Err(failure(438, "unsupported lifecycle operation")),
+    };
+    let args = arguments(call, names)?;
+    match member.as_str() {
+        "open" => {
+            if supplied(&args[0]) {
+                file_name(&args[0])?;
+            }
+            if supplied(&args[1]) && numeric_index(&args[1])? != 0 {
+                return Err(failure(1004, "automatic link updating is unavailable"));
+            }
+            if supplied(&args[2]) && super::address::boolean(&args[2])? {
+                return Err(failure(1004, "read-only documents are unavailable"));
+            }
+            if supplied(&args[3]) {
+                return Err(failure(1004, "text format options are unavailable"));
+            }
+            if supplied(&args[4]) {
+                string(&args[4])?;
+            }
+            unsupported(&args, 5)?;
+        }
+        "saveas" | "savecopyas" => {
+            if member == "saveas" {
+                unsupported(&args, 2)?;
+                if supplied(&args[1]) && !matches!(numeric_index(&args[1])?, 51..=54) {
+                    return Err(failure(1004, "unsupported FileFormat"));
+                }
+            }
+            if supplied(&args[0]) {
+                let path = file_name(&args[0])?;
+                workbook_format(&path)?;
+                if member == "saveas" && supplied(&args[1]) {
+                    let extension = std::path::Path::new(&path).extension().and_then(|v| v.to_str()).unwrap_or("");
+                    let expected = if extension.eq_ignore_ascii_case("xlsm") {
+                        52
+                    } else if extension.eq_ignore_ascii_case("xltm") {
+                        53
+                    } else if extension.eq_ignore_ascii_case("xltx") {
+                        54
+                    } else {
+                        51
+                    };
+                    if numeric_index(&args[1])? != expected {
+                        return Err(failure(1004, "FileFormat must match destination extension"));
+                    }
+                }
+            }
+        }
+        "close" => {
+            unsupported(&args, 2)?;
+            if supplied(&args[0]) {
+                super::address::boolean(&args[0])?;
+            }
+            if supplied(&args[1]) {
+                workbook_format(&file_name(&args[1])?)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(args)
 }
 impl Bridge {
     pub(crate) fn lifecycle(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> Option<HostResult<Value>> {

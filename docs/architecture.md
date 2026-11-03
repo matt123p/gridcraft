@@ -207,8 +207,14 @@ activation is committed after temporary targeting is restored. Native file-open
 and visibility seams expose existing engine behavior, while `file.saveCopy`
 reuses serialization/link rebasing without changing the saved snapshot. App-wide
 calculation reserves all groups and checks each participant's consent before
-mutation. Nested Run invocation and interactive lifecycle continuations remain
-service gaps; no second interpreter or synthetic UI state is introduced.
+mutation. Private `vba::host_ops` owns bounded Run/file/decision continuations;
+`vba::lifecycle_events` exposes cancellable precommit batches to the thin native
+shell. Both use tiny-vba's explicit parked frames and normal debugger ticks in the
+same VM. Generic typed result/error/ByRef and optional/default/ParamArray contracts
+stay upstream under ADR 0035. IO, consent, object identities, ordering and commit
+ownership stay here; no document borrow survives a callback or prompt. The
+[High closure record](vba-object-model-implementation-plan.md#high-native-profile-closure-2026-11-03)
+and machine-readable acceptance ledger define the exact delivered profile.
 
 ## Revision history
 
@@ -216,6 +222,7 @@ service gaps; no second interpreter or synthetic UI state is introduced.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM03/OM04 suspended host operations, cancellable OM11 native lifecycle events and High evidence reconciliation |
 | 2026-11-03 | minor | Linked priority-based OM delivery: High first, selected Medium next, Low deferred; stable IDs retained |
 | 2026-11-03 | minor | Native-backed High VBA formula, formatting, data and table family modules; live identities, writer previews and matrix-layout conversion |
 | 2026-11-03 | minor | VBA event batches prepared before mutation; callback ownership remains bound across workbook activation |

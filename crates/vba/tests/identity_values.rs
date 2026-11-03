@@ -258,6 +258,7 @@ End Sub"#;
     assert!(cell(&s, "B3")?.is_empty());
     let catalog = gridcraft_vba::catalog();
     assert!(catalog.iter().any(|m| m.name == "ScreenUpdating" && !m.supported));
+    assert_eq!(gridcraft_vba::compatibility(Some("Application"), "ScreenUpdating").status, gridcraft_vba::CompatibilityStatus::OutOfScope);
     assert!(catalog.iter().any(|m| m.name == "Address" && m.signature.contains("RelativeTo")));
     Ok(())
 }

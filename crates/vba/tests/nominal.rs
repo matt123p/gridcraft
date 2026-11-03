@@ -72,3 +72,15 @@ fn paused_excel_reference_edits_keep_the_declared_type() -> R {
     assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::parse("A1").ok_or("cell")?), Value::Number(7.0));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn qualified_excel_name_type_binds_to_the_live_native_name() -> R {
+    let source = "Option Explicit\nSub Main()\nDim item As Excel.Name\nSet item = ThisWorkbook.Names.Add(Name:=\"NamedCell\", RefersTo:=\"=Sheet1!$A$1\")\nitem.RefersToRange.Value2 = 23\nEnd Sub\n";
+    let (mut session, mut bridge, mut ide) = prepare(source)?;
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    drain(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::default()), Value::Number(23.0));
+    Ok(())
+}

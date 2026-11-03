@@ -17,13 +17,15 @@ impl SheetApp {
     }
 
     pub(super) fn run_command(&mut self, id: &str, params: Json) -> Result<Json, String> {
-        #[cfg(feature = "vba")]
-        crate::vba::before_command(self, id)?;
         let switches_window = id.starts_with("window.")
             || matches!(id, "view.newWindow" | "view.hideWindow" | "view.unhideWindow")
             || (id == "view.switchWindows" && ["window", "doc"].iter().any(|k| params.get(*k).is_some_and(|d| !d.is_null())));
         if id.starts_with("file.") || switches_window {
             self.settle_drafts()?;
+        }
+        #[cfg(feature = "vba")]
+        if !crate::vba::before_command(self, id, &params)? {
+            return Ok(json!({"pending":"vba-lifecycle","command":id}));
         }
         if matches!(id, "file.save" | "file.saveAs" | "file.saveBytes") {
             self.store_view_state();

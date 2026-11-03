@@ -66,10 +66,9 @@ impl Bridge {
                 }
                 Ok(Value::Empty)
             })()),
-            "run" if matches!(call.kind, InvokeKind::Call | InvokeKind::Get) => Some(Err(failure(
-                1004,
-                "Application.Run requires a generic nested VBA invocation service; the pinned interpreter does not expose this contract",
-            ))),
+            "run" if matches!(call.kind, InvokeKind::Call | InvokeKind::Get) => {
+                Some(Err(failure(1004, "Application.Run requires a live project host continuation")))
+            }
             _ => None,
         }
     }

@@ -4,6 +4,8 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 mod address;
 mod application;
+mod host_ops;
+pub use host_ops::{LifecyclePrompt, PromptRequest, PromptResponse, PromptServices};
 mod clipboard;
 mod condition_details;
 mod conditional_api;
@@ -13,6 +15,8 @@ mod format_api;
 mod formatting;
 mod formula_api;
 mod lifecycle;
+mod lifecycle_events;
+pub use lifecycle_events::{LifecycleEvent, LifecycleEventBatch};
 mod named_style_api;
 mod objects;
 mod outline_api;
@@ -133,6 +137,8 @@ pub struct Bridge {
     pub(crate) event_owner_sheet: Option<usize>,
     document_code_names: Arc<RwLock<std::collections::BTreeSet<String>>>,
     closed: bool,
+    operations: host_ops::Operations,
+    lifecycle_handlers: std::sync::atomic::AtomicBool,
     find: search::FindState,
     scan_work: usize,
     match_work: usize,
@@ -160,6 +166,8 @@ impl Bridge {
             event_owner_sheet: None,
             document_code_names: Arc::new(RwLock::new(std::collections::BTreeSet::new())),
             closed: false,
+            operations: Default::default(),
+            lifecycle_handlers: std::sync::atomic::AtomicBool::new(false),
             find: search::FindState::default(),
             scan_work: 0,
             match_work: 0,
@@ -260,6 +268,7 @@ impl Bridge {
         self.configure_with_workbook(ide, Some(wb))
     }
     fn configure_with_workbook(&self, ide: &mut Ide, wb: Option<&gridcraft_model::Workbook>) -> Result<()> {
+        self.refresh_lifecycle_handlers(ide);
         ide.configure_execution_limits(MACRO_EXECUTION_LIMITS.clone())?;
         let comparison_context =
             vba_vm::IntrinsicContextConfig::new("invariant".into(), "Gregorian".into(), "UTF-16".into(), usize::BITS as u8).map_err(diagnostic)?;
@@ -321,6 +330,7 @@ impl Bridge {
         let mut imports = vec![
             Import { name: "Application".into(), root: "Excel".into(), member: None, kind: InvokeKind::Get },
             Import { name: "ThisWorkbook".into(), root: "Workbook".into(), member: None, kind: InvokeKind::Get },
+            Import { name: "Run".into(), root: "Excel".into(), member: Some("Run".into()), kind: InvokeKind::Call },
         ];
         for name in [
             "ActiveWorkbook",
@@ -382,6 +392,7 @@ impl Bridge {
         Ok(())
     }
     fn cancel_pending_events(&mut self) {
+        self.operations.pending.clear();
         self.pending_events.clear();
         self.event_work = 0;
         self.event_owner_sheet = None;
@@ -558,6 +569,7 @@ impl Bridge {
         WorkbookHost { bridge: self, session }
     }
     pub fn dispatch(&mut self, session: &mut Session, ide: &mut Ide, action: Action) -> Result<()> {
+        self.refresh_lifecycle_handlers(ide);
         let executes = matches!(action, Action::Run | Action::StepInto | Action::StepOver | Action::StepOut);
         if executes {
             self.begin(session)?;
@@ -572,6 +584,15 @@ impl Bridge {
         result
     }
     pub fn tick(&mut self, session: &mut Session, ide: &mut Ide) -> Result<()> {
+        self.tick_events(session, ide, true)
+    }
+    /// The shell owns the active lifecycle batch and must collect its ByRef outputs
+    /// before ordinary queued mutations can start another callback.
+    pub fn tick_lifecycle(&mut self, session: &mut Session, ide: &mut Ide) -> Result<()> {
+        self.tick_events(session, ide, false)
+    }
+    fn tick_events(&mut self, session: &mut Session, ide: &mut Ide, deliver_events: bool) -> Result<()> {
+        self.refresh_lifecycle_handlers(ide);
         let active = matches!(ide.mode(), Mode::Running | Mode::Waiting | Mode::Break | Mode::Stale)
             || matches!(ide.mode(), Mode::Completed | Mode::Design) && !self.pending_events.is_empty();
         let validation = if active {
@@ -588,8 +609,13 @@ impl Bridge {
             self.objects.close();
             return Err(diagnostic(e.description));
         }
+        if !self.prepare_operation(session, ide)? {
+            return Ok(());
+        }
         let result = ide.tick(&mut self.host(session));
+        self.drain_host_results(session, ide)?;
         if result.is_ok()
+            && deliver_events
             && matches!(ide.mode(), Mode::Completed | Mode::Design)
             && let Some((code_name, handler, arguments)) = self.pending_events.pop_front()
         {
@@ -659,6 +685,7 @@ impl Host for WorkbookHost<'_> {
         self.bridge.identity
     }
     fn invoke(&mut self, call: HostCall) -> Reply {
+        let mut suspended = None;
         let result = (|| {
             self.bridge.check(self.session)?;
             if call.target.host != self.bridge.identity || call.target.generation != self.bridge.doc {
@@ -687,6 +714,10 @@ impl Host for WorkbookHost<'_> {
                         Object::Document(_, object) => *object,
                         _ => object,
                     };
+                    if let Some(token) = self.bridge.defer_call(session, &object, &call)? {
+                        suspended = Some(token);
+                        return Ok(Value::Empty);
+                    }
                     self.bridge.invoke_object(session, object, call)
                 })
                 .map_err(|e| failure(91, e.to_string()))?;
@@ -702,14 +733,26 @@ impl Host for WorkbookHost<'_> {
             result
         })();
         match result {
-            Ok(value) => Reply::Complete(Completion { value, writes: vec![] }),
+            Ok(value) => {
+                if let Some(token) = suspended {
+                    Reply::Wait(token)
+                } else {
+                    Reply::Complete(Completion { value, writes: vec![] })
+                }
+            }
             Err(e) => Reply::Error(e),
         }
     }
-    fn resume(&mut self, _: u64) -> Reply {
-        Reply::Error(failure(5, "host has no suspended operations"))
+    fn resume(&mut self, token: u64) -> Reply {
+        if let Err(error) = self.bridge.check(self.session) {
+            self.bridge.cancel_operation(token);
+            return Reply::Error(error);
+        }
+        self.bridge.operation_reply(token)
     }
-    fn cancel(&mut self, _: u64) {}
+    fn cancel(&mut self, token: u64) {
+        self.bridge.cancel_operation(token);
+    }
 }
 
 pub fn member_descriptors() -> Vec<MemberDescriptor> {
@@ -892,8 +935,8 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         owner,
         name,
         signature,
-        availability: MemberAvailability::ServiceRequired,
-        implementation_symbol: if owner == "Application" && name == "Run" { "crates/vba/src/application.rs::Bridge::application_state" } else { "crates/vba/src/objects.rs::Bridge::invoke_object" },
+        availability: if owner == "Application" && name == "Run" { MemberAvailability::Implemented } else { MemberAvailability::OutOfScope },
+        implementation_symbol: if owner == "Application" && name == "Run" { "crates/vba/src/host_ops.rs::Bridge::defer_call" } else { "crates/vba/src/objects.rs::Bridge::invoke_object" },
     }))
     .chain(formula_api::descriptors())
     .chain(format_api::descriptors())
@@ -987,7 +1030,7 @@ mod descriptor_tests {
     #[test]
     fn compatibility_never_certifies_dynamic_receivers() {
         assert_eq!(compatibility(Some("Range"), "FillDown").status, CompatibilityStatus::Supported);
-        assert_eq!(compatibility(Some("Range"), "CopyPicture").status, CompatibilityStatus::ServiceRequired);
+        assert_eq!(compatibility(Some("Range"), "CopyPicture").status, CompatibilityStatus::OutOfScope);
         assert_eq!(compatibility(Some("Range"), "DefinitelyMissing").status, CompatibilityStatus::Missing);
         assert_eq!(compatibility(None, "FillDown").status, CompatibilityStatus::Unknown);
         let report = compatibility_report([(Some("Range"), "FillDown"), (None, "FillDown")]);
