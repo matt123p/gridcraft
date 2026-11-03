@@ -1,0 +1,1823 @@
+{
+  "accepted_ledgers": [
+    "docs/vba-object-model-high-acceptance.json",
+    "docs/vba-object-model-om12-acceptance.json",
+    "docs/vba-object-model-om13-acceptance.json",
+    "docs/vba-object-model-om08-acceptance.json",
+    "docs/vba-object-model-om09-acceptance.json",
+    "docs/vba-object-model-om10-acceptance.json",
+    "docs/vba-object-model-om19-acceptance.json",
+    "docs/vba-object-model-om15-acceptance.json"
+  ],
+  "catalogue_policy": {
+    "capability_evidence": "Only classify OUT_OF_SCOPE_GRIDCRAFT/SERVICE_UNAVAILABLE when there is a recorded native capability gate; a missing VBA descriptor alone is not proof of a missing spreadsheet feature.",
+    "low": "DEFERRED_LOW regardless of backing eligibility; preserve existing runtime metadata/package fidelity without implementing new Low behavior.",
+    "unselected_high": "Keep High priority and the literal MISSING/PARTIAL state. Reference extensions outside the already accepted native obligations are not certified, silently downgraded or falsely labeled product gaps. They require explicit capability review/reprioritization before becoming new runtime work.",
+    "unselected_medium": "Retain exact pages and native gaps/service dependencies outside the selected Medium ledgers."
+  },
+  "disposition_counts": {
+    "ACCEPTED_REQUIRED_NATIVE": 673,
+    "DEFERRED_LOW": 1078,
+    "HIGH_REFERENCE_EXTENSION": 885,
+    "IMPLEMENTED_NATIVE_PARTIAL": 959,
+    "METADATA_ONLY": 272,
+    "OUT_OF_SCOPE_GRIDCRAFT": 1003,
+    "SERVICE_REQUIRED": 20,
+    "UNSELECTED_MEDIUM": 1106
+  },
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "enum_source_exceptions": [
+    {
+      "id": "XlRoutingSlipDelivery",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    },
+    {
+      "id": "XlRoutingSlipStatus",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    },
+    {
+      "id": "XlSmartTagControlType",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    },
+    {
+      "id": "XlSmartTagDisplayMode",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    }
+  ],
+  "evidence_boundary": {
+    "catalogue_completeness": "All source pages are retained and classified for namespace, kind, family, priority and profile disposition; outside-profile capability review is explicitly not claimed as completed runtime work.",
+    "fresh_excel_observation": "NOT_RUN; sign-off uses pinned public documentation and native/WASM synthetic regression evidence, not a fresh Excel oracle."
+  },
+  "legacy_graph_pages": 283,
+  "priority_counts": {
+    "HIGH": 2008,
+    "LOW": 1078,
+    "MEDIUM": 2638,
+    "METADATA": 272
+  },
+  "profile": "GridCraft.Excel.v1",
+  "reachability": {
+    "collections": [
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "AllowEditRanges"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Areas"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Axes"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Borders"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "CalculatedFields"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "ChartObjects"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "ColorScaleCriteria"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Comments"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "CommentsThreaded"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "CustomViews"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "DataLabels"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Dialogs"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "DocumentProperties"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Filters"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "FormatConditions"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "HPageBreaks"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Hyperlinks"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "IconCriteria"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "IconSets"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "ListColumns"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "ListObjects"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "ListRows"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Names"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Pages"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "PivotCaches"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "PivotFields"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "PivotItems"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "PivotTables"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Range"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Scenarios"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "SeriesCollection"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "ShapeRange"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Shapes"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Sheets"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "SlicerCaches"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "SlicerItems"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Slicers"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "SortFields"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Styles"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Trendlines"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "VPageBreaks"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Watches"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Windows"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Workbooks"
+      },
+      {
+        "default_member": "Item",
+        "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing.",
+        "owner": "Worksheets"
+      }
+    ],
+    "dynamic_edges": [
+      {
+        "member": "Worksheet.ChartObjects",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "ChartObjects",
+          "ChartObject"
+        ],
+        "test_ids": [
+          "crates/vba/tests/charts.rs::typed_chart_graph_edits_inactive_sheet_and_retains_single_undo_group"
+        ]
+      },
+      {
+        "member": "Chart.SeriesCollection",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "SeriesCollection"
+        ],
+        "test_ids": [
+          "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+        ]
+      },
+      {
+        "member": "Chart.Axes",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "Axes",
+          "Axis"
+        ],
+        "test_ids": [
+          "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+        ]
+      },
+      {
+        "member": "Series.Trendlines",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "Trendlines"
+        ],
+        "test_ids": [
+          "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+        ]
+      },
+      {
+        "member": "Series.DataLabels",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "DataLabels",
+          "DataLabel"
+        ],
+        "test_ids": [
+          "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+        ]
+      },
+      {
+        "member": "Worksheet.PivotTables",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "PivotTables",
+          "PivotTable"
+        ],
+        "test_ids": [
+          "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output"
+        ]
+      },
+      {
+        "member": "PivotTable.PivotFields",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "PivotFields",
+          "PivotField"
+        ],
+        "test_ids": [
+          "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output"
+        ]
+      },
+      {
+        "member": "PivotTable.CalculatedFields",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "CalculatedFields"
+        ],
+        "test_ids": [
+          "crates/vba/tests/pivots.rs::filters_calculated_fields_and_stale_children_use_native_lifetimes"
+        ]
+      },
+      {
+        "member": "PivotField.PivotItems",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "PivotItems",
+          "PivotItem"
+        ],
+        "test_ids": [
+          "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output"
+        ]
+      },
+      {
+        "member": "Workbook.BuiltinDocumentProperties",
+        "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger.",
+        "returns": [
+          "DocumentProperties"
+        ],
+        "test_ids": [
+          "crates/vba/tests/annotations.rs::hyperlinks_and_builtin_metadata_round_trip_and_undo"
+        ]
+      }
+    ],
+    "enum_dependencies": {
+      "msoaligncmd": [
+        "ShapeRange.Align"
+      ],
+      "msoautoshapetype": [
+        "Shape.AutoShapeType",
+        "ShapeRange.AutoShapeType",
+        "Shapes.AddShape"
+      ],
+      "msofilltype": [
+        "FillFormat.Type"
+      ],
+      "msolinedashstyle": [
+        "LineFormat.DashStyle"
+      ],
+      "msoshapetype": [
+        "Shape.Type",
+        "ShapeRange.Type"
+      ],
+      "msotextorientation": [
+        "Shapes.AddTextbox"
+      ],
+      "msothemecolorindex": [
+        "ColorFormat.ObjectThemeColor"
+      ],
+      "msotristate": [
+        "FillFormat.Visible",
+        "Font2.Bold",
+        "Font2.Italic",
+        "LineFormat.Visible",
+        "Shape.HasChart",
+        "ShapeRange.Align",
+        "Shapes.AddPicture",
+        "TextFrame2.HasText"
+      ],
+      "msoverticalanchor": [
+        "TextFrame2.VerticalAnchor"
+      ],
+      "msozordercmd": [
+        "Shape.ZOrder",
+        "ShapeRange.ZOrder"
+      ],
+      "xlautofilltype": [
+        "Range.AutoFill"
+      ],
+      "xlaxisgroup": [
+        "Axes.Item",
+        "Axis.AxisGroup",
+        "Chart.Axes",
+        "Series.AxisGroup"
+      ],
+      "xlaxistype": [
+        "Axes.Item",
+        "Axis.Type"
+      ],
+      "xlcalculation": [
+        "Application.Calculation"
+      ],
+      "xlcelltype": [
+        "Range.SpecialCells"
+      ],
+      "xlchartlocation": [
+        "Chart.Location"
+      ],
+      "xlcharttype": [
+        "Chart.ChartType",
+        "Series.ChartType"
+      ],
+      "xlconsolidationfunction": [
+        "PivotField.Function"
+      ],
+      "xldatalabelstype": [
+        "Chart.ApplyDataLabels"
+      ],
+      "xldataseriesdate": [
+        "Range.DataSeries"
+      ],
+      "xldataseriestype": [
+        "Range.DataSeries"
+      ],
+      "xlenableselection": [
+        "Worksheet.EnableSelection"
+      ],
+      "xlfixedformattype": [
+        "Range.ExportAsFixedFormat",
+        "Workbook.ExportAsFixedFormat",
+        "Worksheet.ExportAsFixedFormat"
+      ],
+      "xlhalign": [
+        "TextFrame.HorizontalAlignment"
+      ],
+      "xllayoutrowtype": [
+        "PivotTable.RowAxisLayout"
+      ],
+      "xllegendposition": [
+        "Legend.Position"
+      ],
+      "xllookat": [
+        "Range.Replace"
+      ],
+      "xlorder": [
+        "PageSetup.Order"
+      ],
+      "xlpagebreak": [
+        "HPageBreak.Type",
+        "VPageBreak.Type"
+      ],
+      "xlpagebreakextent": [
+        "HPageBreak.Extent",
+        "VPageBreak.Extent"
+      ],
+      "xlpageorientation": [
+        "PageSetup.Orientation"
+      ],
+      "xlpapersize": [
+        "PageSetup.PaperSize"
+      ],
+      "xlpastespecialoperation": [
+        "Range.PasteSpecial"
+      ],
+      "xlpastetype": [
+        "Range.PasteSpecial"
+      ],
+      "xlpivotcelltype": [
+        "PivotCell.PivotCellType"
+      ],
+      "xlpivotfieldcalculation": [
+        "PivotField.Calculation"
+      ],
+      "xlpivotfieldorientation": [
+        "PivotField.Orientation"
+      ],
+      "xlpivottablesourcetype": [
+        "PivotCache.SourceType",
+        "PivotTables.Add",
+        "SlicerCache.SourceType"
+      ],
+      "xlplacement": [
+        "ChartObject.Placement",
+        "Shape.Placement"
+      ],
+      "xlrowcol": [
+        "Chart.PlotBy",
+        "Chart.SetSourceData"
+      ],
+      "xlsearchorder": [
+        "Range.Replace"
+      ],
+      "xlsheetvisibility": [
+        "Worksheet.Visible"
+      ],
+      "xlslicercachetype": [
+        "SlicerCache.SlicerCacheType"
+      ],
+      "xlsubtotallocationtype": [
+        "PivotTable.SubtotalLocation"
+      ],
+      "xltrendlinetype": [
+        "Trendline.Type"
+      ],
+      "xlvalign": [
+        "TextFrame.VerticalAlignment"
+      ],
+      "xlwindowtype": [
+        "Window.Type"
+      ]
+    },
+    "evidence_limit": "Static signature/registration reachability plus reviewed native factory tests; this is not exhaustive runtime option coverage. Variant scalars/arrays and language-owned Run results do not invent nominal Excel types.",
+    "implemented_member_descriptors": 1534,
+    "registered_object_types": 124,
+    "root_witnesses": [
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddAboveAverage"
+        ],
+        "type": "AboveAverage"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Protection",
+          "Protection.AllowEditRanges",
+          "AllowEditRanges.Add"
+        ],
+        "type": "AllowEditRange"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Protection",
+          "Protection.AllowEditRanges"
+        ],
+        "type": "AllowEditRanges"
+      },
+      {
+        "path": [
+          "Application"
+        ],
+        "type": "Application"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Areas"
+        ],
+        "type": "Areas"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.AddCommentThreaded",
+          "CommentThreaded.Author"
+        ],
+        "type": "Author"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.AutoFilter"
+        ],
+        "type": "AutoFilter"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.Axes"
+        ],
+        "type": "Axes"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.Axes"
+        ],
+        "type": "Axis"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.Axes",
+          "Axis.AxisTitle"
+        ],
+        "type": "AxisTitle"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Borders",
+          "Borders.Item"
+        ],
+        "type": "Border"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Borders"
+        ],
+        "type": "Borders"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotTable",
+          "PivotTable.CalculatedFields"
+        ],
+        "type": "CalculatedFields"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.CellControl"
+        ],
+        "type": "CellControl"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.TextFrame",
+          "TextFrame.Characters"
+        ],
+        "type": "Characters"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart"
+        ],
+        "type": "Chart"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.ChartArea"
+        ],
+        "type": "ChartArea"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection",
+          "SeriesCollection.Add",
+          "Series.Format"
+        ],
+        "type": "ChartFormat"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects"
+        ],
+        "type": "ChartObject"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects"
+        ],
+        "type": "ChartObjects"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.ChartTitle"
+        ],
+        "type": "ChartTitle"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.Fill",
+          "FillFormat.ForeColor"
+        ],
+        "type": "ColorFormat"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddColorScale"
+        ],
+        "type": "ColorScale"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddColorScale",
+          "ColorScale.ColorScaleCriteria"
+        ],
+        "type": "ColorScaleCriteria"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddColorScale",
+          "ColorScale.ColorScaleCriteria",
+          "ColorScaleCriteria.Item"
+        ],
+        "type": "ColorScaleCriterion"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.AddComment"
+        ],
+        "type": "Comment"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Comments"
+        ],
+        "type": "Comments"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.CommentsThreaded"
+        ],
+        "type": "CommentsThreaded"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.AddCommentThreaded"
+        ],
+        "type": "CommentThreaded"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddDatabar",
+          "Databar.MaxPoint"
+        ],
+        "type": "ConditionValue"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.CustomViews",
+          "CustomViews.Add"
+        ],
+        "type": "CustomView"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.CustomViews"
+        ],
+        "type": "CustomViews"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddDatabar"
+        ],
+        "type": "Databar"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection",
+          "SeriesCollection.Add",
+          "Series.DataLabels"
+        ],
+        "type": "DataLabel"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection",
+          "SeriesCollection.Add",
+          "Series.DataLabels"
+        ],
+        "type": "DataLabels"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Dialogs",
+          "Dialogs.Item"
+        ],
+        "type": "Dialog"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Dialogs"
+        ],
+        "type": "Dialogs"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.BuiltinDocumentProperties"
+        ],
+        "type": "DocumentProperties"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.BuiltinDocumentProperties",
+          "DocumentProperties.Item"
+        ],
+        "type": "DocumentProperty"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.Fill"
+        ],
+        "type": "FillFormat"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.AutoFilter",
+          "AutoFilter.Filters",
+          "Filters.Item"
+        ],
+        "type": "Filter"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.AutoFilter",
+          "AutoFilter.Filters"
+        ],
+        "type": "Filters"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Font"
+        ],
+        "type": "Font"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.TextFrame2",
+          "TextFrame2.TextRange",
+          "TextRange2.Font"
+        ],
+        "type": "Font2"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddColorScale",
+          "ColorScale.ColorScaleCriteria",
+          "ColorScaleCriteria.Item",
+          "ColorScaleCriterion.FormatColor"
+        ],
+        "type": "FormatColor"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.Add"
+        ],
+        "type": "FormatCondition"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions"
+        ],
+        "type": "FormatConditions"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.Axes",
+          "Axis.MajorGridlines"
+        ],
+        "type": "Gridlines"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.PageSetup",
+          "PageSetup.EvenPage",
+          "Page.CenterFooter"
+        ],
+        "type": "HeaderFooter"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.HPageBreaks",
+          "HPageBreaks.Add"
+        ],
+        "type": "HPageBreak"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.HPageBreaks"
+        ],
+        "type": "HPageBreaks"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Hyperlinks",
+          "Hyperlinks.Add"
+        ],
+        "type": "Hyperlink"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Hyperlinks"
+        ],
+        "type": "Hyperlinks"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddIconSetCondition",
+          "IconSetCondition.IconCriteria"
+        ],
+        "type": "IconCriteria"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddIconSetCondition",
+          "IconSetCondition.IconCriteria",
+          "IconCriteria.Item"
+        ],
+        "type": "IconCriterion"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddIconSetCondition",
+          "IconSetCondition.IconSet"
+        ],
+        "type": "IconSet"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddIconSetCondition"
+        ],
+        "type": "IconSetCondition"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.IconSets"
+        ],
+        "type": "IconSets"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Interior"
+        ],
+        "type": "Interior"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.Legend"
+        ],
+        "type": "Legend"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.Line"
+        ],
+        "type": "LineFormat"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.ListObject",
+          "ListObject.ListColumns",
+          "ListColumns.Add"
+        ],
+        "type": "ListColumn"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.ListObject",
+          "ListObject.ListColumns"
+        ],
+        "type": "ListColumns"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.ListObject"
+        ],
+        "type": "ListObject"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ListObjects"
+        ],
+        "type": "ListObjects"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.ListObject",
+          "ListObject.ListRows",
+          "ListRows.Add"
+        ],
+        "type": "ListRow"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.ListObject",
+          "ListObject.ListRows"
+        ],
+        "type": "ListRows"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Names",
+          "Names.Add"
+        ],
+        "type": "Name"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Names"
+        ],
+        "type": "Names"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Outline"
+        ],
+        "type": "Outline"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.PageSetup",
+          "PageSetup.EvenPage"
+        ],
+        "type": "Page"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.PageSetup",
+          "PageSetup.Pages"
+        ],
+        "type": "Pages"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.PageSetup"
+        ],
+        "type": "PageSetup"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.PivotCaches",
+          "PivotCaches.Item"
+        ],
+        "type": "PivotCache"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.PivotCaches"
+        ],
+        "type": "PivotCaches"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotCell"
+        ],
+        "type": "PivotCell"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotTable",
+          "PivotTable.PivotFields"
+        ],
+        "type": "PivotField"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotTable",
+          "PivotTable.PivotFields"
+        ],
+        "type": "PivotFields"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotTable",
+          "PivotTable.PivotFields",
+          "PivotField.PivotItems"
+        ],
+        "type": "PivotItem"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotTable",
+          "PivotTable.PivotFields",
+          "PivotField.PivotItems"
+        ],
+        "type": "PivotItems"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.PivotLayout"
+        ],
+        "type": "PivotLayout"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.PivotTable"
+        ],
+        "type": "PivotTable"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.PivotTables"
+        ],
+        "type": "PivotTables"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.PlotArea"
+        ],
+        "type": "PlotArea"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Protection"
+        ],
+        "type": "Protection"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell"
+        ],
+        "type": "Range"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Scenarios",
+          "Scenarios.Add"
+        ],
+        "type": "Scenario"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Scenarios"
+        ],
+        "type": "Scenarios"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection",
+          "SeriesCollection.Add"
+        ],
+        "type": "Series"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection"
+        ],
+        "type": "SeriesCollection"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.Item"
+        ],
+        "type": "Shape"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange"
+        ],
+        "type": "ShapeRange"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Shapes"
+        ],
+        "type": "Shapes"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Sheets"
+        ],
+        "type": "Sheets"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.SlicerCaches",
+          "SlicerCaches.Item",
+          "SlicerCache.Slicers",
+          "Slicers.Item"
+        ],
+        "type": "Slicer"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.SlicerCaches",
+          "SlicerCaches.Item"
+        ],
+        "type": "SlicerCache"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.SlicerCaches"
+        ],
+        "type": "SlicerCaches"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.SlicerCaches",
+          "SlicerCaches.Item",
+          "SlicerCache.SlicerItems",
+          "SlicerItems.Item"
+        ],
+        "type": "SlicerItem"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.SlicerCaches",
+          "SlicerCaches.Item",
+          "SlicerCache.SlicerItems"
+        ],
+        "type": "SlicerItems"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.SlicerCaches",
+          "SlicerCaches.Item",
+          "SlicerCache.Slicers"
+        ],
+        "type": "Slicers"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Sort"
+        ],
+        "type": "Sort"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Sort",
+          "Sort.SortFields",
+          "SortFields.Add"
+        ],
+        "type": "SortField"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.Sort",
+          "Sort.SortFields"
+        ],
+        "type": "SortFields"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.Styles",
+          "Styles.Add"
+        ],
+        "type": "Style"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook",
+          "Workbook.Styles"
+        ],
+        "type": "Styles"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.TextFrame"
+        ],
+        "type": "TextFrame"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.TextFrame2"
+        ],
+        "type": "TextFrame2"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.TextFrame2",
+          "TextFrame2.TextRange"
+        ],
+        "type": "TextRange2"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddTop10"
+        ],
+        "type": "Top10"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection",
+          "SeriesCollection.Add",
+          "Series.Trendlines",
+          "Trendlines.Add"
+        ],
+        "type": "Trendline"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.Chart",
+          "Chart.SeriesCollection",
+          "SeriesCollection.Add",
+          "Series.Trendlines"
+        ],
+        "type": "Trendlines"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.FormatConditions",
+          "FormatConditions.AddUniqueValues"
+        ],
+        "type": "UniqueValues"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveCell",
+          "Range.Validation"
+        ],
+        "type": "Validation"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.VPageBreaks",
+          "VPageBreaks.Add"
+        ],
+        "type": "VPageBreak"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.VPageBreaks"
+        ],
+        "type": "VPageBreaks"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Watches",
+          "Watches.Add"
+        ],
+        "type": "Watch"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Watches"
+        ],
+        "type": "Watches"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWindow"
+        ],
+        "type": "Window"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Windows"
+        ],
+        "type": "Windows"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveWorkbook"
+        ],
+        "type": "Workbook"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Workbooks"
+        ],
+        "type": "Workbooks"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet"
+        ],
+        "type": "Worksheet"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.WorksheetFunction"
+        ],
+        "type": "WorksheetFunction"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.Worksheets"
+        ],
+        "type": "Worksheets"
+      }
+    ],
+    "unreachable_receivers": [],
+    "unregistered_signature_types": []
+  },
+  "required_source_ids": 673,
+  "routing_corrections": [
+    {
+      "id": "AboveAverage.NumStdDev",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM05"
+    },
+    {
+      "id": "Application.Dialogs",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM15"
+    },
+    {
+      "id": "PivotField.HiddenItems",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM13"
+    },
+    {
+      "id": "PivotTable.HiddenFields",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM13"
+    },
+    {
+      "id": "Range.FormulaHidden",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM05"
+    },
+    {
+      "id": "Range.Hidden",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM05"
+    },
+    {
+      "id": "Sheets.PrintPreview",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM10"
+    },
+    {
+      "id": "Style.FormulaHidden",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM05"
+    },
+    {
+      "id": "Window.PrintPreview",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM10"
+    },
+    {
+      "id": "Workbook.BuiltinDocumentProperties",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM19"
+    },
+    {
+      "id": "Workbook.PrintPreview",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM10"
+    },
+    {
+      "id": "Worksheet.PrintPreview",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM10"
+    },
+    {
+      "id": "Worksheets.PrintPreview",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved.",
+      "resolved_packet": "OM10"
+    }
+  ],
+  "schema": 1,
+  "scope": "Closes the declared High native profiles and selected Medium ledgers; does not certify all Excel members, options or all Medium/Low families. Raw catalogue missing/partial states remain independent of planning disposition.",
+  "source_identity_collisions": [
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "application.newworkbook",
+      "source_paths": [
+        "api/Excel.Application.NewWorkbook(even).md",
+        "api/Excel.Application.NewWorkbook(property).md"
+      ]
+    },
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "chart.activate",
+      "source_paths": [
+        "api/Excel.Chart.Activate(even).md",
+        "api/Excel.Chart.Activate(method).md"
+      ]
+    },
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "chart.select",
+      "source_paths": [
+        "api/Excel.Chart.Select(even).md",
+        "api/Excel.Chart.Select(method).md"
+      ]
+    },
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "workbook.activate",
+      "source_paths": [
+        "api/Excel.Workbook.Activate(even).md",
+        "api/Excel.Workbook.Activate(method).md"
+      ]
+    },
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "workbook.sync",
+      "source_paths": [
+        "api/Excel.workbook.sync(event).md",
+        "api/Excel.Workbook.Sync.md"
+      ]
+    },
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "worksheet.activate",
+      "source_paths": [
+        "api/Excel.Worksheet.Activate(even).md",
+        "api/Excel.Worksheet.Activate(method).md"
+      ]
+    },
+    {
+      "resolution": "SOURCE_PATH_AND_KIND_ARE_DISTINCT; no callable/event evidence conflation",
+      "source_id": "worksheet.calculate",
+      "source_paths": [
+        "api/Excel.Worksheet.Calculate(even).md",
+        "api/Excel.Worksheet.Calculate(method).md"
+      ]
+    }
+  ],
+  "source_pages": 5996,
+  "status": "ACCEPTED_BOUNDED_NATIVE_PROFILE",
+  "tiny_vba_revision": "8f4bebc3650cd51054fa6786f83a1ac73e07aeaf",
+  "unresolved_required_source_ids": []
+}

@@ -1,0 +1,490 @@
+{
+  "schema": 1,
+  "packet": "OM20",
+  "profile": "GridCraft.Excel.v1",
+  "reviewed": "2026-11-03",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "status": "ACCEPTED_BOUNDED_NATIVE_PROFILE",
+  "scope": "Closes the declared High native profiles and selected Medium ledgers; does not certify all Excel members, options or all Medium/Low families. Raw catalogue missing/partial states remain independent of planning disposition.",
+  "accepted_ledgers": [
+    "docs/vba-object-model-high-acceptance.json",
+    "docs/vba-object-model-om12-acceptance.json",
+    "docs/vba-object-model-om13-acceptance.json",
+    "docs/vba-object-model-om08-acceptance.json",
+    "docs/vba-object-model-om09-acceptance.json",
+    "docs/vba-object-model-om10-acceptance.json",
+    "docs/vba-object-model-om19-acceptance.json",
+    "docs/vba-object-model-om15-acceptance.json"
+  ],
+  "roots": [
+    "Application"
+  ],
+  "dynamic_returns": [
+    {
+      "member": "Worksheet.ChartObjects",
+      "returns": [
+        "ChartObjects",
+        "ChartObject"
+      ],
+      "test_ids": [
+        "crates/vba/tests/charts.rs::typed_chart_graph_edits_inactive_sheet_and_retains_single_undo_group"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "Chart.SeriesCollection",
+      "returns": [
+        "SeriesCollection"
+      ],
+      "test_ids": [
+        "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "Chart.Axes",
+      "returns": [
+        "Axes",
+        "Axis"
+      ],
+      "test_ids": [
+        "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "Series.Trendlines",
+      "returns": [
+        "Trendlines"
+      ],
+      "test_ids": [
+        "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "Series.DataLabels",
+      "returns": [
+        "DataLabels",
+        "DataLabel"
+      ],
+      "test_ids": [
+        "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "Worksheet.PivotTables",
+      "returns": [
+        "PivotTables",
+        "PivotTable"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "PivotTable.PivotFields",
+      "returns": [
+        "PivotFields",
+        "PivotField"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "PivotTable.CalculatedFields",
+      "returns": [
+        "CalculatedFields"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::filters_calculated_fields_and_stale_children_use_native_lifetimes"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "PivotField.PivotItems",
+      "returns": [
+        "PivotItems",
+        "PivotItem"
+      ],
+      "test_ids": [
+        "crates/vba/tests/pivots.rs::typed_pivot_graph_and_inactive_report_settings_reuse_native_output"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    },
+    {
+      "member": "Workbook.BuiltinDocumentProperties",
+      "returns": [
+        "DocumentProperties"
+      ],
+      "test_ids": [
+        "crates/vba/tests/annotations.rs::hyperlinks_and_builtin_metadata_round_trip_and_undo"
+      ],
+      "reason": "Reviewed native Object-returning factory/collection; index and default behavior bounded by the owning acceptance ledger."
+    }
+  ],
+  "source_less_enum_values": [
+    {
+      "id": "XlRoutingSlipDelivery",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    },
+    {
+      "id": "XlRoutingSlipStatus",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    },
+    {
+      "id": "XlSmartTagControlType",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    },
+    {
+      "id": "XlSmartTagDisplayMode",
+      "reason": "The pinned public page explicitly deprecates the enum and supplies no numeric member table. Preserve the nominal declaration/provenance; do not invent values or claim executable consumer support."
+    }
+  ],
+  "catalogue_policy": {
+    "unselected_high": "Keep High priority and the literal MISSING/PARTIAL state. Reference extensions outside the already accepted native obligations are not certified, silently downgraded or falsely labeled product gaps. They require explicit capability review/reprioritization before becoming new runtime work.",
+    "unselected_medium": "Retain exact pages and native gaps/service dependencies outside the selected Medium ledgers.",
+    "low": "DEFERRED_LOW regardless of backing eligibility; preserve existing runtime metadata/package fidelity without implementing new Low behavior.",
+    "capability_evidence": "Only classify OUT_OF_SCOPE_GRIDCRAFT/SERVICE_UNAVAILABLE when there is a recorded native capability gate; a missing VBA descriptor alone is not proof of a missing spreadsheet feature."
+  },
+  "test_ids": [
+    "crates/vba/tests/profile.rs::reference_metadata_uses_the_live_nominal_set",
+    "crates/vba/tests/profile.rs::forecast_metadata_and_replace_variant_binding_are_usable"
+  ],
+  "routing_corrections": [
+    {
+      "id": "AboveAverage.NumStdDev",
+      "resolved_packet": "OM05",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Application.Dialogs",
+      "resolved_packet": "OM15",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "PivotField.HiddenItems",
+      "resolved_packet": "OM13",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "PivotTable.HiddenFields",
+      "resolved_packet": "OM13",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Range.FormulaHidden",
+      "resolved_packet": "OM05",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Range.Hidden",
+      "resolved_packet": "OM05",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Sheets.PrintPreview",
+      "resolved_packet": "OM10",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Style.FormulaHidden",
+      "resolved_packet": "OM05",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Window.PrintPreview",
+      "resolved_packet": "OM10",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Workbook.BuiltinDocumentProperties",
+      "resolved_packet": "OM19",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Workbook.PrintPreview",
+      "resolved_packet": "OM10",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Worksheet.PrintPreview",
+      "resolved_packet": "OM10",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    },
+    {
+      "id": "Worksheets.PrintPreview",
+      "resolved_packet": "OM10",
+      "reason": "Member-level native ownership confirmed by the implemented adapter and existing acceptance profile; source inventory packet/provenance remain preserved."
+    }
+  ],
+  "collections": [
+    {
+      "owner": "AllowEditRanges",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Areas",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Axes",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Borders",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "CalculatedFields",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "ChartObjects",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "ColorScaleCriteria",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Comments",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "CommentsThreaded",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "CustomViews",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "DataLabels",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Dialogs",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "DocumentProperties",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Filters",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "FormatConditions",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "HPageBreaks",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Hyperlinks",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "IconCriteria",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "IconSets",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "ListColumns",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "ListObjects",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "ListRows",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Names",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Pages",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "PivotCaches",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "PivotFields",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "PivotItems",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "PivotTables",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Range",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Scenarios",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "SeriesCollection",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "ShapeRange",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Shapes",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Sheets",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "SlicerCaches",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "SlicerItems",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Slicers",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "SortFields",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Styles",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Trendlines",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "VPageBreaks",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Watches",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Windows",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Workbooks",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    },
+    {
+      "owner": "Worksheets",
+      "default_member": "Item",
+      "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
+    }
+  ],
+  "tiny_vba_revision": "8f4bebc3650cd51054fa6786f83a1ac73e07aeaf",
+  "evidence_boundary": {
+    "fresh_excel_observation": "NOT_RUN; sign-off uses pinned public documentation and native/WASM synthetic regression evidence, not a fresh Excel oracle.",
+    "catalogue_completeness": "All source pages are retained and classified for namespace, kind, family, priority and profile disposition; outside-profile capability review is explicitly not claimed as completed runtime work."
+  },
+  "validation": {
+    "reviewed": "2026-11-03",
+    "repository_ci": {
+      "command": "CRAFT_FONTS_DIR=/tmp/gridcraft-acceptance-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci",
+      "result": "PASS: all 10 gates",
+      "native_tests_passed": 3025
+    },
+    "native_vba": {
+      "command": "cargo test -p gridcraft-vba",
+      "result": "PASS",
+      "tests_passed": 251
+    },
+    "wasm_vba": {
+      "command": "PATH=/tmp/tiny-vba-m8-browser/node_modules/node/bin:$PATH CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner cargo test -p gridcraft-vba --target wasm32-unknown-unknown",
+      "result": "PASS",
+      "tests_passed": 242
+    },
+    "audit_tests": {
+      "command": "cargo test -p xtask --features vba-audit",
+      "result": "PASS",
+      "tests_passed": 36
+    },
+    "affected_clippy": {
+      "command": "cargo clippy -p gridcraft-vba -p xtask --features xtask/vba-audit --all-targets -- -D warnings",
+      "result": "PASS"
+    },
+    "offline_reproduction": {
+      "command": "cargo run -p xtask --features vba-audit -- vba-audit --write; cargo run -p xtask --features vba-audit -- vba-audit",
+      "result": "PASS: all 5996 source rows, generated contracts/constants/reports and profile witnesses reproduced"
+    },
+    "fresh_excel_observation": "NOT_RUN",
+    "new_ui_render": "NOT_RUN: no UI behavior changed; owning feature ledgers retain existing UI/service/persistence evidence"
+  }
+}

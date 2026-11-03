@@ -2,7 +2,7 @@
   "schema": 1,
   "reviewed": "2026-11-03",
   "profile": "GridCraft.Excel.v1",
-  "scope": "Selected High native profiles, not full Microsoft member/option parity. Historical 5996-page inventory migration remains separate.",
+  "scope": "Selected High native obligations, not full Microsoft member/option parity. OM20 generated contracts reconcile all 5996 source pages while preserving original inventory provenance and outside-profile reference extensions.",
   "requirements": [
     {
       "id": "roots",
@@ -327,7 +327,7 @@
     {
       "id": "medium-low",
       "status": "DEFERRED",
-      "reason": "General OM08/OM10/OM12/OM13/OM15/OM19 Medium and every Low runtime family remain deferred by accepted priority, including eligible Low members."
+      "reason": "Unselected Medium members and every Low runtime family remain deferred, including eligible Low members. Selected OM12/OM13/OM08/OM09/OM10/OM19/OM15 native profiles are now delivered in their own ledgers and joined by OM20."
     }
   ]
 }

@@ -830,6 +830,16 @@ impl Host for WorkbookHost<'_> {
     }
 }
 
+/// Nominal declarations from the exact reference set configured for the live adapter.
+/// Used by the offline profile audit; declaration alone does not prove reachability.
+pub fn reference_metadata() -> Result<serde_json::Value> {
+    let references = types::references()?;
+    Ok(serde_json::json!(references.libraries().iter().map(|library|serde_json::json!({
+        "library":library.name,"version":library.version,"available":library.available,
+        "types":library.types.iter().map(|ty|serde_json::json!({"name":ty.name,"constant_count":references.libraries().iter().flat_map(|l|&l.constants).filter(|c|c.module.as_deref().is_some_and(|m|m.eq_ignore_ascii_case(&ty.name))).count(),"kind":match ty.kind {vba_foreign::ReferenceTypeKind::Object=>"object",vba_foreign::ReferenceTypeKind::Enum=>"enum"}})).collect::<Vec<_>>()
+    })).collect::<Vec<_>>()))
+}
+
 pub fn member_descriptors() -> Vec<MemberDescriptor> {
     [
         ("Application", "Workbooks", "Property Get Workbooks() As Workbooks"),
@@ -953,7 +963,7 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         ("Range", "Find", "Function Find(What As Variant, Optional After As Range, Optional LookIn As Long, Optional LookAt As Long, Optional SearchOrder As Long, Optional SearchDirection As Long, Optional MatchCase As Boolean, Optional MatchByte As Boolean, Optional SearchFormat As Boolean) As Range"),
         ("Range", "FindNext", "Function FindNext(Optional After As Range) As Range"),
         ("Range", "FindPrevious", "Function FindPrevious(Optional After As Range) As Range"),
-        ("Range", "Replace", "Function Replace(What As Variant, Replacement As Variant, Optional LookAt As XlLookAt, Optional SearchOrder As XlSearchOrder, Optional MatchCase As Variant, Optional MatchByte As Variant, Optional SearchFormat As Variant, Optional ReplaceFormat As Variant, Optional FormulaVersion As XlReplaceFormula) As Boolean"),
+        ("Range", "Replace", "Function Replace(What As Variant, Replacement As Variant, Optional LookAt As XlLookAt, Optional SearchOrder As XlSearchOrder, Optional MatchCase As Variant, Optional MatchByte As Variant, Optional SearchFormat As Variant, Optional ReplaceFormat As Variant, Optional FormulaVersion As Variant) As Boolean"),
         ("Range", "FillDown", "Function FillDown() As Variant"),
         ("Range", "FillUp", "Function FillUp() As Variant"),
         ("Range", "FillLeft", "Function FillLeft() As Variant"),

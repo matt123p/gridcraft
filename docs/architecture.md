@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 owned native interaction continuations and shared column completion) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 live nominal metadata export and bounded profile graph validation) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -51,6 +51,12 @@ Commit queues that batch without fallible allocation. Callback lookup and delive
 use the bound workbook identity; identical code names in another workbook cannot
 select its handlers. See the [remediation evidence](vba-object-model-implementation-plan.md#event-remediation-2026-11-03).
 Excel type descriptors and the type resolver live exclusively in `gridcraft-vba`.
+OM20 exports nominal metadata from the live ReferenceSet rather than a second
+registry. The optional offline audit checks typed reachability from Application,
+reviewed dynamic factories, enum dependencies and collection/default contracts.
+Source-kind and legacy namespace keys keep same-name methods/events distinct;
+static graph witnesses supplement the owning runtime evidence. See the
+[bounded profile sign-off](vba-object-model-profile-report.md).
 The resolver shares the bridge's existing object store with bounded read queries;
 no document borrow or store lock survives a query/host call. tiny-vba owns only
 generic identity, verified metadata and validation. [M1.1 evidence](vba-m1-types.md)
@@ -229,6 +235,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM20 live reference metadata, source-kind reconciliation and bounded graph sign-off |
 | 2026-11-03 | minor | OM15 owned interaction boundary and native column-completion sharing |
 | 2026-11-03 | minor | OM10 native print projections and owned printer/download/picker/preview continuations wired to real UI services |
 | 2026-11-03 | minor | OM09 native permission/edit-range projection, definition lifetimes, grant revocation and selection-only command plumbing |

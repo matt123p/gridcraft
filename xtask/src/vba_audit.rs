@@ -15,7 +15,7 @@ use zip::ZipArchive;
 use gridcraft_vba::{MemberAvailability, MemberDescriptor};
 
 const ARCHIVE_SHA256: &str = "285218108a034fc33acc8296d714395fd182397ada27c848b93c3d5423efd75e";
-const COMMIT: &str = "b202c96d9d53896593b73d6fae57f5230601a5e3";
+pub(super) const COMMIT: &str = "b202c96d9d53896593b73d6fae57f5230601a5e3";
 const PAGE_COUNT: usize = 5_996;
 const DOCUMENTATION_EXCEPTIONS: &[(&str, &str, &str)] = &[
     ("workbook", "calculate", "Excel exposes workbook-scoped Calculate although the pinned VBA-Docs set has no Workbook.Calculate page"),
@@ -289,11 +289,13 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     if !unsupported_claims.is_empty() {
         return Err(format!("implemented-subset inventory claims lack an adapter dispatch/event symbol: {unsupported_claims:?}"));
     }
+    let profile = super::vba_profile::reconcile(root, &mut contracts, &descriptors)?;
+    super::vba_profile::emit(root, &profile, write)?;
     let contract_file = root.join("docs/vba-object-model-contracts.json");
     let enum_file = root.join("crates/vba/src/vba_enum_data.rs");
     let report_file = root.join("docs/vba-object-model-audit-report.md");
     let contract_value = json!({
-        "schema": 2,
+        "schema": 3,
         "documentation_commit": COMMIT,
         "documentation_archive_sha256": ARCHIVE_SHA256,
         "page_count": PAGE_COUNT,
@@ -680,7 +682,7 @@ const OM12_TESTS: &[&str] = &[
     "crates/vba/tests/charts.rs::chart_edits_persist_and_renderer_reads_the_same_native_model",
     "crates/vba/tests/charts.rs::deleting_title_and_chart_updates_live_counts_and_invalidates_children",
 ];
-fn validate_test_reference(root: &Path, test: &str) -> Result<(), String> {
+pub(super) fn validate_test_reference(root: &Path, test: &str) -> Result<(), String> {
     let (file, function) = test.split_once("::").ok_or("invalid acceptance test reference")?;
     if !file.starts_with("crates/") || !file.ends_with(".rs") || file.contains("..") {
         return Err(format!("invalid acceptance test path: {file}"));
@@ -758,7 +760,9 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
     let return_type = return_type(markdown);
     let enum_values = enum_values(markdown);
     let enum_type = (kind == "enumeration").then_some(owner);
-    let descriptor = descriptors.get(&(fold_identifier(owner), fold_identifier(member)));
+    // Events and callable properties/methods are distinct source contracts even
+    // when Microsoft gives them identical owner/member names.
+    let descriptor = if kind == "event" { None } else { descriptors.get(&(fold_identifier(owner), fold_identifier(member))) };
     let implementation_symbol = if kind == "enumeration" {
         Some("crates/vba/src/vba_enum_data.rs::EXCEL_ENUM_CONSTANTS")
     } else if kind == "event" && matches!(id, "Workbook.Open" | "Worksheet.Change") {
@@ -860,6 +864,9 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
     Ok(json!({
         "id": id,
         "source_page_ids": [id],
+        "source_deprecated": markdown.to_ascii_lowercase().contains("deprecated"),
+        "source_namespace":if markdown.lines().any(|line|line.starts_with("# ") && line.contains("(Excel Graph)")){"ExcelGraph"}else{"Excel"},
+        "source_heading":markdown.lines().find_map(|line|line.strip_prefix("# ")).unwrap_or(""),
         "source_path": source_path,
         "url": url,
         "packet": packet,
@@ -1090,11 +1097,13 @@ fn enum_values(markdown: &str) -> Vec<Value> {
             in_table = true;
             continue;
         }
-        if !in_table {
+        let inline_row = line.starts_with('|') && line.trim_start_matches('|').trim_start().starts_with("**") && line.contains("**|");
+        if !in_table && !inline_row {
             continue;
         }
         if !line.starts_with('|') {
-            break;
+            in_table = false;
+            continue;
         }
         let cells: Vec<_> = line.trim_matches('|').split('|').map(str::trim).collect();
         if cells.len() < 2 || cells[0].contains("---") {
@@ -1122,11 +1131,13 @@ fn enum_table_member_count(markdown: &str) -> usize {
             in_table = true;
             continue;
         }
-        if !in_table {
+        let inline_row = line.starts_with('|') && line.trim_start_matches('|').trim_start().starts_with("**") && line.contains("**|");
+        if !in_table && !inline_row {
             continue;
         }
         if !line.starts_with('|') {
-            break;
+            in_table = false;
+            continue;
         }
         let cells: Vec<_> = line.trim_matches('|').split('|').map(str::trim).collect();
         if cells.len() >= 2 && !cells[0].contains("---") && !clean_identifier(cells[0]).is_empty() {
@@ -1238,7 +1249,7 @@ fn render_report(contracts: &Value) -> Result<String, String> {
     for (state, count) in counts {
         out.push_str(&format!("- `{state}`: {count}\n"));
     }
-    out.push_str("\n## Unresolved audit rows\n\nRows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain unresolved against the Microsoft catalogue. They are not automatically in-scope implementation requirements: the existing-GridCraft-capability gate is applied first. This report deliberately does not calculate an overall compatibility percentage.\n\n| ID | State | Signature review |\n|---|---|---|\n");
+    out.push_str("\n## OM20 bounded-profile acceptance\n\n[Profile sign-off and scope](vba-object-model-profile-report.md) keeps planning disposition independent of raw catalogue evidence. Exact source paths and method/event kinds remain distinct.\n\n## Unresolved audit rows\n\nRows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REFERENCE_ALIAS` remain unresolved against the Microsoft catalogue. They are not automatically in-scope implementation requirements: the existing-GridCraft-capability gate is applied first. This report deliberately does not calculate an overall compatibility percentage.\n\n| ID | Source path | State | Priority | Profile disposition | Signature review |\n|---|---|---|---|---|---|\n");
     for row in pages {
         let state = row.get("result_state").and_then(Value::as_str).unwrap_or("LEGACY_REVIEW");
         if state == "IMPLEMENTED_TESTED" {
@@ -1246,7 +1257,10 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         }
         let id = row.get("id").and_then(Value::as_str).unwrap_or("UNKNOWN");
         let review = row.get("signature_review").and_then(Value::as_str).unwrap_or("UNREVIEWED");
-        out.push_str(&format!("| `{id}` | `{state}` | `{review}` |\n"));
+        let source = row["source_path"].as_str().unwrap_or("");
+        let priority = row["v1_priority"].as_str().unwrap_or("");
+        let disposition = row["v1_disposition"].as_str().unwrap_or("");
+        out.push_str(&format!("| `{id}` | `{source}` | `{state}` | `{priority}` | `{disposition}` | `{review}` |\n"));
     }
     Ok(out)
 }
@@ -1366,5 +1380,27 @@ mod tests {
             assert_eq!(contract["dispatch_evidence"], "shared-member-descriptor");
         }
         Ok(())
+    }
+    #[test]
+    fn method_activation_does_not_claim_same_named_events() -> Result<(), String> {
+        let descriptors =
+            gridcraft_vba::member_descriptors().into_iter().map(|d| ((d.owner.to_ascii_lowercase(), d.name.to_ascii_lowercase()), d)).collect();
+        for owner in ["Workbook", "Worksheet"] {
+            for kind in ["event", "method"] {
+                let row = serde_json::json!({"id":format!("{owner}.Activate"),"kind":kind,"owner":owner,"member":"Activate","status":"not-exposed","source_path":format!("api/Excel.{owner}.Activate({kind}).md"),"packet":if kind=="event"{"OM11"}else{"OM04"},"url":"https://example.invalid/activation","evidence":"source kind remains distinct"});
+                let contract = super::contract_row(&row, "", &descriptors)?;
+                assert_eq!(contract["implementation_symbol"].is_string(), kind == "method");
+                assert_eq!(contract["descriptor_availability"].is_string(), kind == "method");
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn headerless_enum_tables_ignore_the_concatenated_pseudo_header() {
+        let source = "## Members\n|xlFirstxlSecond|12|combined description|\n| **xlFirst**| **1**||\n| **xlSecond**| **2**||\n";
+        let values = super::enum_values(source);
+        assert_eq!(values.len(), 2);
+        assert_eq!(super::enum_table_member_count(source), 2);
+        assert_eq!(values[0]["name"], "xlFirst");
     }
 }

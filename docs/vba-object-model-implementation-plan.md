@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10, OM19 and OM15 selected native profiles completed; OM20 profile reconciliation and sign-off is next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10, OM19 and OM15 selected native profiles completed; OM20 bounded native profile reconciliation and sign-off completed. Deferred Low and unselected catalogue extensions remain visible. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -119,7 +119,7 @@ Inventory status meanings:
 No row is marked fully Excel-compatible. The groups overlap conceptually across
 objects and members; do not turn these counts into a compatibility percentage.
 The JSON packet field is an initial routing aid. The packet contract below takes
-precedence where a member has multiple concerns, and OM20 must resolve the tail.
+precedence where a member has multiple concerns, and OM20 records the reviewed member-level resolution in the generated contracts.
 
 ## Ownership and implementation rules for Luna
 
@@ -367,9 +367,11 @@ work. Low triage records the family/tier, eligibility or known restriction and
 source provenance; it does not require deep parameter review, new receiver
 objects, enum/binding generation, per-member stubs or a new Low test programme.
 Use existing unsupported dispatch/diagnostics rather than building deferred graphs.
-The per-row priority/disposition schema migration remains planned, not
-implemented by this documentation change. Do not reinterpret generated MISSING
-counts as an instruction to implement all rows, or hand-edit generated reports.
+OM20 implements the per-row priority/disposition schema in generated contracts.
+Outside-profile capability review is recorded separately from known native gaps;
+High reference extensions keep their High priority and literal catalogue state.
+Do not reinterpret generated MISSING counts as an instruction to implement all
+rows, or hand-edit generated reports.
 
 Page routing is not a project estimate. Record genuine family reassignments in
 the inventory, keeping the pinned source set; delivery ordering alone requires
@@ -781,18 +783,15 @@ rows and the next smallest packet. Microsoft reference-based tests establish a
 declared profile; fresh Excel observations, when performed, are separate evidence.
 Do not infer broad Excel parity from the absence of runtime error 438.
 
-## Recommended next Luna assignment
+## After bounded profile sign-off
 
-The selected High native profiles are delivered; see the
-[closure record](#high-native-profile-closure-2026-11-03) and checked acceptance ledger.
-OM03/OM04 continuations and the selected High OM11 persistence events no longer
-block the next stage. Do not broaden a bounded native profile into an Excel parity
-claim; retain its explicit unsupported variants and service limits.
-
-The first Medium delivery is a basic OM12 chart/drawing slice, then OM13 local
-pivots, followed by selected OM08/OM09/OM10/OM19/OM15 subsets. OM14/OM16/OM17 and
-all other Low members receive classification/diagnostics only; no Low runtime
-implementation is scheduled. Use the delivery table rather than numeric OM order.
+The selected High native obligations and selected Medium OM12, OM13, OM08,
+OM09, OM10, OM19 and OM15 profiles are accepted by OM20. Maintain their existing
+parameter, event, lifetime, service and persistence limits. Review any further
+catalogue extension against an existing GridCraft capability before scheduling
+adapter work; absence of a descriptor alone does not establish a product gap.
+Low runtime work remains deferred. See the [sign-off report](vba-object-model-profile-report.md)
+for exact remaining dispositions and source rows.
 
 ## Audit validation performed in this planning task
 
@@ -988,6 +987,8 @@ All commands used Rust 1.99.1. Evidence logs are local under
 - Fixed the existing unused `args` warning in `xtask::cmd_vba_audit` when its feature is disabled so the strict workspace Clippy gate can run. No dependency or CI workflow changed.
 
 ## Revision history
+
+- 2026-11-03: Completed OM20 bounded native profile sign-off, source-kind/legacy reconciliation, live nominal graph checks and generated per-row dispositions; catalogue extensions remain explicit.
 
 - 2026-11-03: Completed selected OM15 native interactions/controls with owned UI continuations, modal lifetime guards, native/WASM evidence and source-ledger reconciliation; OM20 sign-off is next.
 - 2026-11-03: Completed selected OM19 local annotation/metadata projection with source acceptance; eligible OM15 is next.
@@ -1805,3 +1806,52 @@ Validation:
   are not feature counts or a compatibility percentage.
 
 OM20 profile reconciliation/sign-off is next. Low runtime work remains deferred.
+
+
+## OM20 bounded native profile completion (2026-11-03)
+
+Status: **accepted for the declared bounded native profile**. The
+[OM20 specification](vba-object-model-om20-acceptance.json) joins the eight
+accepted High/selected Medium ledgers. The [generated report](vba-object-model-profile-report.md)
+and [machine-readable witnesses](vba-object-model-profile.json) resolve **673**
+required source IDs, retain all **5,996** pinned source pages and validate
+**124** nominal object types reachable from Application, **45** collection
+Count/Item/default contracts and **47** consumed enum types. Ten reviewed dynamic
+return edges retain linked native regression evidence. This is static graph
+validation plus the owning regression suites; it does not prove every Excel
+parameter combination or every possible runtime path.
+
+All **283** legacy Graph pages retain a separate source namespace. **Seven**
+case-folded ID collisions keep method/property/event kinds and original paths;
+activation methods no longer falsely claim activation event support. **Thirteen**
+member-level routing corrections preserve original inventory packets. Four
+deprecated enum pages lack numeric source tables and remain explicit exceptions;
+they cannot be consumed by implemented typed signatures. Eleven forecast constants
+are recovered from headerless source tables. Range.Replace's FormulaVersion
+metadata now uses the documented Variant; supplied unsupported versions still
+raise the existing error.
+
+Every source row has independent priority, profile disposition, eligibility
+review boundary and literal result state. **885** High reference-extension pages
+retain High priority outside the accepted native obligations; their full
+GridCraft capability review is **not claimed complete**. **1,106** unselected
+Medium pages and **1,078** deferred Low pages are retained. Missing descriptors
+alone do not prove absent native features. Exact out-of-scope/service rows remain
+in the contracts. Acceptance closes the named native obligations, not all High
+source members, all Medium families or general Excel compatibility.
+
+No new UI or service behavior is introduced by reconciliation. Existing owning
+ledgers retain UI, lifecycle, permission, persistence and native/WASM evidence.
+Fresh Excel observation: **NOT_RUN**; the new checks use the pinned public
+reference and synthetic regressions. tiny-vba remains on immutable revision
+`8f4bebc3650cd51054fa6786f83a1ac73e07aeaf`.
+
+Validation (exact commands in the OM20 specification):
+
+- `cargo xtask ci` with the approved font bundle: all **10** gates passed,
+  including **3,025** native tests.
+- `cargo test -p gridcraft-vba`: **251** passed.
+- WASM VBA suite via `wasm-bindgen-test-runner`: **242** passed.
+- Optional audit-tool suite: **36** passed; affected-target strict Clippy passed.
+- Offline audit write/check reproduced contracts, constants, reports and graph
+  witnesses. Original source inventory and tiny-vba pin remain unchanged.

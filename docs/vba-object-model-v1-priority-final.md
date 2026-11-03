@@ -307,23 +307,25 @@ small handwritten semantic kernels**.
 
 ### 1. Add a versioned profile field to the inventory
 
-Record `v1_priority`, `v1_disposition` and `implementation_family` per canonical
-row. Suggested dispositions:
+OM20 generates `v1_priority`, `v1_disposition` and `implementation_family` per
+source row in schema 3 contracts, together with stable source-path and
+namespace/kind keys, original/resolved packets and an independent eligibility
+review boundary. The immutable historical source inventory remains unchanged.
+Current dispositions are:
 
-- `REQUIRED`
-- `REQUIRED_GENERIC_PROXY`
-- `MEDIUM_SUBSET`
+- `ACCEPTED_REQUIRED_NATIVE`
+- `IMPLEMENTED_NATIVE_PARTIAL`
+- `HIGH_REFERENCE_EXTENSION`
+- `UNSELECTED_MEDIUM`
 - `SERVICE_REQUIRED`
 - `DEFERRED_LOW` (including eligible Low rows; no runtime work now)
-- `DEFERRED_PROVIDER`
-- `POLICY_BLOCKED`
-- `LEGACY_OUT_OF_PROFILE`
+- `METADATA_ONLY`
 - `OUT_OF_SCOPE_GRIDCRAFT`
 
-Generate the High/Medium/Low report from these fields so the product profile and
-compatibility report cannot drift apart. The reports in this change are the
-design input; the inventory migration should be a separate reviewed mechanical
-change.
+The [generated profile](vba-object-model-profile.json) and
+[report](vba-object-model-profile-report.md) use these same fields. High reference
+extensions retain their priority and literal missing/partial state; their native
+capability review is outside the declared obligations, not assumed complete.
 
 ### 2. Generate checked-in Rust metadata with Rust tooling
 
@@ -437,10 +439,14 @@ Keep OM IDs unchanged; numeric order is only a catalogue lookup aid.
 The member's eligibility, priority and required profile are separate decisions.
 Out-of-scope behavior, eligible-but-deferred Low behavior, and partial implemented
 support must remain distinguishable in planning and compatibility output. The
-per-row priority/disposition migration is still planned; this documentation
-revision changes delivery instructions, not the generated audit schema or counts.
+OM20 per-row priority/disposition migration is now generated in schema 3
+contracts. Original source inventory packets and this historical family table
+remain preserved; reviewed member routing and exact dispositions appear in the
+[profile sign-off](vba-object-model-profile-report.md).
 
 ## Revision history
+
+- 2026-11-03: OM20 signed off the bounded native obligations and generated per-row dispositions, preserving exact catalogue extensions and immutable source provenance.
 
 - 2026-11-03: Aligned OM delivery to High-first/selected-Medium stages, explicitly deferred Low implementation, and clarified event/protection member exceptions without renumbering packets.
 
@@ -452,5 +458,7 @@ Implementation update (2026-11-03): the selected High native profiles are delive
 in the [closure record](vba-object-model-implementation-plan.md#high-native-profile-closure-2026-11-03)
 and [machine-readable evidence ledger](vba-object-model-high-acceptance.json).
 This does not change accepted eligibility/deferral or turn the historical full
-source catalogue into a compatibility percentage. Its wider priority/disposition
-migration remains separate from implementation acceptance.
+source catalogue into a compatibility percentage. OM20 now records every page
+with source-kind/namespace identity and independent priority/disposition. High
+reference extensions outside the declared obligations remain High and require
+capability review; unselected Medium and Low runtime work remain outside acceptance.

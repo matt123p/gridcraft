@@ -1,6 +1,6 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 native VBA interactions/controls delivered; bounded projection scope) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 bounded native VBA profile signed off; source reconciliation complete) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
@@ -8,18 +8,21 @@ list is [`gaps.md`](gaps.md); numbers and method are in
 
 ## Current focus
 
-Selected Medium VBA OM15 now projects existing native dialogs/pickers, status
-visibility, column autocomplete and cell-checkbox controls through owned host
-continuations. Exact service and capability limits remain in the
-[OM15 acceptance ledger](vba-object-model-om15-acceptance.json). OM20 profile reconciliation/sign-off is next.
+OM20 closes the declared High native obligations and selected Medium VBA profiles.
+The [profile sign-off](vba-object-model-profile-report.md) retains all 5,996
+source pages, resolves 673 required source IDs and checks receiver/type reachability.
+Catalogue extensions outside the accepted obligations still require explicit
+capability review; unselected Medium and Low runtime work remain deferred.
+This bounded acceptance does not change product parity estimates.
 
 Optional VBA follows the accepted
 [v1 object-model profile](vba-object-model-v1-priority-final.md): expose only
 capabilities GridCraft already supports. Binding, object projection and adapter
 tests belong to the VBA workstream; missing GridCraft product features remain on
 this ordinary roadmap and are never added merely for Excel object-model parity.
-The next work is the eligible OM03/OM04 projection described in the
-[implementation plan](vba-object-model-implementation-plan.md).
+Further VBA work requires an explicitly reviewed extension to the bounded
+[implementation profile](vba-object-model-implementation-plan.md); the original
+High and selected Medium delivery sequence is complete.
 
 
 1. **Review and land the open PR queue** (50 PRs on 2026-10-10): recalc and spill fixes (#148,
@@ -130,6 +133,7 @@ to check our files, and Windows machines with the reported GPU drivers.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM20 bounded native VBA profile signed off; source provenance and deferred extensions retained; no product parity score change |
 | 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
 | 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-23 | minor | Measuring: tests run through `cargo xtask test` |

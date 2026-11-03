@@ -2,12 +2,14 @@
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 native VBA interactions/controls delivered; bounded projection scope; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 bounded native VBA profile signed off; source reconciliation complete; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
-Selected Medium VBA OM15 now projects existing native dialogs/pickers, status
-visibility, column autocomplete and cell-checkbox controls through owned host
-continuations. Exact service and capability limits remain in the
-[OM15 acceptance ledger](docs/vba-object-model-om15-acceptance.json). OM20 profile reconciliation/sign-off is next.
+OM20 closes the declared High native obligations and selected Medium VBA profiles.
+The [profile sign-off](docs/vba-object-model-profile-report.md) retains all 5,996
+source pages, resolves 673 required source IDs and checks receiver/type reachability.
+Catalogue extensions outside the accepted obligations still require explicit
+capability review; unselected Medium and Low runtime work remain deferred.
+This bounded acceptance does not change product parity estimates.
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -152,6 +154,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | What landed |
 |---|---|
+| 2026-11-03 | OM20 bounded native VBA profile signed off; source provenance and deferred extensions retained; no product parity score change |
 | 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
 | 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-11-03 | Native-backed VBA formula/name/function, formatting/rule, data/outline/what-if and local table projections; native identities, matrix-layout conversions and explicit unsupported-option reporting. Bounded profile only; remaining invocation/continuation work still blocks whole-High sign-off. |

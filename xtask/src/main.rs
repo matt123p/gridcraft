@@ -15,6 +15,8 @@ mod parity;
 mod stats;
 #[cfg(feature = "vba-audit")]
 mod vba_audit;
+#[cfg(feature = "vba-audit")]
+mod vba_profile;
 mod version;
 
 use std::path::{Path, PathBuf};

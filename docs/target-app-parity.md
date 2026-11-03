@@ -1,6 +1,6 @@
 # Target-app parity: GridCraft vs Microsoft Excel
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 native VBA interactions/controls delivered; bounded projection scope; no score change) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 bounded native VBA profile signed off; source reconciliation complete; no score change) · **Target:** Microsoft Excel (Microsoft 365)
 
 This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summarizes it,
 [`gaps.md`](gaps.md) lists every shortfall, and the area checklists hold the detail:
@@ -10,10 +10,12 @@ generated ribbon checklist is [`parity-checklist.md`](parity-checklist.md).
 
 ## Summary
 
-Selected Medium VBA OM15 now projects existing native dialogs/pickers, status
-visibility, column autocomplete and cell-checkbox controls through owned host
-continuations. Exact service and capability limits remain in the
-[OM15 acceptance ledger](vba-object-model-om15-acceptance.json). OM20 profile reconciliation/sign-off is next.
+OM20 closes the declared High native obligations and selected Medium VBA profiles.
+The [profile sign-off](vba-object-model-profile-report.md) retains all 5,996
+source pages, resolves 673 required source IDs and checks receiver/type reachability.
+Catalogue extensions outside the accepted obligations still require explicit
+capability review; unselected Medium and Low runtime work remain deferred.
+This bounded acceptance does not change product parity estimates.
 
 VBA audit update (2026-11-03, optional integration feature): the bounded profile
 projects only capabilities GridCraft already supports. It does not establish
@@ -353,6 +355,7 @@ The inventory carried over from the 2026-10-07 ROADMAP.md, updated for what land
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM20 bounded native VBA profile signed off; source provenance and deferred extensions retained; no product parity score change |
 | 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
 | 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-25 | minor | Automation: macro interface (Automate › Macros, the Macros and Record Macro dialogs, the step editor, shortcuts) (no score change) |

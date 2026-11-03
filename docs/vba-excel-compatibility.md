@@ -12,6 +12,12 @@ status-bar visibility, column autocomplete and existing cell-checkbox controls.
 See the [OM15 ledger](vba-object-model-om15-acceptance.json) for exact modal,
 headless/browser and unavailable InputBox/Office control/settings limits.
 
+OM20 signs off the declared High native obligations and selected Medium ledgers.
+The [profile report](vba-object-model-profile-report.md) preserves all source
+rows, independent priority/disposition and exact outside-profile extensions.
+Reachable object declarations and implemented members remain **PARTIAL**; this
+does not certify all options, events or members of their Excel families.
+
 Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
 Unchanged Excel workbook source is measured as compatibility evidence, not the
 implementation target. `GridCraft.Excel.v1` is a bounded standard-module profile;
