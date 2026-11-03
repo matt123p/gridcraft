@@ -76,10 +76,10 @@ Inventory status meanings:
 
 | Status | Snapshot pages | Meaning |
 |---|---:|---|
-| `implemented-subset` | 98 | Positive catalogue/dispatch or event evidence; expand option/semantic gaps before claiming completion |
+| `implemented-subset` | 104 | Positive catalogue/dispatch or event evidence; expand option/semantic gaps before claiming completion |
 | `context-only` | 2 | Caller/Volatile on the UDF path, not general macro support |
 | `object-subset` | 9 | An object-page alias for a type represented in the adapter |
-| `not-exposed` | 4,608 | No matching member in the reviewed adapter projection |
+| `not-exposed` | 4,602 | No matching member in the reviewed adapter projection |
 | `platform-service-needed` | 2 | Clipboard image and external-format paste dispatch explicitly refuse until the host services exist |
 | `object-not-exposed` | 335 | No general projection of this documented object |
 | `formula-bridge-not-exposed` | 390 | WorksheetFunction member pages; bridge work only in this plan |
@@ -129,37 +129,39 @@ precedence where a member has multiple concerns, and OM20 must resolve the tail.
 
 ## Work packets and order
 
-OM00's deterministic source and semantic exporter is implemented, OM01a's
-bounded shared IDE policy is published and configured in GridCraft, and selected
-OM02 slices are implemented as recorded in the progress section. OM00, OM01 and
-OM02 remain open because their broader acceptance criteria have not been met.
+OM00's deterministic source/semantic exporter and OM01's bounded execution,
+shared descriptor, diagnostics and compatibility-reporting foundation are
+implemented and accepted. OM02's bounded `GridCraft.Excel.v1` selection,
+clipboard and editing profile is also implemented and accepted as recorded in
+the progress section. System-clipboard services and behavior owned by later
+packets remain explicit rather than being counted as silent OM02 successes.
 Split each packet into small PRs by object family and behavior. Do not
-make one PR containing the whole object model. First finish OM00/OM01, then
-OM02-OM07; continue through the remaining families with their prerequisites.
+make one PR containing the whole object model. OM00-OM02 are complete; continue
+with OM03-OM07, then the remaining families with their prerequisites.
 OM20 classification starts early and must be complete before final sign-off.
 
-| Packet | Initial pages | Deliverable | Prerequisites |
+| Packet | Reconciled pages | Deliverable | Prerequisites |
 |---|---:|---|---|
 | OM00 | 272 | Complete inventory, signatures, enum and constant contracts | None |
 | OM01 | Cross-cutting | Host execution policy, member registry and diagnostics | OM00 schema |
-| OM02 | 180 | Selection, clipboard, editing and range operations | OM01 |
-| OM03 | 200 | Application roots, settings, calculation and dispatch | OM01 |
-| OM04 | 268 | Workbook/sheet collections and lifecycle | OM01, OM03 |
-| OM05 | 528 | Formatting, styles and conditional formatting | OM02, OM04 |
-| OM06 | 172 | Sort/filter/validation/outline/data tools | OM02, OM05 |
-| OM07 | 497 | Names, formulas and evaluation/function bridges | OM03, OM04 |
-| OM08 | 162 | Windows, panes, view and navigation | OM03, OM04 |
-| OM09 | 94 | Protection, permissions and protected document state | OM04 |
-| OM10 | 132 | Page setup, printing and export | OM04, OM05, OM08 |
+| OM02 | 68 | Selection, clipboard, editing and range operations | OM01 |
+| OM03 | 206 | Application roots, settings, calculation and dispatch | OM01 |
+| OM04 | 278 | Workbook/sheet collections and lifecycle | OM01, OM03 |
+| OM05 | 541 | Formatting, styles and conditional formatting | OM02, OM04 |
+| OM06 | 180 | Sort/filter/validation/outline/data tools | OM02, OM05 |
+| OM07 | 515 | Names, formulas and evaluation/function bridges | OM03, OM04 |
+| OM08 | 163 | Windows, panes, view and navigation | OM03, OM04 |
+| OM09 | 96 | Protection, permissions and protected document state | OM04 |
+| OM10 | 133 | Page setup, printing and export | OM04, OM05, OM08 |
 | OM11 | 123 | Application/workbook/worksheet event completeness | OM01, OM04; incremental with every mutating packet |
-| OM12 | 1,219 | Charts, drawings, images and associated objects | OM04, OM05, OM08 |
-| OM13 | 832 | Pivot objects, slicers, timelines, cube/model APIs | OM04, OM06, OM14 where externally backed |
-| OM14 | 295 | Connections, query/import/XML and refresh | OM04, explicit services |
-| OM15 | 105 | Dialogs, interaction, proofing and built-in controls | OM03, OM08, OM11 |
-| OM16 | 135 | Sharing, collaboration, publishing and remote document APIs | OM04, OM09, explicit services |
-| OM17 | 558 | Legacy/Graph/OS/COM/XLL/VBE interoperability decisions and adapters | OM00, explicit platform/service contracts |
-| OM18 | 131 | Structured tables and table styles | OM04, OM05, OM06, OM07 |
-| OM19 | 94 | Notes/comments, hyperlinks and document metadata | OM04, OM05, OM11 |
+| OM12 | 1,220 | Charts, drawings, images and associated objects | OM04, OM05, OM08 |
+| OM13 | 838 | Pivot objects, slicers, timelines, cube/model APIs | OM04, OM06, OM14 where externally backed |
+| OM14 | 305 | Connections, query/import/XML and refresh | OM04, explicit services |
+| OM15 | 115 | Dialogs, interaction, proofing and built-in controls | OM03, OM08, OM11 |
+| OM16 | 138 | Sharing, collaboration, publishing and remote document APIs | OM04, OM09, explicit services |
+| OM17 | 570 | Legacy/Graph/OS/COM/XLL/VBE interoperability decisions and adapters | OM00, explicit platform/service contracts |
+| OM18 | 134 | Structured tables and table styles | OM04, OM05, OM06, OM07 |
+| OM19 | 101 | Notes/comments, hyperlinks and document metadata | OM04, OM05, OM11 |
 | OM20 | Cross-cutting | Reconcile aliases/reference pages and finish acceptance; zero unrouted pages | Starts at OM00; closes after all packets |
 
 Page routing is not a project estimate: for example, one chart method may need
@@ -534,17 +536,15 @@ rows and the next smallest packet. Microsoft reference-based tests establish a
 declared profile; fresh Excel observations, when performed, are separate evidence.
 Do not infer broad Excel parity from the absence of runtime error 438.
 
-## Recommended first Luna assignment
+## Recommended next Luna assignment
 
-Continue OM00 with per-member signature, argument-mode/default, property access,
-platform and alias review; the exporter currently records unresolved metadata
-instead of treating it as accepted. Continue OM01 with the shared descriptor,
-source-aware diagnostics and static compatibility report. OM02's bounded same-
-workbook clipboard, linked paste and clearing slices are in place; next cover
-multi-area selection, Find/Replace, SpecialCells/region, fill and remaining
-structural behavior. Then do **OM06a** Sort/SortFields plus
-enum/collation contracts. Keep the rest of this plan as the ordered full-surface
-backlog; do not turn it into a single large implementation change.
+Start OM03 with the smallest coherent Application-state slice: ScreenUpdating,
+DisplayAlerts, StatusBar/DisplayStatusBar and Cursor, including restoration on
+normal completion, error and Reset. Then add calculation-state variants and the
+bounded scheduling/Run family before moving into OM04 lifecycle work. OM06a
+Sort/SortFields remains the next data-tools slice after its OM03-OM05
+prerequisites. Keep the rest of this plan as the ordered full-surface backlog;
+do not turn it into a single large implementation change.
 
 ## Audit validation performed in this planning task
 
@@ -571,27 +571,34 @@ have independently observed Excel behavior or completed implementation designs.
   checks exact equality of all 5,996 Excel API pages, and deterministically
   generates `vba-object-model-contracts.json`, typed enum source and an unresolved
   row report. Current output has 272 enum types and 2,260 typed runtime constants.
-  The source contract retains both same-value `Constants.xlManual` and
-  `XlSortOrder.xlManual` identities, while runtime registration deduplicates the
-  name because tiny-vba's `ReferenceSet` rejects duplicate constant names even
-  across modules. Qualified alias resolution remains outstanding and requires a
-  shared resolver change. The
+  The source contract and generated runtime tables retain both same-value
+  `Constants.xlManual` and `XlSortOrder.xlManual` identities. A generated ordered
+  alias library supplies both module-qualified forms while deterministic
+  unqualified lookup keeps the primary value; unit tests assert the numeric value
+  for all three spellings. The
   schema 2 exporter records 4,296 argument occurrences: 2,879 required/optional
   flags and 2,880 types are extracted from parameter tables, with 172 explicit
   typed defaults extracted from descriptions. Argument mode is marked
   `NOT_SPECIFIED_IN_SOURCE` where Microsoft’s reference syntax provides no
   ByVal/ByRef mode; undocumented requiredness, types and defaults retain source
   provenance instead of being guessed. The
-  audit passes, but contracts remain unresolved: 5,340 MISSING, 371 PARTIAL,
-  283 REFERENCE_ALIAS and 2 PLATFORM_SERVICE_NEEDED rows. Signature arguments,
-  property access, aliases and platform semantics still need review. This is not
-  OM00 acceptance.
+  audit passes and currently reports 5,321 MISSING, 390 PARTIAL, 283
+  LEGACY_REVIEW and 2 PLATFORM_SERVICE_NEEDED implementation rows. Property
+  access and platform notes are source-reviewed, legacy ownerless pages are
+  explicitly routed to OM17, and the report deliberately publishes no aggregate
+  compatibility percentage. OM00's inventory/contract acceptance is complete;
+  those result states remain work for their owning implementation packets.
 - **OM01a — configurable bounded execution limits:** published in tiny-vba and
   pinned by GridCraft. GridCraft configures 20,000,000 instructions, 16,384 host
   calls and a 512 MiB payload ceiling for workbook macro sessions; limits carry
   across pause/resume and idle document-event sessions. The shared IDE embedding
-  regression passed. OM01's unified member descriptor, source-aware diagnostics
-  and static compatibility report remain outstanding.
+  regression passed. Catalogue, completion/object-browser metadata and the audit
+  now derive from `MemberDescriptor`; descriptor reconciliation rejects duplicate
+  or unassigned canonical members. Unsupported dispatch fallbacks name receiver
+  and member, while option/service/budget errors retain distinct VBA numbers and
+  the VM supplies source locations. The nonexecuting JSON compatibility report
+  classifies statically resolved calls as SUPPORTED, SERVICE_REQUIRED or MISSING
+  and dynamic receivers as UNKNOWN. OM01 acceptance is complete.
 - **OM02a-1 — clipboard and PasteSpecial subset:** implemented for one-area
   source and destination ranges in the current workbook, including cross-sheet copies.
   `Range.Cut` with or without Destination and `Application.CutCopyMode` stage same-workbook bounded moves;
@@ -626,10 +633,57 @@ have independently observed Excel behavior or completed implementation designs.
   than 64 disjoint event areas, MatchByte, format search, and FormulaVersion
   service requests refuse before mutation. Tests cover range isolation, case and
   whole-cell options, Boolean results, event Target and atomic service refusals.
-  The range suite now has 14 tests.
+  The range suite now has 15 tests.
+- **OM02a-5 — CurrentArray:** exposes the full legacy CSE array range from either
+  its formula anchor or a spill child, using engine formula metadata. Calls on
+  cells outside a legacy array return error 1004; dynamic array spills are not
+  reported as legacy array groups. Covered by a focused integration test.
+- **OM02a-6 — directional fill and AutoFill:** `FillDown`, `FillUp`, `FillLeft`
+  and `FillRight` route bounded single-area receivers through the corresponding
+  native engine commands, preserving values, relative formula rebasing and
+  formats. `AutoFill` accepts a same-sheet destination that contains the source
+  and extends it in one direction. It supports default, copy, series, formats,
+  values, days, weekdays, months and years modes; trend and FlashFill modes
+  refuse explicitly. Invalid, cross-sheet and non-containing destinations are
+  rejected before mutation. The range suite now has 18 tests, including exact
+  Worksheet_Change targeting for the filled destination cells.
 
-OM02 still lacks grouped/multi-area selection rules, full Select/Activate/Goto
-history and scroll behavior, Union/Intersect, complete Find repeat state,
-CurrentArray/SpecialCells, fill/AutoFill/series, and full
-structural operation coverage. OM00/OM01 also remain open as described above;
-these slices do not complete any of the three packets.
+- **OM02a-7 — Union/Intersect and Go To history:** bounded two-to-thirty argument
+  `Application.Union`/`Intersect` coalesce overlaps, preserve multi-area identity,
+  return Nothing for an empty intersection and reject cross-sheet inputs.
+  `Application.Goto` now uses native `edit.goTo`, accepts Range or reference text,
+  records/replays history, persists Scroll view state and preserves the first
+  area as the active cell.
+- **OM02a-8 — SpecialCells:** implements constants/formulas masks, blanks,
+  comments, LastCell, visible cells, conditional-format membership and validation
+  membership with bounded coalesced results and error 1004 for no matches.
+- **OM02a-9 — DataSeries:** native-backed linear, growth and chronological series
+  support Rowcol, Date, Step and Stop. Trend regression and xlAutoFill inference
+  refuse before mutation instead of silently substituting another fill.
+- **OM02a-10 — side-map clearing:** `ClearComments`, `ClearNotes` and
+  `ClearHyperlinks` route through native commands. The engine now clears notes and
+  links on otherwise empty cells before clipping ordinary cell work to UsedRange.
+- **OM02a-11 — array/spill/navigation properties:** `HasArray`, `HasSpill` and
+  `SpillParent` use live formula/spill metadata with True/False/Null and error
+  behavior; `Next` and `Previous` return cells without changing Selection. The
+  range suite now has 27 tests. Partial-cell Insert/Delete also use the native
+  vertical Shift defaults when the optional Shift argument is omitted.
+- **OM02a-12 — grouped selection and Go To source history:** `sheet.select`
+  stores the selected worksheet-tab group in canonical engine/window/debug state;
+  `Worksheet.Select Replace:=False` extends that group and Activate restores a
+  singleton group. `Application.PreviousSelections` independently stores and
+  returns the last four ranges displaced by recorded Go To operations, including
+  its indexed form and bounded object-array form.
+- **OM02 routing reconciliation:** 112 rows originally assigned by broad owner
+  matching were moved to their actual family packets (for example Borders to
+  OM05, formula navigation to OM07, Pivot members to OM13, external data to OM14,
+  annotations to OM19 and sheet lifecycle to OM04). OM02 now contains 68 rows:
+  64 implemented subsets, two reachable object subsets and two explicit
+  platform-service results. It has no missing or legacy-review rows.
+
+OM02's bounded profile is accepted. Cross-workbook copy consent belongs to the
+OM04 multi-workbook lifecycle, trend/FlashFill and Justify/DataSeries extensions
+belong to OM06, and CopyOrigin from-right/below remains an explicit unsupported
+option rather than a silent substitution. `Range.CopyPicture` and
+`Worksheet.PasteSpecial` retain explicit clipboard-image/external-format service
+results, satisfying the packet's native/browser service-unavailable contract.

@@ -96,13 +96,20 @@ impl Bridge {
 
     pub(crate) fn select_sheet(&mut self, session: &mut Session, sheet: usize, call: &HostCall) -> HostResult<Value> {
         let args = arguments(call, if call.member.eq_ignore_ascii_case("Select") { &["Replace"] } else { &[] })?;
-        if let Some(replace) = args.first().filter(|v| !matches!(v, Value::Missing)) {
-            let replace = vba_runtime::bind(vba_values::ScalarKind::Boolean, replace).map_err(values::runtime_error)?;
-            if replace == Value::Boolean(false) {
-                return Err(failure(1004, "Worksheet.Select Replace:=False (sheet grouping) is unsupported"));
-            }
-        }
-        session.execute("sheet.activate", json!({"sheet":sheet})).map_err(|e| failure(1004, e.to_string()))?;
+        let select = call.member.eq_ignore_ascii_case("Select");
+        let replace = args
+            .first()
+            .filter(|value| !matches!(value, Value::Missing))
+            .map(|value| vba_runtime::bind(vba_values::ScalarKind::Boolean, value).map_err(values::runtime_error))
+            .transpose()?
+            .map(|value| value == Value::Boolean(true))
+            .unwrap_or(true);
+        session
+            .execute(
+                if select { "sheet.select" } else { "sheet.activate" },
+                if select { json!({"sheet":sheet,"replace":replace}) } else { json!({"sheet":sheet}) },
+            )
+            .map_err(|e| failure(1004, e.to_string()))?;
         Ok(Value::Empty)
     }
 

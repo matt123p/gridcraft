@@ -52,6 +52,8 @@ impl crate::DocState {
         // View state: set in place, so the workbook is neither copied nor made dirty.
         self.wb.set_active_sheet(i);
         self.selection = self.sheet_selections.get(i).cloned().unwrap_or_default();
+        self.selected_sheets.clear();
+        self.selected_sheets.push(i);
     }
 }
 

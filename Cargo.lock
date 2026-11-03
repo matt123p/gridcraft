@@ -6754,6 +6754,7 @@ name = "xtask"
 version = "0.14.2"
 dependencies = [
  "gridcraft-engine",
+ "gridcraft-vba",
  "serde_json",
  "sha2 0.11.1",
  "zip 3.0.0",

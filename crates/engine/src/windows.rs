@@ -21,6 +21,7 @@ pub struct WindowView {
     /// window still finds it.
     pub sheet_name: String,
     pub sheet_selections: Vec<Selection>,
+    pub selected_sheets: Vec<usize>,
 }
 
 /// One window on an open workbook.
@@ -46,6 +47,7 @@ impl WindowView {
             sheet: d.wb.active_sheet(),
             sheet_name: d.wb.sheets.get(d.wb.active_sheet()).map(|s| s.name.clone()).unwrap_or_default(),
             sheet_selections: d.sheet_selections.clone(),
+            selected_sheets: d.selected_sheets.clone(),
         }
     }
 
@@ -59,6 +61,7 @@ impl WindowView {
         d.wb.set_active_sheet(at.min(sheets.len().saturating_sub(1)));
         d.selection = self.selection;
         d.sheet_selections = self.sheet_selections;
+        d.selected_sheets = self.selected_sheets;
     }
 }
 

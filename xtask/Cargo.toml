@@ -14,10 +14,11 @@ workspace = true
 # version or the layer/asset checks run with --no-default-features and skip compiling it.
 default = ["engine"]
 engine = ["dep:gridcraft-engine"]
-vba-audit = ["dep:sha2", "dep:zip"]
+vba-audit = ["dep:sha2", "dep:zip", "dep:gridcraft-vba"]
 
 [dependencies]
 serde_json = { workspace = true }
 sha2 = { workspace = true, optional = true }
 zip = { workspace = true, optional = true }
 gridcraft-engine = { workspace = true, optional = true }
+gridcraft-vba = { path = "../crates/vba", optional = true }

@@ -29,6 +29,8 @@ pub(super) fn insert_sheet(s: &mut Session, p: &Json) -> Result<Json> {
         Ok(at)
     })?;
     d.sheet_selections.insert(idx.min(d.sheet_selections.len()), crate::Selection::default());
+    d.selected_sheets.clear();
+    d.selected_sheets.push(idx);
     Ok(json!({"index": idx, "name": name}))
 }
 
@@ -88,6 +90,8 @@ pub(super) fn delete_sheet(s: &mut Session, p: &Json) -> Result<Json> {
     if i < d.sheet_selections.len() {
         d.sheet_selections.remove(i);
     }
+    d.selected_sheets.clear();
+    d.selected_sheets.push(d.wb.active_sheet());
     ok()
 }
 
@@ -218,7 +222,11 @@ pub(super) fn move_sheet(s: &mut Session, p: &Json) -> Result<Json> {
         }
         cx.structural = true;
         Ok(Json::Null)
-    })
+    })?;
+    let d = s.doc_mut()?;
+    d.selected_sheets.clear();
+    d.selected_sheets.push(d.wb.active_sheet());
+    ok()
 }
 
 pub(super) fn tab_color(s: &mut Session, p: &Json) -> Result<Json> {
@@ -271,7 +279,27 @@ pub(super) fn activate(s: &mut Session, p: &Json) -> Result<Json> {
     let i = target_sheet(s, p)?;
     let d = s.doc_mut()?;
     d.wb_switch_sheet(i);
+    d.selected_sheets.clear();
+    d.selected_sheets.push(i);
     Ok(json!({"sheet": i, "name": d.wb.active().map(|s| s.name.clone())}))
+}
+
+pub(super) fn select(s: &mut Session, p: &Json) -> Result<Json> {
+    let i = target_sheet(s, p)?;
+    let replace = bool_param(p, "replace").unwrap_or(true);
+    let d = s.doc_mut()?;
+    let previous = d.wb.active_sheet();
+    d.wb_switch_sheet(i);
+    if replace {
+        d.selected_sheets.clear();
+    } else if !d.selected_sheets.contains(&previous) {
+        d.selected_sheets.push(previous);
+    }
+    if !d.selected_sheets.contains(&i) {
+        d.selected_sheets.push(i);
+    }
+    d.selected_sheets.sort_unstable();
+    Ok(json!({"sheet":i,"selected":d.selected_sheets}))
 }
 
 pub(super) fn step_sheet(s: &mut Session, dir: isize) -> Result<Json> {

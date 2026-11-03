@@ -365,43 +365,12 @@ fn replacement_text(value: &Value, allow_empty: bool) -> HostResult<String> {
 }
 
 fn replace_target(changed: &[serde_json::Value]) -> HostResult<Range> {
-    let mut cells = changed
+    let cells = changed
         .iter()
         .map(|entry| {
             let address = entry.get("cell").and_then(serde_json::Value::as_str).ok_or_else(|| failure(1004, "invalid replace preview cell"))?;
             CellRef::parse(address).ok_or_else(|| failure(1004, "invalid replace preview address"))
         })
         .collect::<HostResult<Vec<_>>>()?;
-    cells.sort_unstable();
-    cells.dedup();
-    let mut areas = Vec::<RangeRef>::new();
-    let mut index = 0;
-    while index < cells.len() {
-        let start = cells[index];
-        let mut end = start;
-        index += 1;
-        while index < cells.len() && cells[index].row == start.row && cells[index].col == end.col + 1 {
-            end = cells[index];
-            index += 1;
-        }
-        areas.push(RangeRef::new(start, end));
-    }
-    areas.sort_by_key(|area| (area.start.col, area.end.col, area.start.row));
-    let mut merged = Vec::<RangeRef>::new();
-    for area in areas {
-        if let Some(previous) = merged.last_mut()
-            && previous.start.col == area.start.col
-            && previous.end.col == area.end.col
-            && previous.end.row.checked_add(1) == Some(area.start.row)
-        {
-            previous.end.row = area.end.row;
-        } else {
-            merged.push(area);
-        }
-    }
-    if merged.len() > 64 {
-        return Err(failure(7, "Range.Replace event target exceeds 64 disjoint areas"));
-    }
-    merged.sort_by_key(|area| (area.start.row, area.start.col));
-    Ok(Range { areas: merged, unit: super::ranges::Unit::Cells })
+    super::ranges::from_cells(cells, "Range.Replace event target")
 }

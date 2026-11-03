@@ -22,11 +22,11 @@ impl Bridge {
             (false, true, _, None | Some(-4162)) => StructuralEdit::DeleteRows,
             (true, _, true, None | Some(-4161)) => StructuralEdit::InsertColumns,
             (false, _, true, None | Some(-4159)) => StructuralEdit::DeleteColumns,
-            (true, false, false, Some(-4121)) => StructuralEdit::InsertDown,
+            (true, false, false, None | Some(-4121)) => StructuralEdit::InsertDown,
             (true, false, false, Some(-4161)) => StructuralEdit::InsertRight,
-            (false, false, false, Some(-4162)) => StructuralEdit::DeleteUp,
+            (false, false, false, None | Some(-4162)) => StructuralEdit::DeleteUp,
             (false, false, false, Some(-4159)) => StructuralEdit::DeleteLeft,
-            _ => return Err(failure(1004, "a supported explicit Shift is required for partial-cell edits")),
+            _ => return Err(failure(1004, "Range.Insert/Delete Shift is invalid for this range")),
         };
         // Bound line-format inheritance and reference maintenance before mutation.
         let lines = if r.is_full_rows() {

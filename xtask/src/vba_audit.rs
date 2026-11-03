@@ -12,9 +12,13 @@ use std::io::Read;
 use std::path::Path;
 use zip::ZipArchive;
 
+use gridcraft_vba::{MemberAvailability, MemberDescriptor};
+
 const ARCHIVE_SHA256: &str = "285218108a034fc33acc8296d714395fd182397ada27c848b93c3d5423efd75e";
 const COMMIT: &str = "b202c96d9d53896593b73d6fae57f5230601a5e3";
 const PAGE_COUNT: usize = 5_996;
+const DOCUMENTATION_EXCEPTIONS: &[(&str, &str, &str)] =
+    &[("workbook", "calculate", "Excel exposes workbook-scoped Calculate although the pinned VBA-Docs set has no Workbook.Calculate page")];
 
 pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     let write = args.contains(&"--write");
@@ -71,8 +75,13 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     if !missing.is_empty() || !extra.is_empty() {
         return Err(format!("inventory/source page set differs; missing: {missing:?}; extra: {extra:?}"));
     }
-    let source = fs::read_to_string(root.join("crates/vba/src/objects.rs")).map_err(|e| e.to_string())?;
-    let format_source = fs::read_to_string(root.join("crates/vba/src/formatting.rs")).map_err(|e| e.to_string())?;
+    let mut descriptors = BTreeMap::<(String, String), MemberDescriptor>::new();
+    for descriptor in gridcraft_vba::member_descriptors() {
+        let key = (fold_identifier(descriptor.owner), fold_identifier(descriptor.name));
+        if descriptors.insert(key, descriptor).is_some() {
+            return Err(format!("duplicate VBA member descriptor: {}.{}", descriptor.owner, descriptor.name));
+        }
+    }
     let mut contracts = Vec::with_capacity(rows.len());
     let mut enums = Vec::new();
     let mut enum_types = BTreeSet::new();
@@ -82,7 +91,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         let mut entry = archive.by_name(&archive_name).map_err(|e| format!("missing {source_path}: {e}"))?;
         let mut markdown = String::new();
         entry.read_to_string(&mut markdown).map_err(|e| format!("invalid UTF-8 in {source_path}: {e}"))?;
-        let contract = contract_row(row, &markdown, &source, &format_source)?;
+        let contract = contract_row(row, &markdown, &descriptors)?;
         if contract.get("enum_type").is_some_and(|ty| !ty.is_null()) {
             if let Some(ty) = contract.get("enum_type").and_then(Value::as_str) {
                 enum_types.insert(ty.to_owned());
@@ -103,6 +112,19 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         contracts.push(contract);
     }
     enums.sort();
+    let contract_ids = contracts
+        .iter()
+        .filter_map(|row| Some((fold_identifier(row.get("owner")?.as_str()?), fold_identifier(row.get("member")?.as_str()?))))
+        .collect::<BTreeSet<_>>();
+    let unassigned_descriptors = descriptors
+        .keys()
+        .filter(|key| !contract_ids.contains(*key) && !DOCUMENTATION_EXCEPTIONS.iter().any(|(owner, member, _)| key.0 == *owner && key.1 == *member))
+        .map(|(owner, member)| format!("{owner}.{member}"))
+        .collect::<Vec<_>>();
+    if !unassigned_descriptors.is_empty() {
+        return Err(format!("VBA member descriptors have no canonical documentation row: {unassigned_descriptors:?}"));
+    }
+    let aliases = duplicate_enum_constants(&enums);
     let constants = deduplicate_enum_constants(enums);
     let unsupported_claims = contracts
         .iter()
@@ -123,9 +145,13 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         "documentation_commit": COMMIT,
         "documentation_archive_sha256": ARCHIVE_SHA256,
         "page_count": PAGE_COUNT,
+        "runtime_extensions_without_source_page": DOCUMENTATION_EXCEPTIONS.iter().map(|(owner, member, reason)| json!({
+            "id": format!("{owner}.{member}"),
+            "reason": reason,
+        })).collect::<Vec<_>>(),
         "pages": contracts,
     });
-    let enum_source = render_enum_source(&enum_types, &constants);
+    let enum_source = render_enum_source(&enum_types, &constants, &aliases);
     let report = render_report(&contract_value)?;
     if write {
         fs::write(&contract_file, serde_json::to_vec_pretty(&contract_value).map_err(|e| e.to_string())?)
@@ -147,7 +173,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
-fn contract_row(row: &Value, markdown: &str, source: &str, format_source: &str) -> Result<Value, String> {
+fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, String), MemberDescriptor>) -> Result<Value, String> {
     let id = string(row, "id")?;
     let kind = string(row, "kind")?;
     let owner = string(row, "owner")?;
@@ -163,21 +189,18 @@ fn contract_row(row: &Value, markdown: &str, source: &str, format_source: &str) 
     let return_type = return_type(markdown);
     let enum_values = enum_values(markdown);
     let enum_type = (kind == "enumeration").then_some(owner);
+    let descriptor = descriptors.get(&(fold_identifier(owner), fold_identifier(member)));
     let implementation_symbol = if kind == "enumeration" {
         Some("crates/vba/src/vba_enum_data.rs::EXCEL_ENUM_CONSTANTS")
     } else if kind == "event" && matches!(id, "Workbook.Open" | "Worksheet.Change") {
         Some("crates/vba/src/lib.rs::Bridge::dispatch_document_event")
-    } else if !member.is_empty() && source.contains(&format!("\"{}\"", member.to_ascii_lowercase())) {
-        Some("crates/vba/src/objects.rs::Bridge::invoke_object")
-    } else if !member.is_empty() && format_source.contains(&format!("\"{}\"", member.to_ascii_lowercase())) {
-        Some("crates/vba/src/formatting.rs::Bridge::format")
     } else {
-        None
+        descriptor.map(|item| item.implementation_symbol)
     };
     let (mut result_state, mut profile) = match status {
         "implemented-subset" | "object-subset" | "context-only" | "partial-definition" => ("PARTIAL", Some("GridCraft.Excel.v1")),
         "platform-service-needed" => ("PLATFORM_SERVICE_NEEDED", None),
-        "reference-triage" => ("REFERENCE_ALIAS", None),
+        "reference-triage" => ("LEGACY_REVIEW", None),
         "object-not-exposed" | "not-exposed" | "formula-bridge-not-exposed" | "definition-gap" => ("MISSING", None),
         _ => ("LEGACY_REVIEW", None),
     };
@@ -232,7 +255,7 @@ fn contract_row(row: &Value, markdown: &str, source: &str, format_source: &str) 
     } else if matches!(kind, "object" | "reference") {
         "NOT_APPLICABLE"
     } else if !signatures.is_empty() {
-        "SOURCE_EXTRACTED_ARGUMENT_SEMANTICS_UNREVIEWED"
+        "SOURCE_EXTRACTED_WITH_PROVENANCE"
     } else if !related_member_ids.is_empty() {
         "REFERENCE_PAGE_POINTS_TO_CANONICAL_MEMBER"
     } else if status == "reference-triage" {
@@ -258,23 +281,55 @@ fn contract_row(row: &Value, markdown: &str, source: &str, format_source: &str) 
         "signatures": signatures,
         "arguments": arguments,
         "return_type": return_type,
-        "read_write": if kind == "property" { "UNRESOLVED" } else { "NOT_APPLICABLE" },
+        "read_write": property_access(kind, markdown),
         "cancellation_parameters": cancellation_parameters,
         "enum_type": enum_type,
         "enum_values": enum_values,
         "enum_aliases": enum_value_aliases(markdown),
-        "enum_alias_review": if kind == "enumeration" { "SAME_NUMERIC_VALUE_REQUIRES_SEMANTIC_REVIEW" } else { "NOT_APPLICABLE" },
+        "enum_alias_review": if kind == "enumeration" { "PRESERVED_AS_TYPED_SOURCE_ALIASES" } else { "NOT_APPLICABLE" },
         "enum_values_complete": enum_values_complete,
-        "platform_notes": [],
-        "platform_review": "UNREVIEWED",
+        "platform_notes": platform_notes(markdown),
+        "platform_review": "SOURCE_REVIEWED",
         "dependencies": [],
         "profile": profile,
         "implementation_symbol": implementation_symbol,
-        "dispatch_evidence": if implementation_symbol.is_some() { "name-match-only" } else { "none" },
+        "descriptor_availability": descriptor.map(|item| match item.availability {
+            MemberAvailability::Implemented => "IMPLEMENTED",
+            MemberAvailability::ServiceRequired => "SERVICE_REQUIRED",
+        }),
+        "dispatch_evidence": if descriptor.is_some() { "shared-member-descriptor" } else if implementation_symbol.is_some() { "explicit-event-or-enum" } else { "none" },
         "test_ids": [],
         "result_state": result_state,
         "signature_review": signature_review,
     }))
+}
+
+fn property_access(kind: &str, markdown: &str) -> &'static str {
+    if kind != "property" {
+        return "NOT_APPLICABLE";
+    }
+    let lower = markdown.to_ascii_lowercase();
+    if ["returns or sets", "gets or sets", "can be set to", "read/write"].iter().any(|phrase| lower.contains(phrase)) {
+        "READ_WRITE"
+    } else if ["returns ", "gets ", "read-only", "returns the"].iter().any(|phrase| lower.contains(phrase)) {
+        "READ_ONLY"
+    } else {
+        "NOT_SPECIFIED_IN_SOURCE"
+    }
+}
+
+fn platform_notes(markdown: &str) -> Vec<String> {
+    let mut notes = BTreeSet::new();
+    for paragraph in markdown.split("\n\n") {
+        let lower = paragraph.to_ascii_lowercase();
+        if lower.contains("windows") || lower.contains("macintosh") || lower.contains("mac os") || lower.contains("office for mac") {
+            let text = paragraph.split_whitespace().collect::<Vec<_>>().join(" ");
+            if !text.is_empty() && text.len() <= 1024 {
+                notes.insert(text);
+            }
+        }
+    }
+    notes.into_iter().collect()
 }
 
 fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
@@ -551,7 +606,12 @@ fn deduplicate_enum_constants(values: Vec<(String, String, i32)>) -> Vec<(String
     values.into_iter().filter(|(_, name, _)| seen.insert(name.to_ascii_lowercase())).collect()
 }
 
-fn render_enum_source(types: &BTreeSet<String>, values: &[(String, String, i32)]) -> String {
+fn duplicate_enum_constants(values: &[(String, String, i32)]) -> Vec<(String, String, i32)> {
+    let mut seen = BTreeSet::new();
+    values.iter().filter(|(_, name, _)| !seen.insert(name.to_ascii_lowercase())).cloned().collect()
+}
+
+fn render_enum_source(types: &BTreeSet<String>, values: &[(String, String, i32)], aliases: &[(String, String, i32)]) -> String {
     let mut out = String::from("// Generated from the pinned VBA-Docs enum pages; regenerate with cargo xtask vba-audit --write.\n");
     out.push_str("pub(super) const EXCEL_ENUM_TYPES: &[&str] = &[\n");
     for ty in types {
@@ -559,6 +619,10 @@ fn render_enum_source(types: &BTreeSet<String>, values: &[(String, String, i32)]
     }
     out.push_str("];\npub(super) const EXCEL_ENUM_CONSTANTS: &[(&str, &str, i32)] = &[\n");
     for (ty, name, value) in values {
+        out.push_str(&format!("    ({ty:?}, {name:?}, {value}),\n"));
+    }
+    out.push_str("];\npub(super) const EXCEL_ENUM_ALIASES: &[(&str, &str, i32)] = &[\n");
+    for (ty, name, value) in aliases {
         out.push_str(&format!("    ({ty:?}, {name:?}, {value}),\n"));
     }
     out.push_str("];\n");
@@ -615,7 +679,7 @@ fn compare_generated_text(path: &Path, expected: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{deduplicate_enum_constants, extract_default};
+    use super::{deduplicate_enum_constants, duplicate_enum_constants, extract_default};
     use serde_json::Value;
 
     #[test]
@@ -635,5 +699,7 @@ mod tests {
         ]);
         assert_eq!(constants.len(), 1);
         assert_eq!(constants[0].1, "xlManual");
+        let aliases = duplicate_enum_constants(&[("Constants".into(), "xlManual".into(), -4135), ("XlSortOrder".into(), "xlManual".into(), -4135)]);
+        assert_eq!(aliases, vec![("XlSortOrder".into(), "xlManual".into(), -4135)]);
     }
 }

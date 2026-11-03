@@ -365,7 +365,7 @@ fn negative_calls_have_exact_errors_and_no_writes() -> R {
     error(call(&mut b, &mut s, column, InvokeKind::Get, "Value2", vec![]), 7);
     let qualified = object(call(&mut b, &mut s, root, InvokeKind::Call, "Range", vec![text("Sheet1!A1")]));
     assert_eq!(qualified, r);
-    error(call(&mut b, &mut s, r, InvokeKind::Call, "Delete", vec![]), 1004);
+    error(call(&mut b, &mut s, r, InvokeKind::Call, "Delete", vec![Value::Long(999)]), 1004);
     let foreign = ObjectRef { host: root.host + 1, ..r };
     error(call(&mut b, &mut s, foreign, InvokeKind::Get, "Value", vec![]), 91);
     assert_eq!(*before, *s.doc()?.wb);

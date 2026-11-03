@@ -91,6 +91,7 @@ struct View {
     sheet: usize,
     selection: Selection,
     sheet_selections: Vec<Selection>,
+    selected_sheets: Vec<usize>,
 }
 
 impl Debugger {
@@ -131,6 +132,7 @@ fn remember_view(s: &mut Session) {
         sheet: d.wb.active_sheet(),
         selection: d.selection.clone(),
         sheet_selections: d.sheet_selections.clone(),
+        selected_sheets: d.selected_sheets.clone(),
     });
     if let Some(dbg) = s.macro_debug.as_mut() {
         dbg.view = view;
@@ -148,6 +150,7 @@ fn put_back_view(s: &mut Session) {
     }
     d.selection = view.selection;
     d.sheet_selections = view.sheet_selections;
+    d.selected_sheets = view.selected_sheets;
 }
 
 /// The message for edits refused while a macro is being debugged.

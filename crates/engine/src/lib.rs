@@ -206,6 +206,8 @@ pub struct DocState {
     pub title: String,
     /// Per-sheet selection memory.
     pub sheet_selections: Vec<Selection>,
+    /// Selected worksheet tabs; the active sheet is always included.
+    pub selected_sheets: Vec<usize>,
     /// Allow Edit Ranges unlocked with their password in this session: (sheet name, title).
     pub unlocked_ranges: Vec<(String, String)>,
     /// The format `path`'s content was recognised as when its extension doesn't name one (an
@@ -230,6 +232,10 @@ pub struct DocState {
     /// The references `edit.goTo` with `record: true` went to in this document, newest first,
     /// without names, each area written with its sheet (`Sheet1!B14:C22,Sheet1!F19:G30`).
     pub go_to_recent: Vec<String>,
+    /// The selections displaced by the last four recorded Go To operations, newest first.
+    /// Unlike `go_to_recent`, these are the source selections exposed to VBA as
+    /// `Application.PreviousSelections`.
+    pub previous_selections: Vec<(usize, Selection)>,
 }
 
 static NEXT_UID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
@@ -314,6 +320,7 @@ impl DocState {
     fn with_calc(wb: Workbook, calc: Calc, path: Option<String>, title: String, trust: Trust) -> DocState {
         let scripts_trusted = !cmd::extra::has_scripts(&wb);
         let wb = Arc::new(wb);
+        let active_sheet = wb.active_sheet();
         let sel = Selection::at(wb.active().map(|s| s.view_active).unwrap_or_default());
         DocState {
             saved: wb.clone(),
@@ -328,6 +335,7 @@ impl DocState {
             uid: NEXT_UID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             title,
             sheet_selections: vec![],
+            selected_sheets: vec![active_sheet],
             unlocked_ranges: vec![],
             content_kind: None,
             scripts_trusted,
@@ -335,6 +343,7 @@ impl DocState {
             touched: None,
             edits: None,
             go_to_recent: vec![],
+            previous_selections: vec![],
         }
     }
     pub fn is_dirty(&self) -> bool {

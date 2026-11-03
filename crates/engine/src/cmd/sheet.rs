@@ -15,7 +15,7 @@ use super::{
 mod tabs;
 
 pub(crate) use tabs::rename_sheet_native;
-use tabs::{activate, delete_sheet, hide_sheet, insert_sheet, move_sheet, rename_sheet, step_sheet, tab_color, unhide_sheet};
+use tabs::{activate, delete_sheet, hide_sheet, insert_sheet, move_sheet, rename_sheet, select, step_sheet, tab_color, unhide_sheet};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -63,6 +63,7 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("sheet.hide", "Hide Sheet", ["Home", "Cells", "Format", "Hide & Unhide"], None, "{sheet?}", has_doc, hide_sheet),
         cmd!("sheet.unhide", "Unhide Sheet…", ["Home", "Cells", "Format", "Hide & Unhide"], None, "{sheet}", has_doc, unhide_sheet),
         cmd!(noundo "sheet.activate", "Activate Sheet", [], None, "{sheet: index | name}", has_doc, activate),
+        cmd!(noundo "sheet.select", "Select Sheet", [], None, "{sheet: index | name, replace?: bool}", has_doc, select),
         cmd!(noundo "sheet.next", "Next Sheet", [], Some("Ctrl+PageDown"), "{}", has_doc, |s, _| step_sheet(s, 1)),
         cmd!(noundo "sheet.previous", "Previous Sheet", [], Some("Ctrl+PageUp"), "{}", has_doc, |s, _| step_sheet(s, -1)),
     ]

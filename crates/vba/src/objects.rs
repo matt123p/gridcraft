@@ -1,6 +1,7 @@
-use super::ranges::{Range, Unit};
+use super::ranges::{DataSeriesOptions, Range, Unit};
 use super::{Bridge, HostCall, HostResult, InvokeKind, MAX_CELLS, MAX_OBJECTS, Session, Value, failure, ranges, values};
 use gridcraft_engine::core::RangeRef;
+use std::collections::BTreeSet;
 use vba_foreign::HostArgument;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -15,6 +16,23 @@ pub(crate) enum Object {
     Areas(usize, Range),
     DeletedRange(bool),
     Format(usize, Range, bool),
+}
+
+impl Object {
+    fn receiver_name(&self) -> &'static str {
+        match self {
+            Self::Application => "Application",
+            Self::Document(_, object) => object.receiver_name(),
+            Self::Workbook => "Workbook",
+            Self::Worksheets => "Worksheets",
+            Self::Sheets => "Sheets",
+            Self::Sheet(_) => "Worksheet",
+            Self::Range(_, _) | Self::DeletedRange(_) => "Range",
+            Self::Areas(_, _) => "Areas",
+            Self::Format(_, _, true) => "Font",
+            Self::Format(_, _, false) => "Interior",
+        }
+    }
 }
 
 /// Bind names before dispatch; never silently drop named/omitted/extra arguments.
@@ -211,28 +229,134 @@ impl Bridge {
             _ => {}
         }
         let member = call.member.to_ascii_lowercase();
-        if object == Object::Application && member == "goto" && call.kind == InvokeKind::Call {
-            let args = arguments(&call, &["Reference", "Scroll"])?;
-            // This profile supports explicit Range destinations. Do not silently
-            // accept procedure names, omitted history, or window scrolling.
-            let Value::Object(reference) = required(&args, 0)? else {
-                return Err(failure(1004, "Application.Goto currently requires a Range object"));
-            };
-            let Object::Range(sheet, range) = self.object(session, *reference)? else {
-                return Err(failure(1004, "Application.Goto requires a Range object"));
-            };
-            if let Some(scroll) = args.get(1).filter(|v| !matches!(v, Value::Missing)) {
-                let scroll = vba_runtime::bind(vba_values::ScalarKind::Boolean, scroll).map_err(values::runtime_error)?;
-                if scroll == Value::Boolean(true) {
-                    return Err(failure(1004, "Application.Goto Scroll:=True is not supported"));
+        let receiver = object.receiver_name();
+        if object == Object::Application && matches!(member.as_str(), "union" | "intersect") && read_kind(call.kind) {
+            let names = (1..=30).map(|index| format!("Arg{index}")).collect::<Vec<_>>();
+            let name_refs = names.iter().map(String::as_str).collect::<Vec<_>>();
+            let args = arguments(&call, &name_refs)?;
+            required(&args, 0)?;
+            required(&args, 1)?;
+            let mut sheet = None;
+            let mut ranges = Vec::new();
+            for value in args.iter().filter(|value| !matches!(value, Value::Missing)) {
+                let Value::Object(reference) = value else {
+                    return Err(failure(13, format!("Application.{} arguments must be Range objects", call.member)));
+                };
+                let Object::Range(candidate_sheet, range) = self.object(session, *reference)? else {
+                    return Err(failure(13, format!("Application.{} arguments must be Range objects", call.member)));
+                };
+                if sheet.is_some_and(|existing| existing != candidate_sheet) {
+                    return Err(failure(1004, format!("Application.{} requires ranges on one worksheet", call.member)));
+                }
+                sheet = Some(candidate_sheet);
+                ranges.push(range);
+            }
+            let sheet = sheet.ok_or_else(|| failure(449, format!("Application.{} requires two ranges", call.member)))?;
+            let mut cells = BTreeSet::new();
+            if member == "union" {
+                for range in ranges {
+                    range.validate()?;
+                    for area in range.areas {
+                        for cell in area.iter() {
+                            cells.insert(cell);
+                            if cells.len() > MAX_CELLS {
+                                return Err(failure(7, "Application.Union exceeds VBA cell budget"));
+                            }
+                        }
+                    }
+                }
+            } else {
+                let first = ranges.first().ok_or_else(|| failure(449, "Application.Intersect requires two ranges"))?;
+                first.validate()?;
+                for area in &first.areas {
+                    for cell in area.iter() {
+                        cells.insert(cell);
+                        if cells.len() > MAX_CELLS {
+                            return Err(failure(7, "Application.Intersect exceeds VBA cell budget"));
+                        }
+                    }
+                }
+                for range in ranges.iter().skip(1) {
+                    range.validate()?;
+                    cells.retain(|cell| range.areas.iter().any(|area| area.contains(*cell)));
+                }
+                if cells.is_empty() {
+                    return Ok(Value::Nothing);
                 }
             }
-            let first = range.first()?;
-            let address = range.areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
-            session
-                .execute("selection.set", serde_json::json!({"sheet":sheet,"range":address,"active":first.start.a1()}))
-                .map_err(|e| failure(1004, e.to_string()))?;
+            return self.intern(Object::Range(sheet, ranges::from_cells(cells.into_iter().collect(), &format!("Application.{}", call.member))?));
+        }
+        if object == Object::Application && member == "goto" && call.kind == InvokeKind::Call {
+            let args = arguments(&call, &["Reference", "Scroll"])?;
+            let (reference, preferred_active) = match args.first().filter(|value| !matches!(value, Value::Missing)) {
+                Some(Value::Object(reference)) => {
+                    let Object::Range(sheet, range) = self.object(session, *reference)? else {
+                        return Err(failure(1004, "Application.Goto Reference must be a Range or reference text"));
+                    };
+                    let name = session
+                        .doc()
+                        .map_err(|error| failure(91, error.to_string()))?
+                        .wb
+                        .sheet(sheet)
+                        .map(|sheet| gridcraft_engine::core::quote_sheet(&sheet.name))
+                        .ok_or_else(|| failure(91, "worksheet gone"))?;
+                    (range.areas.iter().map(|area| format!("{name}!{}", area.a1())).collect::<Vec<_>>().join(","), Some(range.first()?.start.a1()))
+                }
+                Some(value @ Value::String(_)) => (string(value)?, None),
+                Some(_) => return Err(failure(1004, "Application.Goto Reference must be a Range or reference text")),
+                None => (
+                    session
+                        .doc()
+                        .map_err(|error| failure(91, error.to_string()))?
+                        .go_to_recent
+                        .first()
+                        .cloned()
+                        .ok_or_else(|| failure(1004, "Application.Goto history is empty"))?,
+                    None,
+                ),
+            };
+            let scroll = args.get(1).filter(|value| !matches!(value, Value::Missing)).map(super::address::boolean).transpose()?.unwrap_or(false);
+            let mut params = serde_json::json!({"reference":reference,"record":true});
+            if let Some(active) = preferred_active {
+                params["active"] = serde_json::Value::String(active);
+            }
+            session.execute("edit.goTo", params).map_err(|error| failure(1004, error.to_string()))?;
+            if scroll {
+                let doc = session.doc_mut().map_err(|error| failure(91, error.to_string()))?;
+                let sheet = doc.sheet_index();
+                let active = doc.selection.active;
+                doc.store_view(&[(sheet, active)]);
+            }
             return Ok(Value::Empty);
+        }
+        if object == Object::Application && member == "previousselections" && read_kind(call.kind) {
+            let args = arguments(&call, &["Index"])?;
+            let selections = session.doc().map_err(|error| failure(91, error.to_string()))?.previous_selections.clone();
+            let objects = selections
+                .into_iter()
+                .map(|(sheet, selection)| Object::Range(sheet, Range { areas: selection.ranges, unit: Unit::Cells }))
+                .collect::<Vec<_>>();
+            if let Some(index) = args.first().filter(|value| !matches!(value, Value::Missing)) {
+                let index = usize::try_from(numeric_index(index)?.checked_sub(1).ok_or_else(|| failure(9, "PreviousSelections index out of range"))?)
+                    .map_err(|_| failure(9, "PreviousSelections index out of range"))?;
+                let object = objects.get(index).cloned().ok_or_else(|| failure(9, "PreviousSelections index out of range"))?;
+                return self.intern(object);
+            }
+            let handles = self.objects.intern_many(objects.into_iter().map(|object| Object::Document(self.context, Box::new(object))).collect())?;
+            let mut array = if handles.is_empty() {
+                vba_values::VbaArray::empty(vba_values::ScalarKind::Object, 1)
+            } else {
+                vba_values::VbaArray::new(
+                    vba_values::ScalarKind::Object,
+                    vec![(1, i32::try_from(handles.len()).map_err(|_| failure(7, "PreviousSelections budget"))?)],
+                    false,
+                )
+                .map_err(|error| failure(7, error.to_string()))?
+            };
+            for (index, handle) in handles.into_iter().enumerate() {
+                array.set(index, Value::Object(self.reference(handle))).map_err(|error| failure(7, error.to_string()))?;
+            }
+            return Ok(Value::Array(array));
         }
         if matches!(call.kind, InvokeKind::Let | InvokeKind::Set)
             && matches!(object, Object::Application | Object::Sheet(_))
@@ -415,7 +539,7 @@ impl Bridge {
                         arguments(&call, &[])?;
                         values::vba_text(&session.doc().map_err(|e| failure(91, e.to_string()))?.title)
                     }
-                    _ => Err(failure(438, format!("unsupported Application/Workbook member: {}", call.member))),
+                    _ => Err(failure(438, format!("{receiver}.{} is not a supported member", call.member))),
                 }
             }
             Object::Worksheets | Object::Sheets if read_kind(call.kind) => match member.as_str() {
@@ -427,7 +551,7 @@ impl Bridge {
                     ))
                 }
                 "item" => self.collection_item(session, &call),
-                _ => Err(failure(438, "unsupported collection member")),
+                _ => Err(failure(438, format!("{receiver}.{} is not a supported member", call.member))),
             },
             Object::Sheet(sheet) if read_kind(call.kind) => match member.as_str() {
                 "select" | "activate" if call.kind == InvokeKind::Call => self.select_sheet(session, sheet, &call),
@@ -471,7 +595,7 @@ impl Bridge {
                     },
                     &call,
                 ),
-                _ => Err(failure(438, "unsupported Worksheet member")),
+                _ => Err(failure(438, format!("Worksheet.{} is not a supported member", call.member))),
             },
             Object::Areas(sheet, range) if read_kind(call.kind) => match member.as_str() {
                 "count" => {
@@ -489,7 +613,7 @@ impl Bridge {
                         .ok_or_else(|| failure(1004, "area index"))?;
                     self.intern(Object::Range(sheet, rect.into()))
                 }
-                _ => Err(failure(438, "unsupported Areas member")),
+                _ => Err(failure(438, format!("Areas.{} is not a supported member", call.member))),
             },
             Object::Range(sheet, range) => match member.as_str() {
                 "select" if call.kind == InvokeKind::Call => self.select_range(session, sheet, &range, &call),
@@ -509,6 +633,54 @@ impl Bridge {
                 "end" if read_kind(call.kind) => self.end(session, sheet, &range, &call),
                 "find" | "findnext" | "findprevious" if read_kind(call.kind) => self.find(session, sheet, &range, &call),
                 "replace" if read_kind(call.kind) => self.replace_range(session, sheet, &range, &call),
+                "filldown" | "fillup" | "fillleft" | "fillright" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &[])?;
+                    self.fill_direction(session, sheet, &range, member.trim_start_matches("fill"))
+                }
+                "autofill" if read_kind(call.kind) => {
+                    let args = arguments(&call, &["Destination", "Type"])?;
+                    let Value::Object(reference) = required(&args, 0)? else {
+                        return Err(failure(13, "Range.AutoFill Destination must be a Range"));
+                    };
+                    let Object::Range(destination_sheet, destination) = self.object(session, *reference)? else {
+                        return Err(failure(13, "Range.AutoFill Destination must be a Range"));
+                    };
+                    let fill_type = args.get(1).filter(|value| !matches!(value, Value::Missing)).map(numeric_index).transpose()?.unwrap_or(0);
+                    self.auto_fill(session, sheet, &range, destination_sheet, &destination, fill_type)
+                }
+                "specialcells" if read_kind(call.kind) => {
+                    let args = arguments(&call, &["Type", "Value"])?;
+                    let cell_type = numeric_index(required(&args, 0)?)?;
+                    let value_mask = args.get(1).filter(|value| !matches!(value, Value::Missing)).map(numeric_index).transpose()?.unwrap_or(23);
+                    if value_mask <= 0 || value_mask & !23 != 0 {
+                        return Err(failure(1004, format!("Range.SpecialCells Value mask {value_mask} is invalid")));
+                    }
+                    self.special_cells(session, sheet, &range, cell_type, value_mask)
+                }
+                "dataseries" if call.kind == InvokeKind::Call => {
+                    let args = arguments(&call, &["Rowcol", "Type", "Date", "Step", "Stop", "Trend"])?;
+                    let rowcol = args.first().filter(|value| !matches!(value, Value::Missing)).map(numeric_index).transpose()?;
+                    let rows = match rowcol {
+                        Some(1) => Some(true),
+                        Some(2) => Some(false),
+                        Some(value) => return Err(failure(1004, format!("Range.DataSeries Rowcol {value} is invalid"))),
+                        None => None,
+                    };
+                    let series_type = args.get(1).filter(|value| !matches!(value, Value::Missing)).map(numeric_index).transpose()?.unwrap_or(-4132);
+                    let date_unit = args.get(2).filter(|value| !matches!(value, Value::Missing)).map(numeric_index).transpose()?.unwrap_or(1);
+                    let number = |index: usize, default: Option<f64>| -> HostResult<Option<f64>> {
+                        let Some(value) = args.get(index).filter(|value| !matches!(value, Value::Missing)) else { return Ok(default) };
+                        match vba_runtime::bind(vba_values::ScalarKind::Double, value).map_err(values::runtime_error)? {
+                            Value::Double(value) if value.is_finite() => Ok(Some(value)),
+                            _ => Err(failure(13, "Range.DataSeries numeric option type mismatch")),
+                        }
+                    };
+                    let step = number(3, Some(1.0))?.ok_or_else(|| failure(13, "Range.DataSeries Step is required"))?;
+                    let stop = number(4, None)?;
+                    let trend =
+                        args.get(5).filter(|value| !matches!(value, Value::Missing)).map(super::address::boolean).transpose()?.unwrap_or(false);
+                    self.data_series(session, sheet, &range, DataSeriesOptions { rows, series_type, date_unit, step, stop, trend })
+                }
                 "insert" | "delete" if call.kind == InvokeKind::Call => self.structural(session, sheet, &range, &call),
                 "entirerow" | "entirecolumn" if read_kind(call.kind) => {
                     arguments(&call, &[])?;
@@ -550,6 +722,75 @@ impl Bridge {
                         return Err(failure(7, "Range.CurrentRegion exceeds VBA cell budget"));
                     }
                     self.intern(Object::Range(sheet, region.into()))
+                }
+                "currentarray" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    let active = range.rectangle()?.start;
+                    let doc = session.doc().map_err(|error| failure(91, error.to_string()))?;
+                    let worksheet = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+                    let anchor = worksheet.spill_anchor(active).unwrap_or(active);
+                    let array = worksheet.cell(anchor).and_then(|cell| cell.formula.as_ref()).and_then(|formula| formula.array);
+                    let Some(array) = array else {
+                        return Err(failure(1004, "Range.CurrentArray requires a cell in a legacy array formula"));
+                    };
+                    self.intern(Object::Range(sheet, array.into()))
+                }
+                "hasarray" | "hasspill" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    if range.count()? > MAX_CELLS as u64 {
+                        return Err(failure(7, format!("Range.{} exceeds VBA cell budget", call.member)));
+                    }
+                    let doc = session.doc().map_err(|error| failure(91, error.to_string()))?;
+                    let worksheet = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+                    let mut seen_true = false;
+                    let mut seen_false = false;
+                    for cell in range.areas.iter().flat_map(RangeRef::iter) {
+                        let member = if member == "hasarray" {
+                            let anchor = worksheet.spill_anchor(cell).unwrap_or(cell);
+                            worksheet
+                                .cell(anchor)
+                                .and_then(|entry| entry.formula.as_ref())
+                                .and_then(|formula| formula.array)
+                                .is_some_and(|array| array.contains(cell))
+                        } else {
+                            worksheet.spill_ranges.values().any(|spill| spill.contains(cell))
+                        };
+                        seen_true |= member;
+                        seen_false |= !member;
+                    }
+                    Ok(if seen_true && seen_false { Value::Null } else { Value::Boolean(seen_true) })
+                }
+                "spillparent" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    let cell = range.first()?.start;
+                    let doc = session.doc().map_err(|error| failure(91, error.to_string()))?;
+                    let worksheet = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+                    let anchor = worksheet
+                        .spill_ranges
+                        .iter()
+                        .find(|(_, spill)| spill.contains(cell))
+                        .map(|(anchor, _)| *anchor)
+                        .ok_or_else(|| failure(1004, "Range.SpillParent requires a cell in a dynamic spill"))?;
+                    self.intern(Object::Range(sheet, RangeRef::cell(anchor).into()))
+                }
+                "next" | "previous" if read_kind(call.kind) => {
+                    arguments(&call, &[])?;
+                    let start = range.first()?.start;
+                    let doc = session.doc().map_err(|error| failure(91, error.to_string()))?;
+                    let worksheet = doc.wb.sheet(sheet).ok_or_else(|| failure(91, "worksheet gone"))?;
+                    let forward = member == "next";
+                    let mut candidate = start;
+                    loop {
+                        candidate = if forward {
+                            candidate.offset(0, 1).ok_or_else(|| failure(1004, "Range.Next is outside the worksheet"))?
+                        } else {
+                            candidate.offset(0, -1).ok_or_else(|| failure(1004, "Range.Previous is outside the worksheet"))?
+                        };
+                        if worksheet.protection.is_none() || !doc.wb.styles.get(worksheet.style_id(candidate)).protection.locked {
+                            break;
+                        }
+                    }
+                    self.intern(Object::Range(sheet, RangeRef::cell(candidate).into()))
                 }
                 "item" => {
                     if !read_kind(call.kind) && call.kind != InvokeKind::Let {
@@ -620,10 +861,20 @@ impl Bridge {
                     self.clear_range(session, sheet, &range, "formats")?;
                     Ok(Value::Empty)
                 }
+                "clearcomments" | "clearnotes" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &[])?;
+                    self.clear_range(session, sheet, &range, "comments")?;
+                    Ok(Value::Empty)
+                }
+                "clearhyperlinks" if call.kind == InvokeKind::Call => {
+                    arguments(&call, &[])?;
+                    self.clear_range(session, sheet, &range, "hyperlinks")?;
+                    Ok(Value::Empty)
+                }
                 "address" if read_kind(call.kind) => self.address(session, sheet, &range, &call),
-                _ => Err(failure(438, "unsupported Range member")),
+                _ => Err(failure(438, format!("Range.{} is not a supported member", call.member))),
             },
-            _ => Err(failure(438, "unsupported property assignment")),
+            _ => Err(failure(438, format!("{receiver}.{} is not available for this invocation kind", call.member))),
         }
     }
 }

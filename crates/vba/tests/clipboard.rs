@@ -108,7 +108,6 @@ fn clipboard_refusals_preserve_cells_selection_and_previous_copy() -> R {
     for (statement, number) in [
         ("Sheets(\"Ingredients\").Range(\"A1\").Select", 1004.),
         ("Sheets(\"Ingredients\").Paste", 1004.),
-        ("Sheets(\"Ingredients\").Select Replace:=False", 1004.),
         ("Range(\"A1\").Select False", 450.),
         ("Columns(1).Copy", 7.),
         ("Range(\"A1,C1\").Copy", 1004.),

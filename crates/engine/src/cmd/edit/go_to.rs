@@ -4,6 +4,9 @@ use super::{CellRef, EngineError, Json, RangeRef, Result, Session, bad, bool_par
 /// How many references the Go To dialog keeps for going back to.
 pub(super) const GO_TO_RECENT: usize = 10;
 
+/// How many displaced selections Excel exposes through `Application.PreviousSelections`.
+const PREVIOUS_SELECTIONS: usize = 4;
+
 /// The most areas one Go To selects.
 pub(super) const GO_TO_MAX_AREAS: usize = 2000;
 
@@ -37,14 +40,23 @@ pub(in super::super) fn go_to(s: &mut Session, p: &Json) -> Result<Json> {
     }
     let Some(sheet) = target else { return Err(EngineError::Other("Reference isn't valid.".into())) };
     let range = areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
-    let out = selection_set(s, &json!({"sheet": sheet, "range": range}))?;
-    if bool_param(p, "record") == Some(true) && !named {
+    let mut selection = json!({"sheet": sheet, "range": range});
+    if let Some(active) = str_param(p, "active") {
+        selection["active"] = json!(active);
+    }
+    let previous = (d.wb.active_sheet(), d.selection.clone());
+    let out = selection_set(s, &selection)?;
+    if bool_param(p, "record") == Some(true) {
         let d = s.doc_mut()?;
-        let prefix = gridcraft_core::quote_sheet(&d.wb.sheet(sheet).map(|sh| sh.name.clone()).unwrap_or_default());
-        let entry = areas.iter().map(|r| format!("{prefix}!{}", r.a1())).collect::<Vec<_>>().join(",");
-        d.go_to_recent.retain(|r| !r.eq_ignore_ascii_case(&entry));
-        d.go_to_recent.insert(0, entry);
-        d.go_to_recent.truncate(GO_TO_RECENT);
+        d.previous_selections.insert(0, previous);
+        d.previous_selections.truncate(PREVIOUS_SELECTIONS);
+        if !named {
+            let prefix = gridcraft_core::quote_sheet(&d.wb.sheet(sheet).map(|sh| sh.name.clone()).unwrap_or_default());
+            let entry = areas.iter().map(|r| format!("{prefix}!{}", r.a1())).collect::<Vec<_>>().join(",");
+            d.go_to_recent.retain(|r| !r.eq_ignore_ascii_case(&entry));
+            d.go_to_recent.insert(0, entry);
+            d.go_to_recent.truncate(GO_TO_RECENT);
+        }
     }
     Ok(out)
 }

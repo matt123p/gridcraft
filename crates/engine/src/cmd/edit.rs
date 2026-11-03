@@ -248,9 +248,26 @@ fn clear(s: &mut Session, p: &Json, what: &str) -> Result<Json> {
         })
     };
     edit(s, |cx| {
-        for r in &ranges {
+        for selected in &ranges {
+            // Notes and hyperlinks live beside the sparse cell store. Clear them
+            // against the requested range before clipping cell work to UsedRange,
+            // otherwise a feature on an otherwise empty cell survives.
+            let feature_skip = cx.wb.sheet(sheet).map(|sh| filtered_rows(sh, *selected)).unwrap_or_default();
+            if matches!(what, "all" | "comments" | "hyperlinks") {
+                let sh = cx.sheet_mut(sheet)?;
+                let cleared = |c: CellRef| selected.contains(c) && !feature_skip.contains(&c.row);
+                if matches!(what, "all" | "comments") {
+                    sh.comments.retain(|c, _| !cleared(*c));
+                }
+                if matches!(what, "all" | "hyperlinks") {
+                    sh.hyperlinks.retain(|c, _| !cleared(*c));
+                }
+                if what != "all" {
+                    continue;
+                }
+            }
             let r = match cx.wb.sheet(sheet).and_then(|sh| sh.used_range()) {
-                Some(u) => match r.intersection(&u) {
+                Some(u) => match selected.intersection(&u) {
                     Some(x) => x,
                     None => continue,
                 },
@@ -295,13 +312,6 @@ fn clear(s: &mut Session, p: &Json, what: &str) -> Result<Json> {
                     }
                     _ => {}
                 }
-            }
-            let cleared = |c: CellRef| r.contains(c) && !skip.contains(&c.row);
-            if matches!(what, "all" | "comments") {
-                sh.comments.retain(|c, _| !cleared(*c));
-            }
-            if matches!(what, "all" | "hyperlinks") {
-                sh.hyperlinks.retain(|c, _| !cleared(*c));
             }
             if matches!(what, "all" | "formats") {
                 let mut unmerged = false;

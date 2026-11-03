@@ -940,6 +940,7 @@ fn a_dry_run_puts_back_the_go_to_list() {
     put(&mut s, json!({"name": "Go", "steps": [step]}));
     s.execute("macro.check", json!({"name": "Go"})).unwrap();
     assert_eq!(s.doc().unwrap().go_to_recent, Vec::<String>::new());
+    assert!(s.doc().unwrap().previous_selections.is_empty());
 }
 
 #[test]

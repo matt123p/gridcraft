@@ -2535,3 +2535,6 @@ pub(super) const EXCEL_ENUM_CONSTANTS: &[(&str, &str, i32)] = &[
     ("xltimelinelevel", "xlTimelineLevelQuarters", 1),
     ("xltimelinelevel", "xlTimelineLevelYears", 0),
 ];
+pub(super) const EXCEL_ENUM_ALIASES: &[(&str, &str, i32)] = &[
+    ("XlSortOrder", "xlManual", -4135),
+];

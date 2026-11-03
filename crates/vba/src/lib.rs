@@ -32,6 +32,41 @@ pub const MAX_CELLS: usize = 65_536;
 /// Per-invocation VM host-call cap for workbook macros; UDF execution has its own budget.
 pub const MACRO_HOST_CALL_LIMIT: u64 = 16_384;
 const MAX_QUEUED_EVENTS: usize = 256;
+
+/// Availability declared once for completion, the object browser, dispatch
+/// validation and the offline object-model audit.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MemberAvailability {
+    Implemented,
+    ServiceRequired,
+}
+
+/// GridCraft's supported Excel member profile. The signature is retained in
+/// VBA syntax because tiny-vba consumes it for completion and nominal types.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct MemberDescriptor {
+    pub owner: &'static str,
+    pub name: &'static str,
+    pub signature: &'static str,
+    pub availability: MemberAvailability,
+    pub implementation_symbol: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CompatibilityStatus {
+    Supported,
+    ServiceRequired,
+    Missing,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CompatibilityFinding<'a> {
+    pub receiver: Option<&'a str>,
+    pub member: &'a str,
+    pub status: CompatibilityStatus,
+    pub signature: Option<&'static str>,
+}
 pub const DEMO: &str = "Option Explicit\nPublic Sub Main()\n    Dim i As Long\n    For i = 1 To 10\n        Cells(i, 1).Value2 = i\n    Next i\n    Range(\"B1\").Formula = \"=SUM(A1:A10)\"\nEnd Sub\n";
 
 fn diagnostic(e: impl std::fmt::Display) -> Diagnostic {
@@ -570,16 +605,24 @@ impl Host for WorkbookHost<'_> {
     fn cancel(&mut self, _: u64) {}
 }
 
-pub fn catalog() -> Vec<ApiMember> {
+pub fn member_descriptors() -> Vec<MemberDescriptor> {
     [
+        ("Application", "Application", "Property Get Application() As Application"),
+        ("Application", "Parent", "Property Get Parent() As Application"),
         ("Application", "ActiveCell", "Property Get ActiveCell() As Range"),
         ("Application", "Selection", "Property Get Selection() As Range"),
         ("Application", "Goto", "Sub Goto(Optional Reference As Variant, Optional Scroll As Variant)"),
+        ("Application", "PreviousSelections", "Property Get PreviousSelections(Optional Index As Variant) As Variant"),
+        ("Application", "Union", "Function Union(Arg1 As Range, Arg2 As Range, Optional Arg3 As Variant) As Range"),
+        ("Application", "Intersect", "Function Intersect(Arg1 As Range, Arg2 As Range, Optional Arg3 As Variant) As Range"),
         ("Application", "Calculation", "Property Calculation As XlCalculation"),
         ("Application", "EnableEvents", "Property EnableEvents As Boolean"),
         ("Application", "CutCopyMode", "Property CutCopyMode As Variant"),
         ("Application", "Calculate", "Sub Calculate()"),
         ("Workbook", "Calculate", "Sub Calculate()"),
+        ("Workbook", "Application", "Property Get Application() As Application"),
+        ("Workbook", "ActiveSheet", "Property Get ActiveSheet() As Worksheet"),
+        ("Workbook", "Name", "Property Get Name() As String"),
         ("Worksheet", "Name", "Property Name As String"),
         ("Worksheet", "Select", "Sub Select(Optional Replace As Variant)"),
         ("Worksheet", "Activate", "Sub Activate()"),
@@ -612,9 +655,11 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Worksheets", "Count", "Property Get Count() As Long"),
         ("Worksheets", "Item", "Property Get Item(Index As Variant) As Worksheet"),
         ("Worksheets", "Parent", "Property Get Parent() As Workbook"),
+        ("Worksheets", "Application", "Property Get Application() As Application"),
         ("Sheets", "Count", "Property Get Count() As Long"),
         ("Sheets", "Item", "Property Get Item(Index As Variant) As Worksheet"),
         ("Sheets", "Parent", "Property Get Parent() As Workbook"),
+        ("Sheets", "Application", "Property Get Application() As Application"),
         ("Range", "Item", "Property Item(RowIndex As Variant, Optional ColumnIndex As Variant) As Range"),
         ("Workbook", "Parent", "Property Get Parent() As Application"),
         ("Worksheet", "Application", "Property Get Application() As Application"),
@@ -631,9 +676,17 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Range", "Areas", "Property Get Areas() As Areas"),
         ("Areas", "Count", "Property Get Count() As Long"),
         ("Areas", "Item", "Property Get Item(Index As Variant) As Range"),
+        ("Areas", "Application", "Property Get Application() As Application"),
+        ("Areas", "Parent", "Property Get Parent() As Range"),
         ("Range", "Offset", "Property Get Offset(Optional RowOffset As Variant, Optional ColumnOffset As Variant) As Range"),
         ("Range", "Resize", "Property Get Resize(Optional RowSize As Variant, Optional ColumnSize As Variant) As Range"),
         ("Range", "CurrentRegion", "Property Get CurrentRegion() As Range"),
+        ("Range", "CurrentArray", "Property Get CurrentArray() As Range"),
+        ("Range", "HasArray", "Property Get HasArray() As Variant"),
+        ("Range", "HasSpill", "Property Get HasSpill() As Variant"),
+        ("Range", "SpillParent", "Property Get SpillParent() As Range"),
+        ("Range", "Next", "Property Get Next() As Range"),
+        ("Range", "Previous", "Property Get Previous() As Range"),
         ("Range", "EntireRow", "Property Get EntireRow() As Range"),
         ("Range", "EntireColumn", "Property Get EntireColumn() As Range"),
         ("Range", "End", "Property Get End(Direction As Long) As Range"),
@@ -641,6 +694,13 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Range", "FindNext", "Function FindNext(Optional After As Range) As Range"),
         ("Range", "FindPrevious", "Function FindPrevious(Optional After As Range) As Range"),
         ("Range", "Replace", "Function Replace(What As Variant, Replacement As Variant, Optional LookAt As XlLookAt, Optional SearchOrder As XlSearchOrder, Optional MatchCase As Variant, Optional MatchByte As Variant, Optional SearchFormat As Variant, Optional ReplaceFormat As Variant, Optional FormulaVersion As XlReplaceFormula) As Boolean"),
+        ("Range", "FillDown", "Function FillDown() As Variant"),
+        ("Range", "FillUp", "Function FillUp() As Variant"),
+        ("Range", "FillLeft", "Function FillLeft() As Variant"),
+        ("Range", "FillRight", "Function FillRight() As Variant"),
+        ("Range", "AutoFill", "Function AutoFill(Destination As Range, Optional Type As XlAutoFillType) As Variant"),
+        ("Range", "SpecialCells", "Function SpecialCells(Type As XlCellType, Optional Value As Variant) As Range"),
+        ("Range", "DataSeries", "Function DataSeries(Optional Rowcol As Variant, Optional Type As XlDataSeriesType, Optional Date As XlDataSeriesDate, Optional Step As Variant, Optional Stop As Variant, Optional Trend As Variant) As Variant"),
         ("Range", "Insert", "Sub Insert(Optional Shift As Long, Optional CopyOrigin As Long)"),
         ("Range", "Delete", "Sub Delete(Optional Shift As Long)"),
         ("Range", "CountLarge", "Property Get CountLarge() As Variant"),
@@ -656,20 +716,118 @@ pub fn catalog() -> Vec<ApiMember> {
         ("Range", "ClearContents", "Sub ClearContents()"),
         ("Range", "Clear", "Sub Clear()"),
         ("Range", "ClearFormats", "Sub ClearFormats()"),
+        ("Range", "ClearComments", "Sub ClearComments()"),
+        ("Range", "ClearNotes", "Sub ClearNotes()"),
+        ("Range", "ClearHyperlinks", "Sub ClearHyperlinks()"),
         ("Range", "Address", "Property Get Address(Optional RowAbsolute As Variant, Optional ColumnAbsolute As Variant, Optional ReferenceStyle As Long, Optional External As Variant, Optional RelativeTo As Variant) As String"),
     ]
     .into_iter()
-    .map(|(owner, name, signature)| ApiMember {
-        library: "Excel".into(),
-        owner: owner.into(),
-        name: name.into(),
-        signature: signature.into(),
-        supported: true,
+    .map(|(owner, name, signature)| MemberDescriptor {
+        owner,
+        name,
+        signature,
+        availability: MemberAvailability::Implemented,
+        implementation_symbol: if matches!(owner, "Font" | "Interior") {
+            "crates/vba/src/formatting.rs::Bridge::format"
+        } else {
+            "crates/vba/src/objects.rs::Bridge::invoke_object"
+        },
     })
     .chain([
         ("Application", "ScreenUpdating", "Property ScreenUpdating As Boolean"),
         ("Worksheet", "PasteSpecial", "Sub PasteSpecial(Optional Format As Variant, Optional Link As Variant, Optional DisplayAsIcon As Variant, Optional IconFileName As Variant, Optional IconIndex As Variant, Optional IconLabel As Variant, Optional NoHTMLFormatting As Variant)"),
         ("Range", "CopyPicture", "Sub CopyPicture(Optional Appearance As XlPictureAppearance, Optional Format As XlCopyPictureFormat)"),
-    ].into_iter().map(|(owner, name, signature)| ApiMember { library: "Excel".into(), owner: owner.into(), name: name.into(), signature: signature.into(), supported: false }))
+    ].into_iter().map(|(owner, name, signature)| MemberDescriptor {
+        owner,
+        name,
+        signature,
+        availability: MemberAvailability::ServiceRequired,
+        implementation_symbol: "crates/vba/src/objects.rs::Bridge::invoke_object",
+    }))
     .collect()
+}
+
+pub fn catalog() -> Vec<ApiMember> {
+    member_descriptors()
+        .into_iter()
+        .map(|member| ApiMember {
+            library: "Excel".into(),
+            owner: member.owner.into(),
+            name: member.name.into(),
+            signature: member.signature.into(),
+            supported: member.availability == MemberAvailability::Implemented,
+        })
+        .collect()
+}
+
+/// Classify a statically resolved host call without executing it. `None` means
+/// the receiver is dynamic and must remain UNKNOWN rather than being certified.
+pub fn compatibility<'a>(receiver: Option<&'a str>, member: &'a str) -> CompatibilityFinding<'a> {
+    let Some(receiver) = receiver else {
+        return CompatibilityFinding { receiver: None, member, status: CompatibilityStatus::Unknown, signature: None };
+    };
+    let descriptor = member_descriptors()
+        .into_iter()
+        .find(|candidate| candidate.owner.eq_ignore_ascii_case(receiver) && candidate.name.eq_ignore_ascii_case(member));
+    match descriptor {
+        Some(descriptor) => CompatibilityFinding {
+            receiver: Some(receiver),
+            member,
+            status: match descriptor.availability {
+                MemberAvailability::Implemented => CompatibilityStatus::Supported,
+                MemberAvailability::ServiceRequired => CompatibilityStatus::ServiceRequired,
+            },
+            signature: Some(descriptor.signature),
+        },
+        None => CompatibilityFinding { receiver: Some(receiver), member, status: CompatibilityStatus::Missing, signature: None },
+    }
+}
+
+/// Produce the JSON ledger consumed by nonexecuting compatibility tooling.
+/// Callers pass `None` when static analysis cannot prove a receiver type.
+pub fn compatibility_report<'a>(calls: impl IntoIterator<Item = (Option<&'a str>, &'a str)>) -> serde_json::Value {
+    let findings = calls
+        .into_iter()
+        .map(|(receiver, member)| {
+            let finding = compatibility(receiver, member);
+            let status = match finding.status {
+                CompatibilityStatus::Supported => "SUPPORTED",
+                CompatibilityStatus::ServiceRequired => "SERVICE_REQUIRED",
+                CompatibilityStatus::Missing => "MISSING",
+                CompatibilityStatus::Unknown => "UNKNOWN",
+            };
+            serde_json::json!({
+                "receiver": finding.receiver,
+                "member": finding.member,
+                "status": status,
+                "signature": finding.signature,
+            })
+        })
+        .collect::<Vec<_>>();
+    serde_json::json!({"schema":1,"profile":"GridCraft.Excel.v1","findings":findings})
+}
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{CompatibilityStatus, catalog, compatibility, compatibility_report, member_descriptors};
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn catalogue_is_derived_from_unique_member_descriptors() {
+        let descriptors = member_descriptors();
+        let keys = descriptors.iter().map(|member| (member.owner.to_ascii_lowercase(), member.name.to_ascii_lowercase())).collect::<BTreeSet<_>>();
+        assert_eq!(keys.len(), descriptors.len());
+        assert_eq!(catalog().len(), descriptors.len());
+    }
+
+    #[test]
+    fn compatibility_never_certifies_dynamic_receivers() {
+        assert_eq!(compatibility(Some("Range"), "FillDown").status, CompatibilityStatus::Supported);
+        assert_eq!(compatibility(Some("Range"), "CopyPicture").status, CompatibilityStatus::ServiceRequired);
+        assert_eq!(compatibility(Some("Range"), "DefinitelyMissing").status, CompatibilityStatus::Missing);
+        assert_eq!(compatibility(None, "FillDown").status, CompatibilityStatus::Unknown);
+        let report = compatibility_report([(Some("Range"), "FillDown"), (None, "FillDown")]);
+        assert_eq!(report["findings"][0]["status"], "SUPPORTED");
+        assert_eq!(report["findings"][1]["status"], "UNKNOWN");
+    }
 }

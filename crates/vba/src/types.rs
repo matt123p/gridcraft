@@ -9,20 +9,32 @@ const EXCEL_TYPES_VERSION: &str = "GridCraft.Excel.v1";
 include!("vba_enum_data.rs");
 
 pub(crate) fn references() -> Result<ReferenceSet> {
-    ReferenceSet::new(vec![ReferenceLibrary {
-        name: "Excel".into(),
-        version: EXCEL_TYPES_VERSION.into(),
-        available: true,
-        types: ["Application", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets", "Areas", "Font", "Interior"]
-            .into_iter()
-            .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
-            .chain(EXCEL_ENUM_TYPES.iter().map(|name| ReferenceType { name: (*name).into(), kind: ReferenceTypeKind::Enum }))
-            .collect(),
-        constants: EXCEL_ENUM_CONSTANTS
-            .iter()
-            .map(|(module, name, n)| ReferenceConstant { name: (*name).into(), module: Some((*module).into()), value: Value::Long(*n) })
-            .collect(),
-    }])
+    ReferenceSet::new(vec![
+        ReferenceLibrary {
+            name: "Excel".into(),
+            version: EXCEL_TYPES_VERSION.into(),
+            available: true,
+            types: ["Application", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets", "Areas", "Font", "Interior"]
+                .into_iter()
+                .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
+                .chain(EXCEL_ENUM_TYPES.iter().map(|name| ReferenceType { name: (*name).into(), kind: ReferenceTypeKind::Enum }))
+                .collect(),
+            constants: EXCEL_ENUM_CONSTANTS
+                .iter()
+                .map(|(module, name, n)| ReferenceConstant { name: (*name).into(), module: Some((*module).into()), value: Value::Long(*n) })
+                .collect(),
+        },
+        ReferenceLibrary {
+            name: "ExcelEnumAliases".into(),
+            version: EXCEL_TYPES_VERSION.into(),
+            available: true,
+            types: vec![],
+            constants: EXCEL_ENUM_ALIASES
+                .iter()
+                .map(|(module, name, n)| ReferenceConstant { name: (*name).into(), module: Some((*module).into()), value: Value::Long(*n) })
+                .collect(),
+        },
+    ])
 }
 
 /// This is the bridge's existing object store, shared read-only with the type
@@ -248,7 +260,7 @@ impl ObjectTypeResolver for Objects {
 
 #[cfg(test)]
 mod tests {
-    use super::{EXCEL_TYPES_VERSION, NominalType, Objects};
+    use super::{EXCEL_TYPES_VERSION, NominalType, Objects, references};
     use crate::{Object, ObjectRef};
     use vba_foreign::ObjectTypeResolver;
     #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
@@ -267,6 +279,16 @@ mod tests {
         assert!(objects.supports_type(ObjectRef { object: index as u64, ..sheet }, &range).map_err(|e| e.description)?);
         objects.close();
         assert!(objects.supports_type(sheet, &worksheet).is_err());
+        Ok(())
+    }
+
+    #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+    #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+    fn duplicate_enum_names_keep_unqualified_and_qualified_aliases() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let references = references()?;
+        for name in ["xlManual", "Constants.xlManual", "XlSortOrder.xlManual"] {
+            assert_eq!(references.constant(name)?, Some(&crate::Value::Long(-4135)), "{name}");
+        }
         Ok(())
     }
 }
