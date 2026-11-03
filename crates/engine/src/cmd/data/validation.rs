@@ -111,11 +111,11 @@ pub(super) fn validation(s: &mut Session, p: &Json) -> Result<Json> {
         in_cell_dropdown: bool_param(p, "dropdown").unwrap_or(true),
         input_title: str_param(p, "inputTitle").unwrap_or("").into(),
         input_message: str_param(p, "inputMessage").unwrap_or("").into(),
-        show_input: true,
+        show_input: bool_param(p, "showInput").unwrap_or(true),
         error_title: str_param(p, "errorTitle").unwrap_or("").into(),
         error_message: str_param(p, "errorMessage").unwrap_or("").into(),
         error_style,
-        show_error: true,
+        show_error: bool_param(p, "showError").unwrap_or(true),
     };
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;

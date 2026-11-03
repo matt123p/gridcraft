@@ -680,6 +680,7 @@ End Sub"#;
     b.consent(true);
     std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).names.extend([
         gridcraft_engine::model::DefinedName {
+            identity: Default::default(),
             name: "LocalBlock".into(),
             scope: Some(0),
             formula: "$D$8:$E$9".into(),
@@ -687,6 +688,7 @@ End Sub"#;
             hidden: false,
         },
         gridcraft_engine::model::DefinedName {
+            identity: Default::default(),
             name: "LocalBlock".into(),
             scope: None,
             formula: "$Z$1".into(),
@@ -694,13 +696,21 @@ End Sub"#;
             hidden: false,
         },
         gridcraft_engine::model::DefinedName {
+            identity: Default::default(),
             name: "GlobalBlock".into(),
             scope: None,
             formula: "LocalBlock".into(),
             comment: String::new(),
             hidden: false,
         },
-        gridcraft_engine::model::DefinedName { name: "Cycle".into(), scope: None, formula: "Cycle".into(), comment: String::new(), hidden: false },
+        gridcraft_engine::model::DefinedName {
+            identity: Default::default(),
+            name: "Cycle".into(),
+            scope: None,
+            formula: "Cycle".into(),
+            comment: String::new(),
+            hidden: false,
+        },
     ]);
     let mut ide = Ide::new();
     ide.add_module("References.bas", source)?;

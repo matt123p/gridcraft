@@ -1,6 +1,6 @@
 use super::{
-    CellRef, EngineError, HAlign, Json, NumFmt, Result, Session, Value, bad, bool_param, cell_param, cell_param_on, edit, json, object_params, ok,
-    str_param, target_ranges, target_sheet,
+    CellRef, EngineError, HAlign, Json, NumFmt, Result, Session, Value, bad, bool_param, cell_param_on, edit, json, object_params, ok, str_param,
+    target_ranges, target_sheet,
 };
 
 /// Whether `c` has checkbox formatting.
@@ -112,8 +112,9 @@ pub(super) fn draw_border(s: &mut Session, p: &Json) -> Result<Json> {
 pub(super) fn new_cell_style(s: &mut Session, p: &Json) -> Result<Json> {
     let name = str_param(p, "name").ok_or_else(|| bad("home.newCellStyle", "missing `name`"))?.to_string();
     let d = s.doc()?;
-    let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
-    let c = cell_param(s, p, "fromCell")?.unwrap_or(d.selection.active);
+    let si = super::target_sheet(s, p)?;
+    let sh = d.wb.sheet(si).ok_or(EngineError::NoDocument)?;
+    let c = super::cell_param_on(s, p, "fromCell", si)?.unwrap_or(d.selection.active);
     let style = d.wb.styles.get(sh.style_id(c)).clone();
     edit(s, |cx| {
         cx.wb.cell_styles.retain(|(n, _)| !n.eq_ignore_ascii_case(&name));

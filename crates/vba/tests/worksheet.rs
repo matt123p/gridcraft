@@ -298,3 +298,26 @@ fn repeated_shared_strings_exceeding_32bit_payloads_are_refused_before_vba_alloc
     assert_eq!(cell(&s, "B1"), Value::Error(CellError::Value));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn rectangular_udf_arguments_and_results_preserve_vba_subscripts() -> R {
+    let (mut s, _, _, _bridge) = setup(
+        r#"Public Function MatrixProbe(ByVal data As Variant) As Double
+MatrixProbe = data(1,3) + 10 * data(2,1)
+End Function
+Public Function MatrixOut() As Variant
+Dim data(1 To 2, 1 To 3) As Variant
+data(1,3) = 30
+data(2,1) = 40
+MatrixOut = data
+End Function
+"#,
+    )?;
+    s.execute("cell.set", json!({"cell":"D5","input":"=MatrixProbe({1,2,3;4,5,6})"}))?;
+    assert_eq!(cell(&s, "D5"), Value::Number(43.0));
+    s.execute("cell.set", json!({"cell":"B1","input":"=MatrixOut()"}))?;
+    assert_eq!(cell(&s, "D1"), Value::Number(30.0));
+    assert_eq!(cell(&s, "B2"), Value::Number(40.0));
+    Ok(())
+}

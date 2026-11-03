@@ -209,14 +209,24 @@ fn calculated_table_column_keeps_formula_and_cell_value() {
     sh.cells.set(at("A2"), Cell::value(Value::Number(3.0)));
     sh.cells.set(at("B2"), formula("A2*2", 6.0));
     sh.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Data".into(),
         range: range("A1:B2"),
         header_row: true,
         totals_row: false,
         columns: vec![
-            TableColumn { name: "Input".into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None },
             TableColumn {
+                identity: Default::default(),
+                name: "Input".into(),
+                totals: TotalsFn::None,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
+            TableColumn {
+                identity: Default::default(),
                 name: "Output".into(),
                 totals: TotalsFn::None,
                 totals_label: None,
@@ -257,14 +267,24 @@ fn this_row_references_are_written_in_long_form() {
     sh.cells.set(at("A2"), Cell::value(Value::Number(3.0)));
     sh.cells.set(at("B2"), formula("Data[@Input]*2", 6.0));
     sh.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Data".into(),
         range: range("A1:B2"),
         header_row: true,
         totals_row: false,
         columns: vec![
-            TableColumn { name: "Input".into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None },
             TableColumn {
+                identity: Default::default(),
+                name: "Input".into(),
+                totals: TotalsFn::None,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
+            TableColumn {
+                identity: Default::default(),
                 name: "Output".into(),
                 totals: TotalsFn::None,
                 totals_label: None,
@@ -384,7 +404,14 @@ fn implicit_intersection_metadata_resolves_names_in_formula_sheet_scope() {
         ("Scoped", Some(0), "2"),
         ("LocalInputs", Some(1), "Results!$A$1:$A$3"),
     ] {
-        wb.names.push(DefinedName { name: name.into(), scope, formula: text.into(), comment: String::new(), hidden: false });
+        wb.names.push(DefinedName {
+            identity: Default::default(),
+            name: name.into(),
+            scope,
+            formula: text.into(),
+            comment: String::new(),
+            hidden: false,
+        });
     }
     check_formula_metadata(
         wb.clone(),
@@ -407,7 +434,14 @@ fn implicit_intersection_metadata_resolves_names_in_formula_sheet_scope() {
 fn cyclic_names_preserve_array_evaluation_without_unbounded_export_recursion() {
     let mut wb = Workbook::new();
     for (name, formula) in [("First", "Second"), ("Second", "First")] {
-        wb.names.push(DefinedName { name: name.into(), scope: None, formula: formula.into(), comment: String::new(), hidden: false });
+        wb.names.push(DefinedName {
+            identity: Default::default(),
+            name: name.into(),
+            scope: None,
+            formula: formula.into(),
+            comment: String::new(),
+            hidden: false,
+        });
     }
     check_formula_metadata(wb, 0, &[("First", true), ("SUM(First)", true)]);
 }
@@ -417,14 +451,24 @@ fn implicit_intersection_metadata_distinguishes_table_rows_and_columns() {
     let mut wb = Workbook::new();
     let sh = wb.sheet_mut(0).unwrap();
     sh.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Data".into(),
         range: range("A1:B3"),
         header_row: true,
         totals_row: false,
         columns: vec![
-            TableColumn { name: "Input".into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None },
             TableColumn {
+                identity: Default::default(),
+                name: "Input".into(),
+                totals: TotalsFn::None,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
+            TableColumn {
+                identity: Default::default(),
                 name: "Output".into(),
                 totals: TotalsFn::None,
                 totals_label: None,

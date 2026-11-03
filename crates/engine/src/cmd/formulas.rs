@@ -35,7 +35,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Define Name…",
             ["Formulas", "Defined Names"],
             None,
-            "{name, refersTo?: \"=Sheet1!$A$1:$A$10\" (default: the selection), scope?: \"Workbook\"|sheet name, comment?, oldName?, oldScope?, force?: bool} (oldName: edit that name (Name Manager › Edit); a new name also renames it in formulas; a hidden name GridCraft keeps its own data in, `_gc_<key>_<n>` or `_sc_<key>`, is refused unless force is true)",
+            "{name, refersTo?: \"=Sheet1!$A$1:$A$10\" (default: the selection), scope?: \"Workbook\"|sheet name, comment?, hidden?: bool, oldName?, oldScope?, force?: bool} (oldName: edit that name (Name Manager › Edit); a new name also renames it in formulas; a hidden name GridCraft keeps its own data in, `_gc_<key>_<n>` or `_sc_<key>`, is refused unless force is true)",
             has_doc,
             define_name
         ),
@@ -394,6 +394,15 @@ fn define_name(s: &mut Session, p: &Json) -> Result<Json> {
         }
         None => None,
     };
+    let identity =
+        d.wb.names
+            .iter()
+            .find(|n| match &old {
+                Some((name, scope)) => n.name.eq_ignore_ascii_case(name) && n.scope == *scope,
+                None => n.name.eq_ignore_ascii_case(&name) && n.scope == scope,
+            })
+            .map(|n| n.identity.clone())
+            .unwrap_or_default();
     edit(s, |cx| {
         if let Some((old_name, old_scope)) = &old {
             cx.wb.names.retain(|n| !(n.name.eq_ignore_ascii_case(old_name) && n.scope == *old_scope));
@@ -402,7 +411,14 @@ fn define_name(s: &mut Session, p: &Json) -> Result<Json> {
             }
         }
         cx.wb.names.retain(|n| !(n.name.eq_ignore_ascii_case(&name) && n.scope == scope));
-        cx.wb.names.push(DefinedName { name: name.clone(), scope, formula: refers.clone(), comment: comment.clone(), hidden: false });
+        cx.wb.names.push(DefinedName {
+            identity: identity.clone(),
+            name: name.clone(),
+            scope,
+            formula: refers.clone(),
+            comment: comment.clone(),
+            hidden: bool_param(p, "hidden").unwrap_or(false),
+        });
         cx.structural = true;
         Ok(json!({"name": name, "refersTo": format!("={refers}")}))
     })
@@ -572,7 +588,7 @@ fn create_from_selection(s: &mut Session, p: &Json) -> Result<Json> {
     edit(s, |cx| {
         for (name, f) in made {
             cx.wb.names.retain(|x| !(x.name.eq_ignore_ascii_case(&name) && x.scope.is_none()));
-            cx.wb.names.push(DefinedName { name, scope: None, formula: f, comment: String::new(), hidden: false });
+            cx.wb.names.push(DefinedName { identity: Default::default(), name, scope: None, formula: f, comment: String::new(), hidden: false });
         }
         cx.structural = true;
         Ok(json!({"created": n, "skipped": skipped}))
@@ -915,9 +931,23 @@ mod tests {
         let wb = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().wb);
         let text = "m".repeat(9_000);
         stash::set(wb, "macro_1", &text).unwrap();
-        wb.names.push(DefinedName { name: "_sc_watch".into(), scope: None, formula: "\"[]\"".into(), comment: String::new(), hidden: true });
+        wb.names.push(DefinedName {
+            identity: Default::default(),
+            name: "_sc_watch".into(),
+            scope: None,
+            formula: "\"[]\"".into(),
+            comment: String::new(),
+            hidden: true,
+        });
         // A legacy item is read whether or not it is hidden, so a visible one is data too.
-        wb.names.push(DefinedName { name: "_sc_old".into(), scope: None, formula: "\"[]\"".into(), comment: String::new(), hidden: false });
+        wb.names.push(DefinedName {
+            identity: Default::default(),
+            name: "_sc_old".into(),
+            scope: None,
+            formula: "\"[]\"".into(),
+            comment: String::new(),
+            hidden: false,
+        });
         let names = |s: &Session| s.doc().unwrap().wb.names.clone();
         let before = names(&s);
         assert!(before.len() >= 3, "the item takes two chunks");
@@ -943,7 +973,14 @@ mod tests {
         assert_eq!(stash::get(&s.doc().unwrap().wb, "macro_1").as_deref(), Some(text.as_str()));
         // A visible name of the shape is the person's own (the stash never reads it): the name
         // commands change and remove it without `force`, as Name Manager cannot pass one.
-        let own = DefinedName { name: "_gc_rate_0".into(), scope: None, formula: "=1".into(), comment: String::new(), hidden: false };
+        let own = DefinedName {
+            identity: Default::default(),
+            name: "_gc_rate_0".into(),
+            scope: None,
+            formula: "=1".into(),
+            comment: String::new(),
+            hidden: false,
+        };
         std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().wb).names.push(own.clone());
         s.execute("formulas.defineName", json!({"name": "Rate0", "refersTo": "=2", "oldName": "_gc_rate_0"})).unwrap();
         s.execute("formulas.deleteName", json!({"name": "Rate0"})).unwrap();
@@ -1017,6 +1054,7 @@ mod tests {
         let d = s.doc_mut().unwrap();
         let wb = std::sync::Arc::make_mut(&mut d.wb);
         let name = |name: &str, scope, formula: &str, hidden| DefinedName {
+            identity: Default::default(),
             name: name.into(),
             scope,
             formula: formula.into(),

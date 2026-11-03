@@ -1,6 +1,6 @@
 use super::{
     Cell, CellRef, DefinedName, Deserialize, EngineError, HashMap, Json, Result, Serialize, Session, Sheet, StyleId, Trial, Value, Workbook, bad,
-    bool_param, cell_list, edit, json, json_value, str_param, value_json,
+    bool_param, cell_list, edit, json, str_param, value_json,
 };
 
 // ---------------------------------------------------------------- scenarios
@@ -13,7 +13,9 @@ const MAX_SCENARIO_CELLS: usize = 32;
 const MAX_SCENARIOS: usize = 1000;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Scenario {
+pub struct Scenario {
+    #[serde(default)]
+    pub identity: u64,
     pub name: String,
     pub sheet: String,
     pub changing: String,
@@ -24,7 +26,40 @@ pub(crate) struct Scenario {
 
 pub(crate) fn load_scenarios(wb: &Workbook) -> Vec<Scenario> {
     let Some(n) = wb.names.iter().find(|n| n.scope.is_none() && n.name.eq_ignore_ascii_case(SCENARIO_NAME)) else { return vec![] };
-    serde_json::from_str(&string_literals(&n.formula)).unwrap_or_default()
+    let mut list: Vec<Scenario> = serde_json::from_str(&string_literals(&n.formula)).unwrap_or_default();
+    // Legacy records receive deterministic identities until the next native store;
+    // newly created records always use a fresh ID, so delete/recreate never retargets a host handle.
+    let mut used = std::collections::HashSet::new();
+    for scenario in &mut list {
+        if scenario.identity == 0 {
+            use std::hash::{Hash, Hasher};
+            let mut hash = std::collections::hash_map::DefaultHasher::new();
+            scenario.sheet.hash(&mut hash);
+            scenario.name.hash(&mut hash);
+            scenario.identity = hash.finish() | 1u64 << 63;
+        }
+        while !used.insert(scenario.identity) {
+            scenario.identity = scenario.identity.checked_add(1).unwrap_or(1);
+        }
+    }
+    list
+}
+
+/// Native read-only scenario snapshots for document hosts.
+pub fn scenario_objects(wb: &Workbook) -> Vec<Scenario> {
+    load_scenarios(wb)
+}
+static NEXT_SCENARIO: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+fn new_identity(list: &[Scenario]) -> Result<u64> {
+    for _ in 0..=MAX_SCENARIOS {
+        let id = NEXT_SCENARIO
+            .try_update(std::sync::atomic::Ordering::Relaxed, std::sync::atomic::Ordering::Relaxed, |n| n.checked_add(1))
+            .map_err(|_| bad("data.scenarioAdd", "scenario identity exhausted"))?;
+        if !list.iter().any(|s| s.identity == id) {
+            return Ok(id);
+        }
+    }
+    Err(bad("data.scenarioAdd", "scenario identity budget"))
 }
 
 /// Concatenates the string literals of a `"a"&"b""c"` formula.
@@ -60,6 +95,7 @@ fn store_scenarios(wb: &mut Workbook, list: &[Scenario]) {
     }
     let text = serde_json::to_string(list).unwrap_or_else(|_| "[]".into());
     wb.names.push(DefinedName {
+        identity: Default::default(),
         name: SCENARIO_NAME.into(),
         scope: None,
         // Excel caps string literals at 255 characters: store `"…"&"…"` chunks.
@@ -77,6 +113,28 @@ fn store_scenarios(wb: &mut Workbook, list: &[Scenario]) {
 
 fn scenario_json(sc: &Scenario) -> Json {
     json!({"name": sc.name, "sheet": sc.sheet, "changing": sc.changing, "values": sc.values, "comment": sc.comment})
+}
+
+fn scalar_json(value: &Value) -> Json {
+    match value {
+        Value::Error(error) => json!({"error":error.as_str()}),
+        _ => value_json(value),
+    }
+}
+fn scalar_value(value: &Json) -> Result<Value> {
+    Ok(match value {
+        Json::Null => Value::Empty,
+        Json::Bool(b) => Value::Bool(*b),
+        Json::Number(n) => Value::number(n.as_f64().ok_or_else(|| bad("data.scenarioShow", "invalid number"))?),
+        Json::String(text) => Value::text(text.as_str()),
+        _ => Value::Error(
+            value
+                .get("error")
+                .and_then(Json::as_str)
+                .and_then(gridcraft_core::CellError::parse)
+                .ok_or_else(|| bad("data.scenarioShow", "scenario values must be scalar"))?,
+        ),
+    })
 }
 
 pub(super) fn scenario_list(s: &mut Session, p: &Json) -> Result<Json> {
@@ -107,15 +165,27 @@ pub(super) fn scenario_add(s: &mut Session, p: &Json) -> Result<Json> {
             }
             a.clone()
         }
-        None => cells.iter().map(|c| value_json(&sh.value(*c))).collect(),
+        None => cells.iter().map(|c| scalar_json(&sh.value(*c))).collect(),
     };
     let changing = cells.iter().map(|c| c.a1()).collect::<Vec<_>>().join(",");
-    let sc = Scenario { name: name.clone(), sheet: sh.name.clone(), changing, values, comment: str_param(p, "comment").unwrap_or("").to_string() };
-    let replace = bool_param(p, "replace").unwrap_or(false);
     let mut list = load_scenarios(&d.wb);
-    match list.iter().position(|x| x.name.eq_ignore_ascii_case(&name) && x.sheet.eq_ignore_ascii_case(&sc.sheet)) {
+    let mut sc = Scenario {
+        identity: new_identity(&list)?,
+        name: name.clone(),
+        sheet: sh.name.clone(),
+        changing,
+        values,
+        comment: str_param(p, "comment").unwrap_or("").to_string(),
+    };
+    let replace = bool_param(p, "replace").unwrap_or(false);
+    let old_name = str_param(p, "oldName").unwrap_or(&name);
+    if list.iter().any(|x| x.sheet.eq_ignore_ascii_case(&sc.sheet) && x.name.eq_ignore_ascii_case(&name) && !x.name.eq_ignore_ascii_case(old_name)) {
+        return Err(bad(CMD, "scenario name collision"));
+    }
+    match list.iter().position(|x| x.name.eq_ignore_ascii_case(old_name) && x.sheet.eq_ignore_ascii_case(&sc.sheet)) {
         Some(i) if replace => {
             if let Some(slot) = list.get_mut(i) {
+                sc.identity = slot.identity;
                 *slot = sc.clone();
             }
         }
@@ -137,11 +207,11 @@ pub(super) fn scenario_add(s: &mut Session, p: &Json) -> Result<Json> {
 fn find_scenario(wb: &Workbook, p: &Json, cmd: &str) -> Result<(Vec<Scenario>, usize)> {
     let name = str_param(p, "name").ok_or_else(|| bad(cmd, "missing `name`"))?;
     let list = load_scenarios(wb);
-    let active = wb.active().map(|s| s.name.clone()).unwrap_or_default();
+    let active = str_param(p, "sheet").map(str::to_string).unwrap_or_else(|| wb.active().map(|s| s.name.clone()).unwrap_or_default());
     let i = list
         .iter()
         .position(|x| x.name.eq_ignore_ascii_case(name) && x.sheet.eq_ignore_ascii_case(&active))
-        .or_else(|| list.iter().position(|x| x.name.eq_ignore_ascii_case(name)))
+        .or_else(|| if p.get("sheet").is_none() { list.iter().position(|x| x.name.eq_ignore_ascii_case(name)) } else { None })
         .ok_or_else(|| bad(cmd, format!("no scenario named `{name}`")))?;
     Ok((list, i))
 }
@@ -157,13 +227,9 @@ pub(super) fn scenario_show(s: &mut Session, p: &Json) -> Result<Json> {
         for (c, v) in cells.iter().zip(sc.values.iter()) {
             // Stored numbers are values, not typed text: entering them through the parser would
             // apply percent entry (9 -> 9%) to a Percentage-formatted cell.
-            let cell = match v.as_f64() {
-                Some(n) => {
-                    let style = cx.wb.sheet(si).map(|sh| sh.style_id(*c)).unwrap_or_default();
-                    Some(Cell { value: Value::Number(n), formula: None, style })
-                }
-                None => crate::cmd::edit::input_to_cell(&crate::cmd::edit::json_to_input(v), si, *c, &mut cx.wb)?,
-            };
+            let style = cx.wb.sheet(si).map(|sh| sh.style_id(*c)).unwrap_or_default();
+            let value = scalar_value(v)?;
+            let cell = if value.is_empty() { None } else { Some(Cell { value, formula: None, style }) };
             let sh = cx.sheet_mut(si)?;
             match cell {
                 Some(cell) => sh.set_cell(*c, cell),
@@ -192,7 +258,10 @@ pub(super) fn scenario_delete(s: &mut Session, p: &Json) -> Result<Json> {
 pub(super) fn scenario_summary(s: &mut Session, p: &Json) -> Result<Json> {
     const CMD: &str = "data.scenarioSummary";
     let d = s.doc()?;
-    let si = d.wb.active_sheet();
+    let si = match str_param(p, "sheet") {
+        Some(name) => d.wb.sheet_index(name).ok_or_else(|| bad(CMD, "worksheet not found"))?,
+        None => d.wb.active_sheet(),
+    };
     let sh = d.wb.sheet(si).ok_or(EngineError::NoDocument)?;
     let scenarios: Vec<Scenario> = load_scenarios(&d.wb).into_iter().filter(|x| x.sheet.eq_ignore_ascii_case(&sh.name)).collect();
     if scenarios.is_empty() {
@@ -218,7 +287,7 @@ pub(super) fn scenario_summary(s: &mut Session, p: &Json) -> Result<Json> {
             if !changing.contains(c) {
                 changing.push(*c);
             }
-            m.insert(*c, json_value(v, &d.wb));
+            m.insert(*c, scalar_value(v)?);
         }
         per.push(m);
     }

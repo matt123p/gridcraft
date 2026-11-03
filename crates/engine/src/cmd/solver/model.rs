@@ -313,7 +313,7 @@ pub(super) fn save_model(wb: &mut Workbook, m: &Model) {
     let Some(sheet_name) = wb.sheet(m.sheet).map(|s| s.name.clone()) else { return };
     wb.names.retain(|n| !(n.scope == Some(m.sheet) && n.name.to_ascii_lowercase().starts_with("solver_")));
     let mut put = |name: String, formula: String| {
-        wb.names.push(DefinedName { name, scope: Some(m.sheet), formula, comment: String::new(), hidden: true });
+        wb.names.push(DefinedName { identity: Default::default(), name, scope: Some(m.sheet), formula, comment: String::new(), hidden: true });
     };
     put("solver_opt".into(), ref_text(&sheet_name, &m.objective.a1()));
     let (typ, val) = match m.goal {

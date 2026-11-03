@@ -92,7 +92,7 @@ pub(super) fn insert_table(s: &mut Session, p: &Json) -> Result<Json> {
             sh.set_value(CellRef::new(r.start.row, c), gridcraft_core::Value::text(n.as_str()));
             names.push(n);
         }
-        sh.tables.push(Table {
+        sh.tables.push(Table { identity: Default::default(),
             id,
             name: name.clone(),
             range: r,
@@ -100,7 +100,7 @@ pub(super) fn insert_table(s: &mut Session, p: &Json) -> Result<Json> {
             totals_row: false,
             columns: names
                 .into_iter()
-                .map(|n| TableColumn { name: n, totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None })
+                .map(|n| TableColumn { identity: Default::default(), name: n, totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None })
                 .collect(),
             style,
             banded_rows: true,

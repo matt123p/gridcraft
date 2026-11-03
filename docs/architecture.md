@@ -37,8 +37,14 @@ The [object-model architecture review](vba-object-model-implementation-plan.md#a
 keeps this boundary: Excel semantics stay in private adapter family modules;
 engine changes may expose existing behavior through small host-neutral targeted,
 typed or preview APIs sharing command execution. No VBA types or dependency
-enter the engine. Family extraction and richer shared binding metadata are
-planned incrementally, not already implemented or a new framework prerequisite.
+enter the engine. Formula/name, formatting/rules, data/outline/what-if/scenario
+and local-table projections now live in private family modules, sharing the same
+handle registry and member descriptors. Native name/rule/table/column identities
+reject stale recreated objects; native writer previews reserve computed callback
+destinations. Cell/calculator matrices convert row-major storage to the VM's
+column-major arrays at each boundary, including read-only worksheet UDFs.
+See the [High-family delivery](vba-object-model-implementation-plan.md#om07--om05--om06--om18-native-profile-delivery-2026-11-03)
+for native backing, limits and regression evidence.
 The adapter now prepares each synchronous mutation's entire event batch before
 engine effects: callback owner/Target handles, arguments and queue capacity.
 Commit queues that batch without fallible allocation. Callback lookup and delivery
@@ -211,6 +217,7 @@ service gaps; no second interpreter or synthetic UI state is introduced.
 | Date | Change | Summary |
 |---|---|---|
 | 2026-11-03 | minor | Linked priority-based OM delivery: High first, selected Medium next, Low deferred; stable IDs retained |
+| 2026-11-03 | minor | Native-backed High VBA formula, formatting, data and table family modules; live identities, writer previews and matrix-layout conversion |
 | 2026-11-03 | minor | VBA event batches prepared before mutation; callback ownership remains bound across workbook activation |
 | 2026-11-03 | minor | Reviewed VBA boundary, narrow engine plumbing and incremental object-model delivery; linked concrete Rust findings |
 | 2026-10-28 | minor | Optional native VBA viewport with shared session, embedded override and Excel-style entry routes |

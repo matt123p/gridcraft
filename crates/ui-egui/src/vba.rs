@@ -425,6 +425,7 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
             let _ = recalculate(&mut app.session);
         }
     }
+    editor.bridge.set_formula_locale(app.ui.language.formula_locale());
     if let Err(e) = editor.bridge.tick(&mut app.session, &mut editor.ide) {
         editor.ide.message(e.to_string());
     }

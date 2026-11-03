@@ -48,6 +48,8 @@ impl TotalsFn {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TableColumn {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub name: String,
     pub totals: TotalsFn,
     /// Totals row label (first column) or custom formula.
@@ -75,6 +77,8 @@ pub struct XmlColumnPr {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Table {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub id: u32,
     pub name: String,
     /// Whole table including header and totals rows.
@@ -244,6 +248,8 @@ pub fn default_icon_thresholds(set: &str) -> Vec<CfValueKind> {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CondFormat {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub ranges: Vec<RangeRef>,
     pub rule: CfRule,
     pub priority: u32,

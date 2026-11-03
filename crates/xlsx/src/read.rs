@@ -359,6 +359,7 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<(Workbook, ReadReport), IoError> {
                 continue;
             }
             wb.names.push(DefinedName {
+                identity: Default::default(),
                 name: name.to_string(),
                 scope,
                 formula: crate::fmla::from_file(text),

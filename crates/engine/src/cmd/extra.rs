@@ -9,8 +9,8 @@ use gridcraft_model::{
 use serde_json::{Value as Json, json};
 
 use super::{
-    CommandSpec, EngineError, Result, Session, always, anchor_mode_name, bad, bool_param, cell_param, cell_param_on, cmd, edit, f64_param, has_doc,
-    ok, split_sheet, stash, str_param, target_range, target_ranges, target_sheet, u32_param,
+    CommandSpec, EngineError, Result, Session, always, anchor_mode_name, bad, bool_param, cell_param_on, cmd, edit, f64_param, has_doc, ok,
+    split_sheet, stash, str_param, target_range, target_ranges, target_sheet, u32_param,
 };
 
 mod cells;
@@ -189,6 +189,27 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!(noundo "view.ruler", "Ruler", ["View", "Show"], None, "{on?} → {on}: rulers in Page Layout view (an application option)", has_doc, ruler),
         cmd!(query "view.macros", "Macros", ["View", "Macros"], None, "{} → scripts", has_doc, all_scripts),
         // Table tools
+        cmd!("table.insertRow", "Table insertRow", [], None, "{table, position?, alwaysInsert?}", has_doc, |s, p| crate::table_ops::mutate(
+            s,
+            p,
+            "insertRow"
+        )),
+        cmd!("table.deleteRow", "Table deleteRow", [], None, "{table, position?, alwaysInsert?}", has_doc, |s, p| crate::table_ops::mutate(
+            s,
+            p,
+            "deleteRow"
+        )),
+        cmd!("table.insertColumn", "Table insertColumn", [], None, "{table, position?, alwaysInsert?}", has_doc, |s, p| crate::table_ops::mutate(
+            s,
+            p,
+            "insertColumn"
+        )),
+        cmd!("table.deleteColumn", "Table deleteColumn", [], None, "{table, position?, alwaysInsert?}", has_doc, |s, p| crate::table_ops::mutate(
+            s,
+            p,
+            "deleteColumn"
+        )),
+        cmd!("table.delete", "Table delete", [], None, "{table, position?, alwaysInsert?}", has_doc, |s, p| crate::table_ops::mutate(s, p, "delete")),
         cmd!("table.resize", "Resize Table", ["Table Design", "Properties"], None, "{table?, range: \"A1:F20\"}", has_doc, table_resize),
         cmd!("table.removeDuplicates", "Remove Duplicates", ["Table Design", "Tools"], None, "{table?, columns?}", has_doc, |s, p| s
             .execute("data.removeDuplicates", p.clone())),
@@ -306,7 +327,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New Cell Style…",
             ["Home", "Styles"],
             None,
-            "{name, fromCell?: \"A1\" (default: active cell)}",
+            "{name, sheet?, fromCell?: \"A1\" (default: active cell)}",
             has_doc,
             new_cell_style
         ),
@@ -364,7 +385,7 @@ fn stash_set(wb: &mut Workbook, key: &str, v: &Json) {
     let text = v.to_string();
     let formula = format!("\"{}\"", text.replace('"', "\"\""));
     wb.names.retain(|n| n.name != key);
-    wb.names.push(DefinedName { name: key.into(), scope: None, formula, comment: String::new(), hidden: true });
+    wb.names.push(DefinedName { identity: Default::default(), name: key.into(), scope: None, formula, comment: String::new(), hidden: true });
 }
 
 /// Number format that marks checkbox cells (TRUE/FALSE values drawn as boxes).

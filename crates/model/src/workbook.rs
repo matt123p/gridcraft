@@ -78,6 +78,8 @@ impl CalcSettings {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DefinedName {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub name: String,
     /// `None` = workbook scope; otherwise the sheet index.
     pub scope: Option<usize>,

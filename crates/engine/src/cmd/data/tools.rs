@@ -122,33 +122,41 @@ pub(super) fn text_to_columns(s: &mut Session, p: &Json) -> Result<Json> {
     let quote = str_param(p, "textQualifier").and_then(|q| q.chars().next()).unwrap_or('"');
     let dest = cell_param_on(s, p, "destination", sheet)?.unwrap_or(r.start);
     let mut output_end = dest;
-    edit(s, |cx| {
-        let Some(sh) = cx.wb.sheet(sheet) else { return Ok(()) };
-        let mut out: Vec<(CellRef, String)> = Vec::new();
-        for (i, row) in (r.start.row..=r.end.row).enumerate() {
-            let text = sh.value(CellRef::new(row, r.start.col)).display();
-            let parts: Vec<String> = match &fixed {
-                Some(w) => {
-                    let chars: Vec<char> = text.chars().collect();
-                    let mut cuts = vec![0];
-                    let mut breaks: Vec<usize> = w.iter().copied().filter(|x| *x > 0 && *x < chars.len()).collect();
-                    breaks.sort_unstable();
-                    breaks.dedup();
-                    cuts.extend(breaks);
-                    cuts.push(chars.len());
-                    cuts.windows(2)
-                        .map(|p| chars.get(p[0]..p[1]).map(|s| s.iter().collect::<String>().trim().to_string()).unwrap_or_default())
-                        .collect()
-                }
-                None => split_delimited(&text, &delims, consecutive, quote),
-            };
-            for (j, part) in parts.into_iter().enumerate() {
-                out.push((CellRef::new(dest.row + i as u32, dest.col + j as u32), part));
+    let sh = s.doc()?.wb.sheet(sheet).ok_or(EngineError::NoDocument)?;
+    let mut out: Vec<(CellRef, String)> = Vec::new();
+    for (i, row) in (r.start.row..=r.end.row).enumerate() {
+        let text = sh.value(CellRef::new(row, r.start.col)).display();
+        let parts: Vec<String> = match &fixed {
+            Some(w) => {
+                let chars: Vec<char> = text.chars().collect();
+                let mut cuts = vec![0];
+                let mut breaks: Vec<usize> = w.iter().copied().filter(|x| *x > 0 && *x < chars.len()).collect();
+                breaks.sort_unstable();
+                breaks.dedup();
+                cuts.extend(breaks);
+                cuts.push(chars.len());
+                cuts.windows(2).map(|p| chars.get(p[0]..p[1]).map(|s| s.iter().collect::<String>().trim().to_string()).unwrap_or_default()).collect()
             }
+            None => split_delimited(&text, &delims, consecutive, quote),
+        };
+        for (j, part) in parts.into_iter().enumerate() {
+            let at = dest.offset(i as i64, j as i64).ok_or_else(|| bad("data.textToColumns", "destination exceeds worksheet"))?;
+            if out.len() >= 2_000_000 || bool_param(p, "preview") == Some(true) && out.len() >= 65536 {
+                return Err(bad("data.textToColumns", "output cell budget"));
+            }
+            out.push((at, part));
         }
+    }
+    for (at, _) in &out {
+        output_end = CellRef::new(output_end.row.max(at.row), output_end.col.max(at.col));
+    }
+    if bool_param(p, "preview").unwrap_or(false) {
+        return Ok(json!({"sheet":sheet,"range":RangeRef::new(dest,output_end).a1()}));
+    }
+    edit(s, |cx| {
         for (c, t) in out {
             output_end = CellRef::new(output_end.row.max(c.row), output_end.col.max(c.col));
-            let cell = crate::cmd::edit::input_to_cell(&t, sheet, c, &mut cx.wb).unwrap_or(None);
+            let cell = crate::cmd::edit::input_to_cell(&t, sheet, c, &mut cx.wb)?;
             let shm = cx.sheet_mut(sheet)?;
             match cell {
                 Some(x) => shm.set_cell(c, x),

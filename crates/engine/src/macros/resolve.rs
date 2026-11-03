@@ -580,6 +580,7 @@ mod tests {
             sh.set_value(CellRef::new(1, 1 + i as u32), gridcraft_core::Value::text(*h));
         }
         wb.names.push(gridcraft_model::DefinedName {
+            identity: Default::default(),
             name: "Total".into(),
             scope: None,
             formula: "Sheet1!$F$20".into(),
@@ -587,6 +588,7 @@ mod tests {
             hidden: false,
         });
         wb.names.push(gridcraft_model::DefinedName {
+            identity: Default::default(),
             name: "Rates".into(),
             scope: None,
             formula: "'My Data'!$A$1:$A$5".into(),
@@ -795,6 +797,7 @@ mod tests {
         let mut wb = wb();
         for (name, formula) in [("Sales", "Sheet1!$A$1"), ("Sales.Q1", "Sheet1!$B$2:$C$5"), ("Data.row", "'My Data'!$E$1:$E$3")] {
             wb.names.push(gridcraft_model::DefinedName {
+                identity: Default::default(),
                 name: name.into(),
                 scope: None,
                 formula: formula.into(),
@@ -886,6 +889,7 @@ mod tests {
         let mut wb = wb();
         let sh = wb.sheet_mut(0).unwrap();
         sh.tables.push(gridcraft_model::Table {
+            identity: Default::default(),
             id: 1,
             name: "Empty".into(),
             range: RangeRef::parse("H1:J1").unwrap(),
@@ -942,6 +946,7 @@ mod tests {
         let mut wb = wb();
         wb.sheets.push(std::sync::Arc::new(gridcraft_model::Sheet::new("US$")));
         wb.names.push(gridcraft_model::DefinedName {
+            identity: Default::default(),
             name: "Dollars".into(),
             scope: None,
             formula: "'US$'!$F$20".into(),

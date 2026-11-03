@@ -829,6 +829,7 @@ fn shift_table_columns(t: &mut gridcraft_model::Table, at: u32, count: u32, inse
                     }
                 };
                 let col = gridcraft_model::TableColumn {
+                    identity: Default::default(),
                     name,
                     totals: Default::default(),
                     totals_label: None,

@@ -177,6 +177,9 @@ pub(super) fn advanced_filter(s: &mut Session, p: &Json) -> Result<Json> {
         if dsi == si && out_range.intersects(&list) {
             return Err(EngineError::Other("The extract range can't overlap the list range.".into()));
         }
+        if bool_param(p, "preview").unwrap_or(false) {
+            return Ok(json!({"matched":matched,"sheet":dsi,"range":out_range.a1()}));
+        }
         let cells: Vec<(CellRef, Cell)> = rows_out
             .iter()
             .enumerate()
@@ -210,6 +213,9 @@ pub(super) fn advanced_filter(s: &mut Session, p: &Json) -> Result<Json> {
         return Ok(json!({"matched": matched, "range": out_range.a1()}));
     }
     let hidden = keep.iter().filter(|(_, k)| !*k).count();
+    if bool_param(p, "preview").unwrap_or(false) {
+        return Ok(json!({"matched":matched,"sheet":si,"hidden":hidden}));
+    }
     edit(s, |cx| {
         let shm = cx.sheet_mut(si)?;
         for (row, k) in &keep {

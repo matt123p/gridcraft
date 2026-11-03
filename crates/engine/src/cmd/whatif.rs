@@ -19,6 +19,7 @@ use super::{CommandSpec, DocState, EngineError, Result, Session, bad, bool_param
 mod advanced_filter;
 mod consolidate;
 mod scenarios;
+pub use scenarios::{Scenario, scenario_objects};
 
 use advanced_filter::advanced_filter;
 #[cfg(test)]
@@ -53,18 +54,26 @@ pub fn specs() -> Vec<CommandSpec> {
             "Add Scenario",
             [],
             None,
-            "{name, changing: \"B2:B4\" or \"B2,B4\" (≤32 cells, active sheet), values?: [..] (default: the cells' current values), comment?, replace?: bool}",
+            "{name, changing: \"B2:B4\" or \"B2,B4\" (≤32 cells, active sheet), values?: [..] (default: the cells' current values), comment?, replace?: bool, oldName? (rename existing scenario)}",
             has_doc,
             scenario_add
         ),
-        cmd!("data.scenarioShow", "Show Scenario", [], None, "{name} writes the scenario's values into its changing cells", has_doc, scenario_show),
-        cmd!("data.scenarioDelete", "Delete Scenario", [], None, "{name}", has_doc, scenario_delete),
+        cmd!(
+            "data.scenarioShow",
+            "Show Scenario",
+            [],
+            None,
+            "{name, sheet?} writes the scenario's values into its changing cells",
+            has_doc,
+            scenario_show
+        ),
+        cmd!("data.scenarioDelete", "Delete Scenario", [], None, "{name, sheet?}", has_doc, scenario_delete),
         cmd!(
             "data.scenarioSummary",
             "Scenario Summary",
             [],
             None,
-            "{resultCells?: \"B10\" or \"B10:B12,D4\"} inserts a \"Scenario Summary\" sheet: changing cells and result cells for the current values and each scenario",
+            "{sheet?, resultCells?: \"B10\" or \"B10:B12,D4\"} inserts a \"Scenario Summary\" sheet: changing cells and result cells for the current values and each scenario",
             has_doc,
             scenario_summary
         ),
@@ -165,18 +174,6 @@ fn cell_list(wb: &Workbook, t: &str, cmd: &str, cap: usize) -> Result<(usize, Ve
         }
     }
     Ok((sheet.unwrap_or(wb.active_sheet()), out))
-}
-
-/// What a JSON value typed into a cell is, as a constant.
-fn json_value(v: &Json, wb: &Workbook) -> Value {
-    match v {
-        Json::Null => Value::Empty,
-        Json::Bool(b) => Value::Bool(*b),
-        Json::Number(n) => n.as_f64().map(Value::number).unwrap_or_default(),
-        Json::String(s) if s.is_empty() => Value::Empty,
-        Json::String(s) => gridcraft_core::parse::parse_input(s, wb.date_system).value,
-        other => Value::text(other.to_string()),
-    }
 }
 
 fn value_json(v: &Value) -> Json {
@@ -428,6 +425,17 @@ fn data_table(s: &mut Session, p: &Json) -> Result<Json> {
         Ok(())
     })?;
     Ok(json!({"range": body.a1(), "cells": n, "mode": mode, "static": true}))
+}
+
+/// Reuse the native writer's planning path for exact pre-mutation host event reservation.
+pub(crate) fn preview_mutation(s: &mut Session, id: &str, p: &Json) -> Result<Json> {
+    let mut params = p.clone();
+    params["preview"] = json!(true);
+    match id {
+        "data.advancedFilter" => advanced_filter(s, &params),
+        "data.consolidate" => consolidate(s, &params),
+        _ => Err(bad(id, "no read-only mutation planner")),
+    }
 }
 
 #[cfg(test)]

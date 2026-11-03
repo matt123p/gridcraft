@@ -534,6 +534,14 @@ pub fn evaluate_expr(wb: &Workbook, sheet: usize, at: CellRef, expr: &Expr) -> V
     ev.value(expr)
 }
 
+/// Read-only evaluation preserving references for object-model consumers.
+pub fn evaluate_result(wb: &Workbook, sheet: usize, at: CellRef, expr: &Expr) -> crate::eval::Ev {
+    let exprs = HashMap::default();
+    let mut rng = 0x1234_5678_9ABC_DEF0u64;
+    let mut host = PassHost::new(wb, &exprs, &mut rng, now_serial());
+    Evaluator::new(&mut host, sheet, at).eval(expr)
+}
+
 fn prof_now() -> f64 {
     gridcraft_core::date::unix_now_ms().unwrap_or(0.0)
 }

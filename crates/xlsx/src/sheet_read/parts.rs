@@ -121,6 +121,7 @@ pub fn read_table(cx: &mut Ctx<'_>, x: &El) -> Option<Table> {
                         c.attr("totalsRowLabel").map(str::to_string)
                     };
                     TableColumn {
+                        identity: Default::default(),
                         name: xml::decode_xstring(c.attr("name").unwrap_or("")),
                         totals,
                         totals_label,
@@ -144,6 +145,7 @@ pub fn read_table(cx: &mut Ctx<'_>, x: &El) -> Option<Table> {
     // is rewritten, so it would lose it.
     let xml_table = x.attr("tableType") == Some("xml");
     Some(Table {
+        identity: Default::default(),
         id: x.attr_u32("id").unwrap_or(0),
         name,
         range,

@@ -992,6 +992,8 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## Revision history
 
+- 2026-11-03: Delivered native-profile OM07 → OM05 → OM06 → OM18 projections, interleaved ordinary sheet protection, and recorded exact limits and regression evidence. This does not close remaining High invocation/continuation work.
+
 - 2026-11-03: Replaced numeric OM delivery order with High-first/selected-Medium stages; moved OM18 ahead of Medium, interleaved OM11/protection, and explicitly deferred all Low runtime work. IDs and source routing unchanged.
 
 - 2026-11-03: Implemented event targeting and complete pre-mutation batch reservation; added regression evidence and corrected callback fixtures.
@@ -1088,3 +1090,76 @@ CRAFT_FONTS_DIR="$PWD/target/craft-fonts" CRAFT_FONTS_REQUIRED=1 cargo xtask ci
 
 This supersedes the no-font CI limitation above for builds using this font input.
 Font assets remain outside tracked GridCraft source.
+
+## OM07 → OM05 → OM06 → OM18 native-profile delivery (2026-11-03)
+
+The four High families now have native-backed projections in the order above.
+This delivers the bounded `GridCraft.Excel.v1` behavior below, rather than
+certifying every source page or optional Excel behavior in those families.
+The shared semantic exporter continues to label projected Microsoft contracts
+`PARTIAL`; supported execution and complete Excel parity are separate claims.
+The historical inventory and Low deferrals are unchanged. Remaining OM03
+invocation/continuation obligations above still prevent whole-High sign-off.
+
+| Packet | Delivered native projection | Deliberate limits |
+|---|---|---|
+| OM07 | Application/Worksheet/Range Evaluate; live workbook/sheet Names and identity-qualified Name objects; scoped names, visibility, comments, RefersTo A1/R1C1/local variants and RefersToRange; Formula2, R1C1, local and legacy FormulaArray; generic WorksheetFunction dispatch using the existing calculator registry, typed scalar/array/reference arguments, CVErr versus runtime-error behavior | No mathematical implementations or UDF mutation privilege added. Missing native functions are `OUT_OF_SCOPE_GRIDCRAFT`. Formula2 uses the native dynamic-array evaluator; this does not implement an additional Excel implicit-intersection dialect. Formula locales follow the native English/Spanish entry tables. The pinned parser treats `Name` as a keyword in `Dim … As Excel.Name`; use Object/Variant for that receiver. Range.Evaluate is an explicitly requested GridCraft extension, without a corresponding pinned Excel Range reference page. |
+| OM05 | Native font/fill/theme/tint and mixed reads; alignment, wrap/shrink/indent/orientation, protection and number formats; row/column dimensions, Hidden and AutoFit; merge geometry; Borders/Border; Styles catalog, Add from a native range, and Range.Style application; live FormatConditions, cell/expression rules, scales/bars/icons/top/unique/average rules, criteria/color objects, AppliesTo, priorities, StopIfTrue and native rule modifications | Native style model has no indexed palette, independent RGB tint, localized number-format language or separate named-style editing/deletion command. Non-English NumberFormatLocal and unavailable options refuse. Named-style reads require an exact native style match. Native row/column metrics remain the product's own metrics. Conditional formatting exposes model-backed fields, not all Excel differential-style, icon-override or data-bar UI variants. |
+| OM06 | Persistent worksheet/table Sort/SortFields/SortField configuration; explicit keys, headers, stable native ordering, multiple levels, custom order, case and orientation; live sheet/table AutoFilter/Filters/Filter and native criteria; Validation; RemoveDuplicates; delimited/fixed-width TextToColumns; Subtotal; row/column grouping, Outline and ShowLevels; AdvancedFilter, Consolidate, GoalSeek, snapshot data tables and Scenarios | SortMethod Pinyin/Stroke is `OUT_OF_SCOPE_GRIDCRAFT`; native codepoint ordering is not those collations. Excel color-priority/icon/DataOption sorting, per-column dropdown visibility, typed field-conversion options, linked consolidation, selected-copy header lists, replacement of existing subtotal rows, scenario locking/visibility and other unrepresented options refuse. Data tables retain the native static snapshot contract, not live TABLE formulas. Nested Array(Array(...)) is rejected by tiny-vba before dispatch; FieldInfo accepts a two-column VBA array. |
+| OM18 | Local range-backed ListObjects/ListObject, ListRows/ListRow, ListColumns/ListColumn; headers/data/totals ranges, names, style flags, resize, insert/delete, Unlist, calculated range writes, native total calculations, table Sort/AutoFilter and structured-reference resolution | Provider-backed sources, refresh/publishing/connection variants remain Low/deferred. ShowHeaders reads existing state; a separate header-visibility toggle is unavailable. Local native table styles are used. No provider or new calculation behavior added. |
+
+Private family modules own Excel binding rules and descriptors. They use one
+existing document-qualified handle store; no second workbook/style/table model
+was introduced. Native opaque identities survive COW/undo for defined names,
+conditional formats, tables and columns, so delete/recreate does not resurrect
+stale handles. Scenario records retain opaque IDs in the existing native hidden
+name storage. Native commands continue to own protection, history, recalc,
+recording and XLSX serialization. A macro's edits share the existing undo group.
+
+Narrow engine seams expose existing behavior: reference-preserving formula
+results, targeted table row/column compositions, partial conditional-rule updates,
+typed legacy-array placement and read-only output planning for data writers.
+Text splitting, advanced filtering, consolidation and subtotals reserve callback
+destinations from the native plan before writes; failed preflight queues no
+callback. Ordinary Worksheet Protect/Unprotect/ProtectContents bindings accompany
+the mutations, including existing permission flags and password verification.
+Sort configuration is adapter invocation state until Apply, not saved workbook
+content. Saved range coordinates follow known structural edits and invalidate
+on untracked external structural epochs, as in the accepted foundation.
+
+Matrix boundaries now convert explicitly between the calculator's row-major
+storage and tiny-vba's column-major arrays, including worksheet UDF arguments
+and returns. This fixes subscript errors that a read/write round trip alone could
+hide. The UI passes its native formula-entry locale to the bridge; headless
+hosts can set that locale directly.
+
+Regression evidence: `crates/vba/tests/high.rs` covers typed functions/references,
+rectangular arrays and subscripts, local/scoped formulas, legacy arrays, stale
+names/rules/tables, native styles/geometry, rule-specific children, inactive-sheet
+sort/filter/outline operations, validation, scenarios, GoalSeek, snapshot tables,
+writer plans/events, protected/invalid zero-write paths, grouped undo and XLSX
+round trips. Existing range, event, workbook, UDF and macro regression suites
+remain required. Final validation results are recorded with this delivery below.
+
+Final validation for the native-profile delivery:
+
+- `CRAFT_FONTS_DIR=target/craft-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci`:
+  all 10 stages passed (i18n-report, formatting, strict workspace Clippy,
+  workspace tests, doctests, assets, layers, WASM, parity and keytips). The fonts
+  are the existing external pinned checkout, not new repository assets.
+- `crates/vba/tests/high.rs`: **17 passed**, including stale table Sort/Filter
+  views after native table-ID reuse and exact native writer event destinations.
+  `crates/vba/tests/worksheet.rs`: **17 passed**, including independent UDF
+  rectangular-array argument and return subscript checks.
+- Optional `gridcraft-ui-egui --features vba-window` suites `vba`, `vba_events`,
+  `vba_forms`, `vba_windows`: **32 passed**.
+- `cargo run -p xtask --features vba-audit -- vba-audit --write`, followed by
+  the non-writing audit: passed; **5,996 source paths/semantic rows, 272 enum
+  types and 2,260 typed constants** retained. Audit unit tests: **3 passed**.
+  Historical inventory statuses were not rewritten. Source rows with current
+  implemented descriptors: OM07 373, OM05 208, OM06 100, OM18 51; these are
+  bounded profile entries, not a parity percentage or a full-packet certificate.
+- Optional VBA web build (`gridcraft-vba`, `gridcraft-web/vba`) and VBA test
+  compilation on `wasm32-unknown-unknown`: passed. The optional web build still
+  emits the pre-existing UI `Modified::Unknown` dead-code warning.
+- `git diff --check`: passed. No dependency pin or CI workflow changed.

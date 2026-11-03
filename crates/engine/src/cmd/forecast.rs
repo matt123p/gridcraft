@@ -381,6 +381,7 @@ fn forecast_sheet(s: &mut Session, p: &Json) -> Result<Json> {
         }
         let range = RangeRef::new(CellRef::new(0, 0), CellRef::new(end_row - 1, width - 1));
         sheet.tables.push(Table {
+            identity: Default::default(),
             id: table_id,
             name: table_name.clone(),
             range,
@@ -388,7 +389,15 @@ fn forecast_sheet(s: &mut Session, p: &Json) -> Result<Json> {
             totals_row: false,
             columns: headers
                 .iter()
-                .map(|h| TableColumn { name: h.clone(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None })
+                .map(|h| TableColumn {
+                    identity: Default::default(),
+                    name: h.clone(),
+                    totals: TotalsFn::None,
+                    totals_label: None,
+                    formula: None,
+                    unique_name: None,
+                    xml: None,
+                })
                 .collect(),
             style: "TableStyleMedium2".into(),
             banded_rows: true,

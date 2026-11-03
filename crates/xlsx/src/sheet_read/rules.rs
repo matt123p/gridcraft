@@ -121,6 +121,7 @@ pub(super) fn read_cf(cx: &mut Ctx<'_>, e: &El, sheet: &mut Sheet) {
             break;
         }
         sheet.cond_formats.push(CondFormat {
+            identity: Default::default(),
             ranges: ranges.clone(),
             rule,
             priority: r.attr_u32("priority").unwrap_or(0),

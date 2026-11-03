@@ -1,7 +1,7 @@
 use super::sort::sort_key;
 use super::{
     AutoFilter, CellRef, EngineError, FilterCriterion, Json, Ordering, RangeRef, Result, Session, Sheet, Value, Workbook, bad, bool_param, col_param,
-    current_region, data_target, edit, json,
+    current_region, data_target, edit, json, target_sheet,
 };
 
 // ---------------------------------------------------------------- filter
@@ -9,6 +9,9 @@ use super::{
 pub(super) fn toggle_filter(s: &mut Session, p: &Json) -> Result<Json> {
     let (sheet, r) = data_target(s, p, "data.filter")?;
     crate::cmd::refuse_unless_allowed(s, sheet, "Filtering", |p| p.autofilter)?;
+    if bool_param(p, "ensure").unwrap_or(false) {
+        return install_filter(s, p);
+    }
     // The active cell belongs to the active sheet: on another sheet the table is the one at `range`.
     let at = if sheet == s.doc()?.wb.active_sheet() { s.doc()?.selection.active } else { r.start };
     let has = s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.autofilter.is_some());
@@ -62,14 +65,20 @@ fn install_filter(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 pub(super) fn filter_by(s: &mut Session, p: &Json) -> Result<Json> {
-    let sheet = s.doc()?.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     crate::cmd::refuse_unless_allowed(s, sheet, "Filtering", |p| p.autofilter)?;
     let Some(sh) = s.doc()?.wb.sheet(sheet) else { return Err(EngineError::NoDocument) };
-    let af = match &sh.autofilter {
-        Some(a) => a.clone(),
-        None => {
-            install_filter(s, &json!({}))?;
-            s.doc()?.wb.sheet(sheet).and_then(|sh| sh.autofilter.clone()).ok_or_else(|| EngineError::Other("no filter".into()))?
+    let table = p.get("table").and_then(Json::as_str);
+    let af = if let Some(name) = table {
+        let t = sh.tables.iter().find(|t| t.name.eq_ignore_ascii_case(name)).ok_or_else(|| bad("data.filterBy", "table not found"))?;
+        AutoFilter { range: t.range, criteria: t.filter.clone() }
+    } else {
+        match &sh.autofilter {
+            Some(a) => a.clone(),
+            None => {
+                install_filter(s, p)?;
+                s.doc()?.wb.sheet(sheet).and_then(|sh| sh.autofilter.clone()).ok_or_else(|| bad("data.filterBy", "no filter"))?
+            }
         }
     };
     let col = match col_param(p.get("column"), af.range.start.col) {
@@ -106,10 +115,25 @@ pub(super) fn filter_by(s: &mut Session, p: &Json) -> Result<Json> {
     };
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
-        if let Some(a) = sh.autofilter.as_mut() {
-            a.criteria.retain(|(o, _)| *o != off);
-            if let Some(c) = crit.clone() {
-                a.criteria.push((off, c));
+        let formerly_filtered = if table.is_some() {
+            (af.range.start.row + 1..=af.range.end.row).filter(|row| sh.is_row_filtered(*row)).collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let criteria = if let Some(name) = table {
+            &mut sh.tables.iter_mut().find(|t| t.name.eq_ignore_ascii_case(name)).ok_or_else(|| bad("data.filterBy", "table not found"))?.filter
+        } else {
+            &mut sh.autofilter.as_mut().ok_or_else(|| bad("data.filterBy", "filter missing"))?.criteria
+        };
+        criteria.retain(|(o, _)| *o != off);
+        if let Some(c) = crit.clone() {
+            criteria.push((off, c));
+        }
+        if table.is_some() && criteria.is_empty() {
+            for row in formerly_filtered {
+                if let Some(info) = sh.rows.get_mut(&row) {
+                    info.hidden = false;
+                }
             }
         }
         apply_filter(&mut cx.wb, sheet);
@@ -182,8 +206,34 @@ pub(crate) fn grow_autofilter(sh: &mut Sheet, at: CellRef) {
 
 /// Hides rows of the autofilter range that fail any criterion.
 pub(crate) fn apply_filter(wb: &mut Workbook, sheet: usize) {
-    let Some(sh) = wb.sheet(sheet) else { return };
-    let Some(af) = sh.autofilter.clone() else { return };
+    let Some(sh) = wb.sheet(sheet) else {
+        return;
+    };
+    let mut filters = sh.autofilter.iter().cloned().collect::<Vec<_>>();
+    filters.extend(
+        sh.tables.iter().filter(|t| t.filter_button && !t.filter.is_empty()).map(|t| AutoFilter { range: t.range, criteria: t.filter.clone() }),
+    );
+    let mut hidden = std::collections::BTreeMap::new();
+    for filter in filters {
+        for (row, hide) in filter_rows(wb, sheet, &filter) {
+            *hidden.entry(row).or_insert(false) |= hide;
+        }
+    }
+    let Some(sh) = wb.sheet_mut(sheet) else {
+        return;
+    };
+    for (row, hide) in hidden {
+        if hide {
+            sh.rows.entry(row).or_default().hidden = true;
+        } else if let Some(info) = sh.rows.get_mut(&row) {
+            info.hidden = false;
+        }
+    }
+}
+fn filter_rows(wb: &Workbook, sheet: usize, af: &AutoFilter) -> Vec<(u32, bool)> {
+    let Some(sh) = wb.sheet(sheet) else {
+        return Vec::new();
+    };
     let r = af.range;
     let mut hide = Vec::new();
     // Precompute per-criterion top10 threshold and average once, not per row.
@@ -258,22 +308,29 @@ pub(crate) fn apply_filter(wb: &mut Workbook, sheet: usize) {
         }
         hide.push((row, !visible));
     }
-    let Some(shm) = wb.sheet_mut(sheet) else { return };
-    for (row, h) in hide {
-        if h {
-            shm.rows.entry(row).or_default().hidden = true;
-        } else if let Some(e) = shm.rows.get_mut(&row) {
-            e.hidden = false;
-        }
-    }
+    hide
 }
 
-pub(super) fn clear_filter(s: &mut Session, _: &Json) -> Result<Json> {
-    let sheet = s.doc()?.wb.active_sheet();
+pub(super) fn clear_filter(s: &mut Session, p: &Json) -> Result<Json> {
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
-        if let Some(a) = sh.autofilter.as_mut() {
-            a.criteria.clear();
+        let formerly_filtered = sh.rows.keys().copied().filter(|row| sh.is_row_filtered(*row)).collect::<Vec<_>>();
+        if let Some(name) = p.get("table").and_then(Json::as_str) {
+            let t = sh.tables.iter_mut().find(|t| t.name.eq_ignore_ascii_case(name)).ok_or_else(|| bad("data.clearFilter", "table not found"))?;
+            t.filter.clear();
+        } else {
+            if let Some(a) = sh.autofilter.as_mut() {
+                a.criteria.clear();
+            }
+            for table in &mut sh.tables {
+                table.filter.clear();
+            }
+        }
+        for row in formerly_filtered {
+            if let Some(info) = sh.rows.get_mut(&row) {
+                info.hidden = false;
+            }
         }
         apply_filter(&mut cx.wb, sheet);
         cx.structural = true;
@@ -281,8 +338,8 @@ pub(super) fn clear_filter(s: &mut Session, _: &Json) -> Result<Json> {
     })
 }
 
-pub(super) fn reapply(s: &mut Session, _: &Json) -> Result<Json> {
-    let sheet = s.doc()?.wb.active_sheet();
+pub(super) fn reapply(s: &mut Session, p: &Json) -> Result<Json> {
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         apply_filter(&mut cx.wb, sheet);
         cx.structural = true;

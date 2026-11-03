@@ -129,3 +129,22 @@ impl Session {
         self.execute_with("sheet.visibility", || std::borrow::Cow::Borrowed(&params), |s, _| cmd::sheet::visibility_native(s, sheet, visibility))
     }
 }
+
+impl Session {
+    /// Existing data writers expose their computed footprint without changing state or the journal.
+    pub fn preview_data_mutation(&mut self, id: &str, params: &Json) -> Result<Option<(usize, RangeRef)>> {
+        let plan = match id {
+            "data.textToColumns" | "data.subtotal" => cmd::data::preview_mutation(self, id, params)?,
+            "data.advancedFilter" | "data.consolidate" => cmd::whatif::preview_mutation(self, id, params)?,
+            _ => return Err(EngineError::Other("no native data mutation planner".into())),
+        };
+        let Some(range) = plan.get("range").and_then(Json::as_str) else { return Ok(None) };
+        let range = RangeRef::parse(range).ok_or_else(|| EngineError::Other("invalid planned data range".into()))?;
+        let sheet = plan
+            .get("sheet")
+            .and_then(Json::as_u64)
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or_else(|| EngineError::Other("invalid planned worksheet".into()))?;
+        Ok(Some((sheet, range)))
+    }
+}

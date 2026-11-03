@@ -120,11 +120,13 @@ fn check_cf_rule(rule: &CfRule) -> Result<()> {
             }
         }
         CfRule::Expression { formula, .. } => check_cf_formula(CMD, "rule", formula)?,
+        CfRule::IconSet{set,thresholds,..}=>{if thresholds.len()!=gridcraft_model::icon_count(set){return Err(bad(CMD,"icon threshold count differs from icon count"));}for value in thresholds{check_cf_value("icon threshold",value)?;}},
         CfRule::DataBar { min, max, .. } => {
             check_cf_value("data bar minimum", min)?;
             check_cf_value("data bar maximum", max)?;
         }
         CfRule::ColorScale { stops } => {
+            if !matches!(stops.len(),2|3){return Err(bad(CMD,"color scale requires two or three stops"));}
             for (kind, _) in stops {
                 check_cf_value("color scale threshold", kind)?;
             }
@@ -241,7 +243,7 @@ pub(super) fn add_cf(s: &mut Session, p: &Json) -> Result<Json> {
         },
         "iconSet" => CfRule::IconSet {
             set: g("set").unwrap_or_else(|| "3TrafficLights1".into()),
-            thresholds: vec![],
+            thresholds: gridcraft_model::default_icon_thresholds(g("set").as_deref().unwrap_or("3TrafficLights1")),
             reverse: rule.get("reverse").and_then(Json::as_bool).unwrap_or(false),
             show_value: true,
         },
@@ -255,7 +257,7 @@ pub(super) fn add_cf(s: &mut Session, p: &Json) -> Result<Json> {
         for cf in sh.cond_formats.iter_mut() {
             cf.priority += 1;
         }
-        sh.cond_formats.insert(0, CondFormat { ranges: ranges.clone(), rule, priority: 1, stop_if_true: false });
+        sh.cond_formats.insert(0, CondFormat { identity: Default::default(), ranges: ranges.clone(), rule, priority: 1, stop_if_true: false });
         let _ = priority;
         Ok(json!({"rules": sh.cond_formats.len()}))
     })

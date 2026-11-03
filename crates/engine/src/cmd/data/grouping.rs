@@ -57,10 +57,10 @@ pub(super) fn group(s: &mut Session, p: &Json, on: bool) -> Result<Json> {
 /// failing that the one they are the summary of. Hiding marks the summary line collapsed (the
 /// + button, saved to XLSX); showing keeps inner groups that were collapsed on their own collapsed.
 pub(super) fn detail(s: &mut Session, p: &Json, hide: bool) -> Result<Json> {
+    let si = target_sheet(s, p)?;
     let (rows, a, b) = outline_lines(s, p)?;
     let want = p.get("level").and_then(Json::as_u64).map(|l| l.min(outline::MAX_LEVEL as u64) as u8);
     edit(s, |cx| {
-        let si = cx.sheet_index();
         let sh = cx.sheet_mut(si)?;
         let before = outline::summary_before(sh, rows);
         let map = if rows { &mut sh.rows } else { &mut sh.cols };
@@ -115,6 +115,7 @@ fn set_hidden(e: &mut LineInfo, hidden: bool) {
 /// The outline's level buttons: show rows / columns down to outline level `n` (1 = only the
 /// top-level summaries); deeper detail is hidden and its summary lines marked collapsed.
 pub(super) fn show_levels(s: &mut Session, p: &Json) -> Result<Json> {
+    let si = target_sheet(s, p)?;
     let level = |k: &str| p.get(k).and_then(Json::as_u64).map(|n| n.clamp(1, outline::MAX_LEVEL as u64 + 1) as u8);
     let (rows, cols) = (level("rows"), level("cols"));
     if rows.is_none() && cols.is_none() {
@@ -124,7 +125,6 @@ pub(super) fn show_levels(s: &mut Session, p: &Json) -> Result<Json> {
         });
     }
     edit(s, |cx| {
-        let si = cx.sheet_index();
         let sh = cx.sheet_mut(si)?;
         let before = (outline::summary_before(sh, true), outline::summary_before(sh, false));
         for (map, n, before) in [(&mut sh.rows, rows, before.0), (&mut sh.cols, cols, before.1)] {
@@ -234,6 +234,21 @@ pub(super) fn subtotal(s: &mut Session, p: &Json) -> Result<Json> {
             groups.push((start, row - 1, prev));
             start = row;
         }
+    }
+    let last_used = sh.used_range().map(|r| r.end).unwrap_or(r.end);
+    let last_row = last_used
+        .row
+        .max(r.end.row)
+        .checked_add(groups.len() as u32)
+        .and_then(|n| n.checked_add(1))
+        .filter(|n| *n < gridcraft_core::MAX_ROWS)
+        .ok_or_else(|| bad("data.subtotal", "summary rows exceed worksheet"))?;
+    let footprint = RangeRef::new(r.start, CellRef::new(last_row, last_used.col.max(r.end.col)));
+    if footprint.count() > 65536 {
+        return Err(bad("data.subtotal", "summary footprint cell budget"));
+    }
+    if bool_param(p, "preview") == Some(true) {
+        return Ok(json!({"sheet":sheet,"range":footprint.a1(),"groups":groups.len()}));
     }
     // The totals go below each group, so the outline puts summary rows below their detail (the
     // Subtotal dialog's "Summary below data"), in the same undo step.

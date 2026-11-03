@@ -216,7 +216,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Manage Rules…",
             ["Home", "Styles", "Conditional Formatting"],
             None,
-            "{delete?: index, moveUp?: index, moveDown?: index}",
+            "{sheet?, delete?: index, moveUp?: index, moveDown?: index, update?: {index, rule?: typed CfRule, ranges?: [A1 range], priority?: one-based position, stopIfTrue?: bool}}",
             has_doc,
             manage_cf
         ),
@@ -343,6 +343,7 @@ fn insert_table(s: &mut Session, p: &Json) -> Result<Json> {
             names.push(n);
         }
         sh.tables.push(Table {
+            identity: Default::default(),
             id,
             name: name.clone(),
             range: r,
@@ -350,7 +351,15 @@ fn insert_table(s: &mut Session, p: &Json) -> Result<Json> {
             totals_row: false,
             columns: names
                 .into_iter()
-                .map(|n| TableColumn { name: n, totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None })
+                .map(|n| TableColumn {
+                    identity: Default::default(),
+                    name: n,
+                    totals: TotalsFn::None,
+                    totals_label: None,
+                    formula: None,
+                    unique_name: None,
+                    xml: None,
+                })
                 .collect(),
             style,
             banded_rows: true,
@@ -1561,11 +1570,22 @@ fn check_cf_rule(rule: &CfRule) -> Result<()> {
             }
         }
         CfRule::Expression { formula, .. } => check_cf_formula(CMD, "rule", formula)?,
+        CfRule::IconSet { set, thresholds, .. } => {
+            if !thresholds.is_empty() && thresholds.len() != gridcraft_model::icon_count(set) {
+                return Err(bad(CMD, "icon threshold count differs from icon count"));
+            }
+            for value in thresholds {
+                check_cf_value("icon threshold", value)?;
+            }
+        }
         CfRule::DataBar { min, max, .. } => {
             check_cf_value("data bar minimum", min)?;
             check_cf_value("data bar maximum", max)?;
         }
         CfRule::ColorScale { stops } => {
+            if !matches!(stops.len(), 2 | 3) {
+                return Err(bad(CMD, "color scale requires two or three stops"));
+            }
             for (kind, _) in stops {
                 check_cf_value("color scale threshold", kind)?;
             }
@@ -1682,7 +1702,7 @@ fn add_cf(s: &mut Session, p: &Json) -> Result<Json> {
         },
         "iconSet" => CfRule::IconSet {
             set: g("set").unwrap_or_else(|| "3TrafficLights1".into()),
-            thresholds: vec![],
+            thresholds: gridcraft_model::default_icon_thresholds(g("set").as_deref().unwrap_or("3TrafficLights1")),
             reverse: rule.get("reverse").and_then(Json::as_bool).unwrap_or(false),
             show_value: true,
         },
@@ -1696,7 +1716,7 @@ fn add_cf(s: &mut Session, p: &Json) -> Result<Json> {
         for cf in sh.cond_formats.iter_mut() {
             cf.priority += 1;
         }
-        sh.cond_formats.insert(0, CondFormat { ranges: ranges.clone(), rule, priority: 1, stop_if_true: false });
+        sh.cond_formats.insert(0, CondFormat { identity: Default::default(), ranges: ranges.clone(), rule, priority: 1, stop_if_true: false });
         let _ = priority;
         Ok(json!({"rules": sh.cond_formats.len()}))
     })
@@ -1721,6 +1741,10 @@ fn clear_cf(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn manage_cf(s: &mut Session, p: &Json) -> Result<Json> {
+    if let Some(update) = p.get("update") {
+        return update_cf(s, p, update);
+    }
+
     let sheet = target_sheet(s, p)?;
     if p.get("delete").is_none() && p.get("moveUp").is_none() && p.get("moveDown").is_none() {
         let list: Vec<Json> = s
@@ -1780,6 +1804,63 @@ fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     edit(s, |cx| {
         cx.sheet_mut(sheet)?.shapes.push(shape);
         Ok(json!({"shape": id}))
+    })
+}
+
+/// Host-neutral edit of existing conditional-format state, through the ordinary command boundary.
+fn update_cf(s: &mut Session, p: &Json, update: &Json) -> Result<Json> {
+    let sheet = target_sheet(s, p)?;
+    super::refuse_unless_allowed(s, sheet, "Conditional formatting", |p| p.format_cells)?;
+    let index = update
+        .get("index")
+        .and_then(Json::as_u64)
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| bad("home.manageRules", "missing rule index"))?;
+    let old = s.doc()?.wb.sheet(sheet).and_then(|sh| sh.cond_formats.get(index)).ok_or_else(|| bad("home.manageRules", "rule was deleted"))?.clone();
+    let mut next = old;
+    if let Some(rule) = update.get("rule") {
+        next.rule = serde_json::from_value(rule.clone()).map_err(|e| bad("home.manageRules", e.to_string()))?;
+        check_cf_rule(&next.rule)?;
+    }
+    if let Some(ranges) = update.get("ranges") {
+        let values = ranges.as_array().ok_or_else(|| bad("home.manageRules", "invalid ranges"))?;
+        if values.is_empty() || values.len() > 64 {
+            return Err(bad("home.manageRules", "range budget"));
+        }
+        let mut cells = 0u64;
+        next.ranges.clear();
+        for value in values {
+            let range = value.as_str().and_then(RangeRef::parse).ok_or_else(|| bad("home.manageRules", "invalid range"))?;
+            cells = cells.saturating_add(range.count());
+            if cells > 65536 {
+                return Err(bad("home.manageRules", "cell budget"));
+            }
+            next.ranges.push(range);
+        }
+    }
+    if let Some(stop) = update.get("stopIfTrue") {
+        next.stop_if_true = stop.as_bool().ok_or_else(|| bad("home.manageRules", "invalid StopIfTrue"))?;
+    }
+    let priority = update
+        .get("priority")
+        .map(|p| {
+            p.as_u64()
+                .and_then(|n| usize::try_from(n).ok())
+                .filter(|n| *n >= 1 && *n <= s.doc().ok().and_then(|d| d.wb.sheet(sheet)).map(|sh| sh.cond_formats.len()).unwrap_or(0))
+                .ok_or_else(|| bad("home.manageRules", "invalid priority"))
+        })
+        .transpose()?;
+    edit(s, |cx| {
+        let sh = cx.sheet_mut(sheet)?;
+        sh.cond_formats[index] = next.clone();
+        if let Some(priority) = priority {
+            let rule = sh.cond_formats.remove(index);
+            sh.cond_formats.insert(priority - 1, rule);
+        }
+        for (i, rule) in sh.cond_formats.iter_mut().enumerate() {
+            rule.priority = i as u32 + 1;
+        }
+        Ok(Json::Null)
     })
 }
 

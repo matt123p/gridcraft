@@ -106,7 +106,7 @@ pub(crate) fn read_workbook(workbook: &Workbook, sheet: usize, range: RangeRef, 
     }
     let mut array = VbaArray::new(ScalarKind::Variant, vec![(1, rows as i32), (1, cols as i32)], false).map_err(|e| failure(7, e.to_string()))?;
     for (index, value) in values.into_iter().enumerate() {
-        array.set(index, value).map_err(|e| failure(7, e.to_string()))?;
+        array.set(vba_matrix_index(index, rows, cols), value).map_err(|e| failure(7, e.to_string()))?;
     }
     Ok(Value::Array(array))
 }
@@ -173,7 +173,7 @@ pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value:
             let missing = Value::CvErr(2042);
             let element = match &array {
                 Some((a, shape)) if row < shape.first().copied().unwrap_or(0) && col < shape.get(1).copied().unwrap_or(0) => {
-                    a.get(row * shape.get(1).copied().unwrap_or(0) + col).ok_or_else(|| failure(9, "invalid array storage"))?
+                    a.get(row + col * shape.first().copied().unwrap_or(0)).ok_or_else(|| failure(9, "invalid array storage"))?
                 }
                 Some(_) => &missing,
                 None => value,
@@ -227,4 +227,13 @@ pub(crate) fn write(session: &mut Session, sheet: usize, range: RangeRef, value:
     }
     session.set_range_contents_with_formats(sheet, range, &data, &formats).map_err(|e| failure(1004, e.to_string()))?;
     Ok(())
+}
+
+/// Calculator/cell matrices are row-major; tiny-vba arrays are column-major.
+/// Callers have already bounded and validated the matrix shape.
+pub(crate) fn vba_matrix_index(index: usize, rows: usize, cols: usize) -> usize {
+    if cols == 0 {
+        return index;
+    }
+    index / cols + (index % cols) * rows
 }

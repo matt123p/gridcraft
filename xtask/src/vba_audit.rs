@@ -17,8 +17,19 @@ use gridcraft_vba::{MemberAvailability, MemberDescriptor};
 const ARCHIVE_SHA256: &str = "285218108a034fc33acc8296d714395fd182397ada27c848b93c3d5423efd75e";
 const COMMIT: &str = "b202c96d9d53896593b73d6fae57f5230601a5e3";
 const PAGE_COUNT: usize = 5_996;
-const DOCUMENTATION_EXCEPTIONS: &[(&str, &str, &str)] =
-    &[("workbook", "calculate", "Excel exposes workbook-scoped Calculate although the pinned VBA-Docs set has no Workbook.Calculate page")];
+const DOCUMENTATION_EXCEPTIONS: &[(&str, &str, &str)] = &[
+    ("workbook", "calculate", "Excel exposes workbook-scoped Calculate although the pinned VBA-Docs set has no Workbook.Calculate page"),
+    (
+        "range",
+        "goalseek",
+        "Native Goal Seek projection; pinned VBA-Docs omits this member, independently documented at https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.excel.range.goalseek",
+    ),
+    (
+        "range",
+        "evaluate",
+        "GridCraft range-relative Evaluate extension explicitly requested by OM07; pinned Excel VBA reference only documents Application/Worksheet receivers, so this is not an Excel parity claim",
+    ),
+];
 
 pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     let write = args.contains(&"--write");
@@ -210,6 +221,7 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
         (result_state, profile) = match descriptor.availability {
             MemberAvailability::Implemented => ("PARTIAL", Some("GridCraft.Excel.v1")),
             MemberAvailability::ServiceRequired => ("PLATFORM_SERVICE_NEEDED", None),
+            MemberAvailability::OutOfScope => ("OUT_OF_SCOPE_GRIDCRAFT", None),
         };
     }
     let enum_values_complete = kind == "enumeration" && enum_table_member_count(markdown) == enum_values.len() && !enum_values.is_empty();
@@ -304,6 +316,7 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
         "descriptor_availability": descriptor.map(|item| match item.availability {
             MemberAvailability::Implemented => "IMPLEMENTED",
             MemberAvailability::ServiceRequired => "SERVICE_REQUIRED",
+            MemberAvailability::OutOfScope=>"OUT_OF_SCOPE_GRIDCRAFT",
         }),
         "dispatch_evidence": if descriptor.is_some() { "shared-member-descriptor" } else if implementation_symbol.is_some() { "explicit-event-or-enum" } else { "none" },
         "test_ids": [],

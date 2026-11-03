@@ -147,6 +147,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | What landed |
 |---|---|
+| 2026-11-03 | Native-backed VBA formula/name/function, formatting/rule, data/outline/what-if and local table projections; native identities, matrix-layout conversions and explicit unsupported-option reporting. Bounded profile only; remaining invocation/continuation work still blocks whole-High sign-off. |
 | 2026-10-27 | Native typed `range.setContents` command and host API preserve literal/error/formula types and destination formats. VBA now writes Text-formatted cells through the shared engine lifecycle; recordings replay the exact typed contents. |
 | 2026-10-27 | Optional tiny-vba adapter and shared editor/debugger, pinned as a separate Git dependency; bounded workbook object profile, native/WASM acceptance and source/package preservation. See [the exact scope](docs/vba.md). |
 | 2026-10-28 | Optional native VBA editor window (`vba-window`) sharing the embedded session, revised Excel entry routes, selection-based macro Edit/Step Into and original native/window lifecycle acceptance. |

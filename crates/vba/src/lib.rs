@@ -5,15 +5,27 @@
 mod address;
 mod application;
 mod clipboard;
+mod condition_details;
+mod conditional_api;
+mod data_api;
+mod features;
+mod format_api;
 mod formatting;
+mod formula_api;
 mod lifecycle;
+mod named_style_api;
 mod objects;
+mod outline_api;
+mod protection_api;
 mod ranges;
 mod references;
+mod scenario_api;
 mod search;
 mod structure;
+mod table_api;
 mod types;
 mod values;
+mod whatif_api;
 pub mod worksheet;
 
 use gridcraft_engine::core::RangeRef;
@@ -54,6 +66,7 @@ pub const MACRO_EXECUTION_LIMITS: Limits = Limits {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MemberAvailability {
     Implemented,
+    OutOfScope,
     ServiceRequired,
 }
 
@@ -71,6 +84,7 @@ pub struct MemberDescriptor {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompatibilityStatus {
     Supported,
+    OutOfScope,
     ServiceRequired,
     Missing,
     Unknown,
@@ -107,6 +121,8 @@ pub struct Bridge {
     pub(crate) doc: u64,
     sheets: BTreeMap<u64, Vec<gridcraft_engine::model::sheet::SheetIdentity>>,
     context: u64,
+    sorts: Vec<data_api::SortState>,
+    formula_locale: gridcraft_engine::formula::FormulaLocale,
     range_epochs: BTreeMap<u64, u64>,
     objects: Arc<types::Objects>,
     group: BTreeMap<u64, GroupToken>,
@@ -132,6 +148,8 @@ impl Bridge {
             doc: doc.uid,
             sheets: BTreeMap::from([(doc.uid, doc.wb.sheets.iter().map(|s| s.identity.clone()).collect())]),
             context: doc.uid,
+            sorts: Vec::new(),
+            formula_locale: gridcraft_engine::formula::FormulaLocale::En,
             range_epochs: BTreeMap::from([(doc.uid, doc.range_epoch)]),
             objects: Arc::new(types::Objects::new(identity, doc.uid, doc.sheet_index())),
             group: BTreeMap::new(),
@@ -227,6 +245,10 @@ impl Bridge {
         let index = self.objects.intern(object)?;
         Ok(Value::Object(self.reference(index)))
     }
+    /// The embedding supplies its existing formula-entry locale; headless defaults to canonical English.
+    pub fn set_formula_locale(&mut self, locale: gridcraft_engine::formula::FormulaLocale) {
+        self.formula_locale = locale;
+    }
     pub fn configure(&self, ide: &mut Ide) -> Result<()> {
         self.configure_with_workbook(ide, None)
     }
@@ -300,9 +322,22 @@ impl Bridge {
             Import { name: "Application".into(), root: "Excel".into(), member: None, kind: InvokeKind::Get },
             Import { name: "ThisWorkbook".into(), root: "Workbook".into(), member: None, kind: InvokeKind::Get },
         ];
-        for name in
-            ["ActiveWorkbook", "ActiveSheet", "ActiveCell", "Selection", "Workbooks", "Worksheets", "Sheets", "Range", "Cells", "Rows", "Columns"]
-        {
+        for name in [
+            "ActiveWorkbook",
+            "ActiveSheet",
+            "ActiveCell",
+            "Selection",
+            "Evaluate",
+            "WorksheetFunction",
+            "Names",
+            "Workbooks",
+            "Worksheets",
+            "Sheets",
+            "Range",
+            "Cells",
+            "Rows",
+            "Columns",
+        ] {
             imports.push(Import {
                 name: name.into(),
                 root: "Excel".into(),
@@ -320,6 +355,8 @@ impl Bridge {
         ("ActiveSheet", "Worksheet"),
         ("ActiveCell", "Range"),
         ("Selection", "Range"),
+        ("WorksheetFunction", "WorksheetFunction"),
+        ("Names", "Names"),
         ("Workbooks", "Workbooks"),
         ("Worksheets", "Worksheets"),
         ("Sheets", "Sheets"),
@@ -858,6 +895,17 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         availability: MemberAvailability::ServiceRequired,
         implementation_symbol: if owner == "Application" && name == "Run" { "crates/vba/src/application.rs::Bridge::application_state" } else { "crates/vba/src/objects.rs::Bridge::invoke_object" },
     }))
+    .chain(formula_api::descriptors())
+    .chain(format_api::descriptors())
+    .chain(named_style_api::descriptors())
+    .chain(protection_api::descriptors())
+    .chain(conditional_api::descriptors())
+    .chain(condition_details::descriptors())
+    .chain(data_api::descriptors())
+    .chain(outline_api::descriptors())
+    .chain(table_api::descriptors())
+    .chain(whatif_api::descriptors())
+    .chain(scenario_api::descriptors())
     .collect()
 }
 
@@ -890,6 +938,7 @@ pub fn compatibility<'a>(receiver: Option<&'a str>, member: &'a str) -> Compatib
             status: match descriptor.availability {
                 MemberAvailability::Implemented => CompatibilityStatus::Supported,
                 MemberAvailability::ServiceRequired => CompatibilityStatus::ServiceRequired,
+                MemberAvailability::OutOfScope => CompatibilityStatus::OutOfScope,
             },
             signature: Some(descriptor.signature),
         },
@@ -907,6 +956,7 @@ pub fn compatibility_report<'a>(calls: impl IntoIterator<Item = (Option<&'a str>
             let status = match finding.status {
                 CompatibilityStatus::Supported => "SUPPORTED",
                 CompatibilityStatus::ServiceRequired => "SERVICE_REQUIRED",
+                CompatibilityStatus::OutOfScope => "OUT_OF_SCOPE_GRIDCRAFT",
                 CompatibilityStatus::Missing => "MISSING",
                 CompatibilityStatus::Unknown => "UNKNOWN",
             };

@@ -14,11 +14,61 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             name: "Excel".into(),
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
-            types: ["Application", "Workbooks", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets", "Areas", "Font", "Interior"]
-                .into_iter()
-                .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
-                .chain(EXCEL_ENUM_TYPES.iter().map(|name| ReferenceType { name: (*name).into(), kind: ReferenceTypeKind::Enum }))
-                .collect(),
+            types: [
+                "Application",
+                "WorksheetFunction",
+                "Names",
+                "Name",
+                "Borders",
+                "Border",
+                "Scenarios",
+                "Scenario",
+                "ListObjects",
+                "ListObject",
+                "ListRows",
+                "ListRow",
+                "ListColumns",
+                "ListColumn",
+                "Outline",
+                "Sort",
+                "SortFields",
+                "SortField",
+                "AutoFilter",
+                "Filters",
+                "Filter",
+                "Validation",
+                "FormatConditions",
+                "FormatCondition",
+                "ColorScaleCriteria",
+                "ColorScaleCriterion",
+                "ConditionValue",
+                "FormatColor",
+                "IconCriteria",
+                "IconCriterion",
+                "IconSet",
+                "IconSets",
+                "Styles",
+                "Style",
+                "ColorScale",
+                "Databar",
+                "IconSetCondition",
+                "Top10",
+                "UniqueValues",
+                "AboveAverage",
+                "Workbooks",
+                "Workbook",
+                "Worksheet",
+                "Range",
+                "Worksheets",
+                "Sheets",
+                "Areas",
+                "Font",
+                "Interior",
+            ]
+            .into_iter()
+            .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
+            .chain(EXCEL_ENUM_TYPES.iter().map(|name| ReferenceType { name: (*name).into(), kind: ReferenceTypeKind::Enum }))
+            .collect(),
             constants: EXCEL_ENUM_CONSTANTS
                 .iter()
                 .map(|(module, name, n)| ReferenceConstant { name: (*name).into(), module: Some((*module).into()), value: Value::Long(*n) })
@@ -95,6 +145,10 @@ impl Objects {
                 let areas = matches!(object.as_ref(), Object::Areas(..));
                 if matches!(object.as_ref(), Object::Range(..) | Object::Areas(..) | Object::Format(..)) {
                     **object = Object::DeletedRange(areas);
+                } else if let Object::Feature(f) = object.as_mut()
+                    && f.range.is_some()
+                {
+                    f.sheet = Some(usize::MAX);
                 }
             }
         }
@@ -108,6 +162,10 @@ impl Objects {
                 _ => continue,
             };
             let sheet = match object {
+                Object::Feature(f) => match f.sheet.as_mut() {
+                    Some(sheet) => sheet,
+                    None => continue,
+                },
                 Object::Sheet(s) | Object::Range(s, _) | Object::Areas(s, _) | Object::Format(s, _, _) => s,
                 _ => continue,
             };
@@ -136,6 +194,9 @@ impl Objects {
                 Object::Range(s, r) => (*s, r, false),
                 Object::Areas(s, r) => (*s, r, true),
                 Object::Format(s, r, _) => (*s, r, false),
+                Object::Feature(f) if f.sheet.is_some() && f.range.is_some() => {
+                    (f.sheet.unwrap_or(usize::MAX), f.range.as_ref().ok_or_else(|| failure(91, "feature range deleted"))?, false)
+                }
                 _ => {
                     result.push(stored.clone());
                     continue;
@@ -158,12 +219,22 @@ impl Objects {
                 }
             }
             if r.areas.is_empty() {
-                result.push(Object::Document(document, Box::new(Object::DeletedRange(areas))));
+                if let Object::Feature(f) = object {
+                    let mut f = f.clone();
+                    f.sheet = Some(usize::MAX);
+                    result.push(Object::Document(document, Box::new(Object::Feature(f))));
+                } else {
+                    result.push(Object::Document(document, Box::new(Object::DeletedRange(areas))));
+                }
             } else {
                 r.validate()?;
                 result.push(Object::Document(
                     document,
-                    Box::new(if let Object::Format(_, _, font) = object {
+                    Box::new(if let Object::Feature(f) = object {
+                        let mut f = f.clone();
+                        f.range = Some(r);
+                        Object::Feature(f)
+                    } else if let Object::Format(_, _, font) = object {
                         Object::Format(owner, r, *font)
                     } else if areas {
                         Object::Areas(owner, r)
@@ -241,6 +312,11 @@ impl ObjectTypeResolver for Objects {
         };
         let name = match object {
             Object::Application => "application",
+            Object::Feature(ref f) => match f.kind {
+                "ConditionFont" => "Font",
+                "ConditionInterior" => "Interior",
+                kind => kind,
+            },
             Object::Document(..) => return Err(failure(91, "invalid nested document owner")),
             Object::Workbook => "workbook",
             Object::Workbooks => "workbooks",
@@ -264,7 +340,7 @@ impl ObjectTypeResolver for Objects {
                 }
             }
         };
-        Ok(expected.library() == "excel" && expected.version() == EXCEL_TYPES_VERSION && expected.name() == name)
+        Ok(expected.library() == "excel" && expected.version() == EXCEL_TYPES_VERSION && expected.name().eq_ignore_ascii_case(name))
     }
 }
 

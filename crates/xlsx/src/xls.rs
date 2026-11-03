@@ -879,7 +879,14 @@ fn defined_names(g: &Globals, model_index: &[Option<usize>], wb: &mut Workbook, 
             }
             Some(_) => {}
             None if lbl.macro_name => report.warn("Macro names were skipped."),
-            None => wb.names.push(DefinedName { name: lbl.name.clone(), scope, formula: text, comment: String::new(), hidden: lbl.hidden }),
+            None => wb.names.push(DefinedName {
+                identity: Default::default(),
+                name: lbl.name.clone(),
+                scope,
+                formula: text,
+                comment: String::new(),
+                hidden: lbl.hidden,
+            }),
         }
     }
 }

@@ -19,6 +19,7 @@ fn go_to_workbook() -> Session {
     define(&mut s, "Total", "=SUM(Sheet1!$B$2:$B$5)", "Workbook");
     let wb = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().wb);
     wb.names.push(gridcraft_model::DefinedName {
+        identity: Default::default(),
         name: "Secret".into(),
         scope: None,
         formula: "Sheet1!$Z$9".into(),

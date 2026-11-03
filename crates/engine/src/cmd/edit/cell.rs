@@ -116,6 +116,32 @@ pub(super) fn cell_set(s: &mut Session, p: &Json) -> Result<Json> {
     // Both spellings take a string, number or boolean, as typed (#697).
     let input = p.get("input").or_else(|| p.get("value")).map(json_to_input).ok_or_else(|| bad("cell.set", "missing `input` (or `value`)"))?;
     let array = bool_param(p, "array").unwrap_or(false);
+    let explicit_array = p
+        .get("arrayRange")
+        .map(|value| {
+            value
+                .as_str()
+                .and_then(RangeRef::parse)
+                .filter(|r| r.count() <= 65536 && array)
+                .ok_or_else(|| bad("cell.set", "invalid or oversized arrayRange"))
+        })
+        .transpose()?;
+    if let Some(range) = explicit_array {
+        let doc = s.doc()?;
+        let sh = doc.wb.sheet(sheet).ok_or(EngineError::NoDocument)?;
+        for at in range.iter() {
+            if sh.is_protected()
+                && doc.wb.styles.get(sh.style_id(at)).protection.locked
+                && let Some(message) = locked_cell_error(sh, at, &doc.unlocked_ranges)
+            {
+                return Err(EngineError::Other(message));
+            }
+        }
+        if sh.cells.iter().any(|(_, c)| c.formula.as_ref().and_then(|f| f.array).is_some_and(|old| old.intersects(&range) && old != range)) {
+            return Err(bad("cell.set", "cannot change part of an array"));
+        }
+    }
+
     let d = s.doc()?;
     if let Some(sh) = d.wb.sheet(sheet)
         && sh.is_protected()
@@ -130,12 +156,20 @@ pub(super) fn cell_set(s: &mut Session, p: &Json) -> Result<Json> {
             // Legacy Ctrl+Shift+Enter array formula over the selection, when the selection holds
             // the cell; a cell elsewhere (or on another sheet) gets a one-cell array.
             let selected = cx.sel.current();
-            let range = if sheet == active_sheet && selected.contains(at) { selected } else { RangeRef::cell(at) };
+            let range = explicit_array.unwrap_or_else(|| if sheet == active_sheet && selected.contains(at) { selected } else { RangeRef::cell(at) });
             // A table header can't hold an array's value, and a table resizes under it.
             if !range.is_single() && cx.wb.sheet(sheet).is_some_and(|sh| sh.tables.iter().any(|t| t.range.intersects(&range))) {
                 return Err(EngineError::Other("Multi-cell array formulas aren't allowed in tables.".into()));
             }
-            let mut cell = input_to_cell(&input, sheet, range.start, &mut cx.wb)?.unwrap_or_default();
+            let mut cell = if explicit_array.is_some() && input.starts_with('=') {
+                let expr = cx.wb.name_call_case(parse_typed_formula(input.trim_start_matches('='))?);
+                check_arg_counts(&expr)?;
+                let mut cell = Cell::formula(Formula::from_expr(expr));
+                cell.style = cx.wb.sheet(sheet).map(|sh| sh.style_id(range.start)).unwrap_or_default();
+                cell
+            } else {
+                input_to_cell(&input, sheet, range.start, &mut cx.wb)?.unwrap_or_default()
+            };
             if let Some(f) = cell.formula.as_mut() {
                 std::sync::Arc::make_mut(f).array = Some(range);
             }

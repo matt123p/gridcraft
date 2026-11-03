@@ -168,6 +168,7 @@ fn full_calc_on_load_means_no_oracle() {
 fn volatile_names_propagate() {
     let mut wb = book(&[("A1", "=Stamp+1", n(1.0))]);
     wb.names.push(gridcraft_engine::model::DefinedName {
+        identity: Default::default(),
         name: "Stamp".into(),
         scope: None,
         formula: "TODAY()".into(),
@@ -213,6 +214,7 @@ fn diff_detects_lost_features() {
 fn diff_detects_changed_cond_format_rule() {
     use gridcraft_engine::model::{CfRule, CfValueKind, Color, CondFormat};
     let bar = |gradient: bool, priority: u32| CondFormat {
+        identity: Default::default(),
         ranges: vec![gridcraft_engine::core::RangeRef::parse("A1").unwrap()],
         rule: CfRule::DataBar { min: CfValueKind::Min, max: CfValueKind::Max, color: Color::Rgb(0x638EC6), gradient, show_value: true },
         priority,

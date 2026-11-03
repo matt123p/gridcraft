@@ -206,7 +206,14 @@ pub fn set_many(wb: &mut Workbook, items: &[(String, String)]) -> Result<()> {
             return Err(EngineError::Other(format!("`{key}` is given twice.")));
         }
         for (i, formula) in chunk_formulas(text).into_iter().enumerate() {
-            planned.push(DefinedName { name: format!("{PREFIX}{key}_{i}"), scope: None, formula, comment: "GridCraft data".into(), hidden: true });
+            planned.push(DefinedName {
+                identity: Default::default(),
+                name: format!("{PREFIX}{key}_{i}"),
+                scope: None,
+                formula,
+                comment: "GridCraft data".into(),
+                hidden: true,
+            });
         }
     }
     // A visible name of an item's shape is someone's own (see `item_of`); a hidden name beside
@@ -376,7 +383,7 @@ mod tests {
     use super::*;
 
     fn name(n: &str, formula: &str) -> DefinedName {
-        DefinedName { name: n.into(), scope: None, formula: formula.into(), comment: String::new(), hidden: true }
+        DefinedName { identity: Default::default(), name: n.into(), scope: None, formula: formula.into(), comment: String::new(), hidden: true }
     }
 
     fn excel_limits_hold(wb: &Workbook) {
@@ -473,7 +480,7 @@ mod tests {
         wb.names.push(name("_gc_deep_0", &deep));
         assert_eq!(get_json(&wb, "deep"), None);
         // Sheet-scoped names are someone else's.
-        wb.names.push(DefinedName { scope: Some(0), ..name("_gc_scoped_0", "\"s\"") });
+        wb.names.push(DefinedName { identity: Default::default(), scope: Some(0), ..name("_gc_scoped_0", "\"s\"") });
         assert_eq!(get(&wb, "scoped"), None);
         // Bad keys are refused.
         for bad in ["", "has space", "quote\"", "a/b", &"k".repeat(201)] {
@@ -498,7 +505,7 @@ mod tests {
         // Someone's own visible `_gc_watch_0` is not storage: it is not read or listed, and
         // writing or removing the item leaves it alone.
         let mut wb = Workbook::new();
-        let own = DefinedName { hidden: false, ..name("_gc_watch_0", "\"mine\"") };
+        let own = DefinedName { identity: Default::default(), hidden: false, ..name("_gc_watch_0", "\"mine\"") };
         wb.names.push(own.clone());
         assert_eq!(get(&wb, "watch"), None);
         assert!(keys(&wb, "").found.is_empty());
@@ -535,7 +542,7 @@ mod tests {
         wb.names.push(name("_gc_watch_00", "\"theirs\""));
         assert_eq!(get(&wb, "watch"), None);
         assert!(keys(&wb, "").found.is_empty());
-        let own = DefinedName { hidden: false, ..name("_gc_watch_00", "\"mine\"") };
+        let own = DefinedName { identity: Default::default(), hidden: false, ..name("_gc_watch_00", "\"mine\"") };
         wb.names.push(own.clone());
         set(&mut wb, "watch", "ours").unwrap();
         assert_eq!(get(&wb, "watch").as_deref(), Some("ours"));

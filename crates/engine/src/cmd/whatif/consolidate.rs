@@ -178,6 +178,9 @@ pub(super) fn consolidate(s: &mut Session, p: &Json) -> Result<Json> {
         (out_r0 + row_keys.len() as u32).saturating_sub(1).max(dest.row),
         (out_c0 + col_keys.len() as u32).saturating_sub(1).max(dest.col),
     );
+    if bool_param(p, "preview").unwrap_or(false) {
+        return Ok(json!({"sheet":dsi,"range":RangeRef::new(dest,end).a1(),"rows":row_keys.len(),"columns":col_keys.len()}));
+    }
     edit(s, |cx| {
         for (c, v) in cells {
             let sh = cx.sheet_mut(dsi)?;

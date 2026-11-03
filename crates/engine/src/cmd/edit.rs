@@ -40,7 +40,15 @@ use selection::{select_all, select_col, select_region, select_row, selection_mov
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        cmd!("cell.set", "Enter Cell", [], None, "{cell?: \"B2\", input: \"text, number or =formula\", sheet?, array?: bool}", has_doc, cell_set),
+        cmd!(
+            "cell.set",
+            "Enter Cell",
+            [],
+            None,
+            "{cell?: \"B2\", input: \"text, number or =formula\", sheet?, array?: bool, arrayRange?: A1 range (explicit bounded legacy-array target)}",
+            has_doc,
+            cell_set
+        ),
         cmd!(
             "range.setContents",
             "Set Cell Contents",

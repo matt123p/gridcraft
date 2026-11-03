@@ -383,7 +383,7 @@ fn argument_fn(value: &CellValue) -> HostResult<Value> {
         let mut array =
             VbaArray::new(ScalarKind::Variant, vec![(1, a.rows as i32), (1, a.cols as i32)], false).map_err(|e| failure(7, e.to_string()))?;
         for (i, v) in a.data.iter().enumerate() {
-            array.set(i, values::from_cell(v.clone())?).map_err(|e| failure(7, e.to_string()))?;
+            array.set(values::vba_matrix_index(i, a.rows, a.cols), values::from_cell(v.clone())?).map_err(|e| failure(7, e.to_string()))?;
         }
         Ok(Value::Array(array))
     } else {
@@ -400,12 +400,13 @@ fn returned(value: &Value) -> HostResult<CellValue> {
         if rows.checked_mul(*cols).is_none_or(|n| n > MAX_CELLS) {
             return Err(failure(7, "worksheet result too large"));
         }
-        let data = a
-            .elements()
-            .iter()
-            .map(|v| match values::content(v, false)? {
-                gridcraft_engine::CellContent::Value(v) => Ok(v),
-                _ => Err(failure(13, "invalid result")),
+        let data = (0..rows * cols)
+            .map(|i| {
+                let v = a.elements().get(values::vba_matrix_index(i, *rows, *cols)).ok_or_else(|| failure(13, "invalid result storage"))?;
+                match values::content(v, false)? {
+                    gridcraft_engine::CellContent::Value(v) => Ok(v),
+                    _ => Err(failure(13, "invalid result")),
+                }
             })
             .collect::<HostResult<Vec<_>>>()?;
         return gridcraft_engine::core::Array::new(*rows, *cols, data).map(CellValue::from).ok_or_else(|| failure(13, "invalid result shape"));

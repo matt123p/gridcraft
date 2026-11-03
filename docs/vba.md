@@ -35,6 +35,16 @@ time. OM numbers are stable family IDs, not queue positions. A later GridCraft
 feature can make a member eligible, but that product work belongs to GridCraft's
 normal roadmap, not this integration workstream.
 
+The [High family delivery](vba-object-model-implementation-plan.md#om07--om05--om06--om18-native-profile-delivery-2026-11-03)
+now includes formula/name/Evaluate/WorksheetFunction access, common formatting
+and conditional-format graphs, native sorting/filtering/validation/data tools,
+and local structured tables. Objects read the native workbook; changes retain
+native protection, recalc, undo and file persistence. The detailed table records
+unsupported options and interpreter limits. Compatibility tooling distinguishes
+`OUT_OF_SCOPE_GRIDCRAFT` from unavailable host services, and the audit retains
+`PARTIAL` for bounded Excel contracts. This is not whole-High or arbitrary-XLSM
+sign-off: Application.Run/interactive lifecycle obligations remain as documented.
+
 `Application.Goto` accepts an explicit Range in the current workbook, activates
 its worksheet and selects its areas, with the first area's first cell active.
 Positional and named `Reference`/`Scroll` arguments are bound; `Scroll` may be

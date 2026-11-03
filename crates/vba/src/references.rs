@@ -47,7 +47,7 @@ fn parts(text: &str, separator: char) -> HostResult<Vec<&str>> {
     Ok(out)
 }
 impl Bridge {
-    fn resolve_text(
+    pub(crate) fn resolve_text(
         session: &Session,
         owner: usize,
         text: &str,
@@ -60,6 +60,23 @@ impl Bridge {
             return Err(failure(7, "reference/name budget"));
         }
         let text = text.trim().strip_prefix('=').unwrap_or(text.trim());
+        if text.contains('[')
+            && let Ok(expr @ gridcraft_engine::formula::Expr::Struct(_)) = gridcraft_engine::formula::parse(text)
+        {
+            let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+            if let gridcraft_engine::calc::eval::Ev::R(areas) =
+                gridcraft_engine::calc::recalc::evaluate_result(&doc.wb, owner, relative.unwrap_or(doc.selection.active), &expr)
+            {
+                let sheet = areas.first().map(|a| a.sheet).ok_or_else(|| failure(1004, "empty structured reference"))?;
+                if areas.len() > 64 || areas.iter().any(|a| a.sheet != sheet) {
+                    return Err(failure(1004, "structured reference owner mismatch"));
+                }
+                let range = Range { areas: areas.into_iter().map(|a| a.range).collect(), unit: Unit::Cells };
+                range.validate()?;
+                return Ok((sheet, range));
+            }
+            return Err(failure(1004, "structured reference is unavailable"));
+        }
         if text.contains(['[', ']', '(', ')']) {
             return Err(failure(1004, "external or computed reference unsupported"));
         }

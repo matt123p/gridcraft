@@ -58,6 +58,7 @@ fn workbook() -> Workbook {
         data.cells.set(CellRef::new(r, 5), Cell::value(Value::text(*ch)));
     }
     data.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "SalesTbl".into(),
         range: rr("A1:F9"),
@@ -65,7 +66,15 @@ fn workbook() -> Workbook {
         totals_row: false,
         columns: headers
             .iter()
-            .map(|h| TableColumn { name: (*h).into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None })
+            .map(|h| TableColumn {
+                identity: Default::default(),
+                name: (*h).into(),
+                totals: TotalsFn::None,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            })
             .collect(),
         style: "TableStyleMedium2".into(),
         banded_rows: true,
@@ -77,7 +86,14 @@ fn workbook() -> Workbook {
         table_type: None,
         connection_id: None,
     });
-    wb.names.push(DefinedName { name: "SalesData".into(), scope: None, formula: "Data!$A$1:$F$9".into(), comment: String::new(), hidden: false });
+    wb.names.push(DefinedName {
+        identity: Default::default(),
+        name: "SalesData".into(),
+        scope: None,
+        formula: "Data!$A$1:$F$9".into(),
+        comment: String::new(),
+        hidden: false,
+    });
 
     let mut report = Sheet::new("Report");
     // Pivot 1: tabular, page filter, custom and built-in value formats, collapsed item, Enable

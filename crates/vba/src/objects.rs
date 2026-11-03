@@ -7,6 +7,7 @@ use vba_foreign::HostArgument;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Object {
     Application,
+    Feature(super::features::Feature),
     Document(u64, Box<Object>),
     Workbook,
     Workbooks,
@@ -20,9 +21,10 @@ pub(crate) enum Object {
 }
 
 impl Object {
-    fn receiver_name(&self) -> &'static str {
+    pub(crate) fn receiver_name(&self) -> &'static str {
         match self {
             Self::Application => "Application",
+            Self::Feature(f) => f.kind,
             Self::Document(_, object) => object.receiver_name(),
             Self::Workbook => "Workbook",
             Self::Workbooks => "Workbooks",
@@ -199,6 +201,12 @@ impl Bridge {
             && session.doc().map_err(|_| failure(91, "workbook closed"))?.wb.sheet(*s).is_none()
         {
             return Err(failure(91, "worksheet was deleted"));
+        }
+        if call.member.len() > 256 || call.arguments.len() > 256 {
+            return Err(failure(7, "host call budget exceeded"));
+        }
+        if let Some(result) = self.feature_dispatch(session, &object, &call) {
+            return result;
         }
         if let Object::Format(sheet, range, font) = &object {
             return self.format(session, *sheet, range, *font, &call);
@@ -406,6 +414,7 @@ impl Bridge {
                 Object::Range(sheet, _) | Object::Areas(sheet, _) => Object::Sheet(sheet),
                 Object::Format(sheet, range, _) => Object::Range(sheet, range),
                 Object::DeletedRange(_) => return Err(failure(1004, "deleted Range")),
+                Object::Feature(_) => return Err(failure(438, "unsupported feature parent")),
             });
         }
         if object == Object::Application && member == "calculation" {

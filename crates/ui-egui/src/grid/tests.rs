@@ -156,6 +156,7 @@ fn conditional_number_format_reaches_the_cell_text() {
 fn filter_menu_uses_the_table_whose_header_was_clicked() {
     use gridcraft_engine::model::Table;
     let table = |id: u32, r0: u32, r1: u32| Table {
+        identity: Default::default(),
         id,
         name: format!("T{id}"),
         range: RangeRef::new(CellRef::new(r0, 0), CellRef::new(r1, 0)),

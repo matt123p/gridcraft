@@ -3,7 +3,7 @@ use super::objects::{arguments, numeric_index, required};
 use super::{Bridge, HostCall, HostResult, InvokeKind, Session, Value, address, failure, ranges, values};
 use gridcraft_engine::{StyleChange, model::Style};
 impl Bridge {
-    fn styles<'a>(&self, session: &'a Session, sheet: usize, range: &ranges::Range) -> HostResult<Vec<&'a Style>> {
+    pub(crate) fn styles<'a>(&self, session: &'a Session, sheet: usize, range: &ranges::Range) -> HostResult<Vec<&'a Style>> {
         let rect = range.rectangle()?;
         values::dimensions(rect)?;
         let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
@@ -34,8 +34,11 @@ impl Bridge {
             Err(failure(13, "NumberFormat requires Let"))
         }
     }
-    pub(crate) fn format(&self, session: &mut Session, sheet: usize, range: &ranges::Range, font: bool, call: &HostCall) -> HostResult<Value> {
+    pub(crate) fn format(&mut self, session: &mut Session, sheet: usize, range: &ranges::Range, font: bool, call: &HostCall) -> HostResult<Value> {
         let member = call.member.to_ascii_lowercase();
+        if let Some(result) = self.extended_font(session, sheet, range, font, call) {
+            return result;
+        }
         if member == "parent" && matches!(call.kind, InvokeKind::Get | InvokeKind::Call) {
             return Err(failure(438, "format Parent is not supported"));
         }

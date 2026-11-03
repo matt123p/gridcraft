@@ -46,7 +46,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Sort…",
             ["Data", "Sort & Filter"],
             None,
-            "{range?, header?: bool, keys: [{column: \"B\", order: asc|desc, by?: values|cellColor|fontColor, customList?: [..]}], orientation?: rows|columns, matchCase?}",
+            "{range?, header?: bool, keys: [{sheet?, table?, column: \"B\", order: asc|desc, by?: values|cellColor|fontColor, customList?: [..]}], orientation?: rows|columns, matchCase?}",
             has_doc,
             sort
         ),
@@ -55,7 +55,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Filter",
             ["Data", "Sort & Filter"],
             Some("Ctrl+Shift+L"),
-            "{range?} toggles AutoFilter on the current region",
+            "{range?, sheet?, ensure?: true installs explicit range} toggles AutoFilter on the current region",
             has_doc,
             toggle_filter
         ),
@@ -64,12 +64,12 @@ pub fn specs() -> Vec<CommandSpec> {
             "Filter Column",
             [],
             None,
-            "{column: \"B\" (or 0-based offset), values?: [..], blanks?: bool, custom?: {op: \">\", value: \"10\", op2?, value2?, and?}, top?: {count, bottom?, percent?}, aboveAverage?: bool, clear?: bool}",
+            "{sheet?, table?, column: \"B\" (or 0-based offset), values?: [..], blanks?: bool, custom?: {op: \">\", value: \"10\", op2?, value2?, and?}, top?: {count, bottom?, percent?}, aboveAverage?: bool, clear?: bool}",
             has_doc,
             filter_by
         ),
-        cmd!("data.clearFilter", "Clear", ["Data", "Sort & Filter"], None, "{}", has_doc, clear_filter),
-        cmd!("data.reapply", "Reapply", ["Data", "Sort & Filter"], None, "{}", has_doc, reapply),
+        cmd!("data.clearFilter", "Clear", ["Data", "Sort & Filter"], None, "{sheet?, table?}", has_doc, clear_filter),
+        cmd!("data.reapply", "Reapply", ["Data", "Sort & Filter"], None, "{sheet?, table?}", has_doc, reapply),
         cmd!(
             "data.removeDuplicates",
             "Remove Duplicates",
@@ -93,7 +93,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Data Validation…",
             ["Data", "Data Tools"],
             None,
-            "{range?, type: any|whole|decimal|list|date|time|textLength|custom, operator?: between|notBetween|equal|notEqual|greater|less|greaterOrEqual|lessOrEqual, formula1, formula2?, ignoreBlank?, dropdown?, inputTitle?, inputMessage?, errorStyle?: stop|warning|information, errorTitle?, errorMessage?, clear?: bool}",
+            "{range?, type: any|whole|decimal|list|date|time|textLength|custom, operator?: between|notBetween|equal|notEqual|greater|less|greaterOrEqual|lessOrEqual, formula1, formula2?, ignoreBlank?, dropdown?, showInput?, showError?, inputTitle?, inputMessage?, errorStyle?: stop|warning|information, errorTitle?, errorMessage?, clear?: bool}",
             has_doc,
             validation
         ),
@@ -222,6 +222,17 @@ fn guess_header(wb: &Workbook, sh: &Sheet, r: RangeRef) -> bool {
         }
     }
     votes > 0
+}
+
+/// Read-only planning of the existing text-split writer, without recording a command.
+pub(crate) fn preview_mutation(s: &mut Session, id: &str, p: &Json) -> Result<Json> {
+    let mut params = p.clone();
+    params["preview"] = json!(true);
+    match id {
+        "data.textToColumns" => tools::text_to_columns(s, &params),
+        "data.subtotal" => grouping::subtotal(s, &params),
+        _ => Err(bad(id, "no data mutation planner")),
+    }
 }
 
 #[cfg(test)]

@@ -161,7 +161,13 @@ fn sample() -> Workbook {
         },
     ];
     for (i, rule) in cfs.into_iter().enumerate() {
-        s.cond_formats.push(CondFormat { ranges: vec![rr("B2:B10"), rr("D2")], rule, priority: i as u32 + 1, stop_if_true: i == 0 });
+        s.cond_formats.push(CondFormat {
+            identity: Default::default(),
+            ranges: vec![rr("B2:B10"), rr("D2")],
+            rule,
+            priority: i as u32 + 1,
+            stop_if_true: i == 0,
+        });
     }
     s.validations.push(Validation {
         ranges: vec![rr("A2:A10")],
@@ -304,6 +310,7 @@ fn sample() -> Workbook {
     };
     s.sparklines.push(Sparkline { cell: at("J2"), source: "B2:B3".into(), kind: SparklineKind::WinLoss, color: Color::Rgb(0x112233), markers: true });
     s.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Sales Table".into(),
         range: rr("P1:R5"),
@@ -311,6 +318,7 @@ fn sample() -> Workbook {
         totals_row: true,
         columns: vec![
             TableColumn {
+                identity: Default::default(),
                 name: "Region".into(),
                 totals: TotalsFn::None,
                 totals_label: Some("Total".into()),
@@ -318,8 +326,17 @@ fn sample() -> Workbook {
                 unique_name: None,
                 xml: None,
             },
-            TableColumn { name: "Amount".into(), totals: TotalsFn::Sum, totals_label: None, formula: None, unique_name: None, xml: None },
             TableColumn {
+                identity: Default::default(),
+                name: "Amount".into(),
+                totals: TotalsFn::Sum,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
+            TableColumn {
+                identity: Default::default(),
                 name: "Tax".into(),
                 totals: TotalsFn::Custom,
                 totals_label: Some("SUM(R2:R4)".into()),
@@ -473,9 +490,24 @@ fn sample() -> Workbook {
         },
     );
     wb.sheets.push(Arc::new(s3));
-    wb.names.push(DefinedName { name: "Rate".into(), scope: None, formula: "0.07".into(), comment: "c".into(), hidden: false });
-    wb.names.push(DefinedName { name: "Local".into(), scope: Some(1), formula: "Hidden!$A$1".into(), comment: String::new(), hidden: true });
     wb.names.push(DefinedName {
+        identity: Default::default(),
+        name: "Rate".into(),
+        scope: None,
+        formula: "0.07".into(),
+        comment: "c".into(),
+        hidden: false,
+    });
+    wb.names.push(DefinedName {
+        identity: Default::default(),
+        name: "Local".into(),
+        scope: Some(1),
+        formula: "Hidden!$A$1".into(),
+        comment: String::new(),
+        hidden: true,
+    });
+    wb.names.push(DefinedName {
+        identity: Default::default(),
         name: "Pick".into(),
         scope: None,
         formula: "XLOOKUP(1,Hidden!A:A,Hidden!A:A)".into(),
@@ -838,14 +870,31 @@ fn writing_repairs_invalid_models() {
     // A table whose header cells disagree with its columns, with duplicate column names.
     s.set_value(at("A1"), Value::Number(1.0));
     s.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "1bad name".into(),
         range: rr("A1:C3"),
         header_row: true,
         totals_row: false,
         columns: vec![
-            TableColumn { name: "X".into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None },
-            TableColumn { name: "x".into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None },
+            TableColumn {
+                identity: Default::default(),
+                name: "X".into(),
+                totals: TotalsFn::None,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
+            TableColumn {
+                identity: Default::default(),
+                name: "x".into(),
+                totals: TotalsFn::None,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
         ],
         style: String::new(),
         banded_rows: true,
@@ -963,6 +1012,7 @@ fn icon_sets_always_write_one_cfvo_per_icon() {
     .enumerate()
     {
         s.cond_formats.push(CondFormat {
+            identity: Default::default(),
             ranges: vec![rr(&format!("A{}", i + 1))],
             rule: CfRule::IconSet { set: set.into(), thresholds, reverse: false, show_value: true },
             priority: i as u32 + 1,
@@ -1118,8 +1168,17 @@ fn table_newline_column_and_backslash_name_survive() {
     s.set_value(at("A1"), Value::text("Handle\nBars"));
     s.set_value(at("B1"), Value::text("Name"));
     s.set_value(at("B2"), Value::text("x"));
-    let col = |n: &str| TableColumn { name: n.into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None };
+    let col = |n: &str| TableColumn {
+        identity: Default::default(),
+        name: n.into(),
+        totals: TotalsFn::None,
+        totals_label: None,
+        formula: None,
+        unique_name: None,
+        xml: None,
+    };
     s.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "\\_Prime.1".into(),
         range: rr("A1:B2"),
@@ -1153,6 +1212,7 @@ fn header_and_totals_table_without_data_row_survives() {
     let mut wb = Workbook::new();
     let s = wb.sheet_mut(0).unwrap();
     s.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Table1".into(),
         range: rr("A1:B2"),
@@ -1160,6 +1220,7 @@ fn header_and_totals_table_without_data_row_survives() {
         totals_row: true,
         columns: vec![
             TableColumn {
+                identity: Default::default(),
                 name: "Name".into(),
                 totals: TotalsFn::None,
                 totals_label: Some("Total".into()),
@@ -1167,7 +1228,15 @@ fn header_and_totals_table_without_data_row_survives() {
                 unique_name: None,
                 xml: None,
             },
-            TableColumn { name: "Amount".into(), totals: TotalsFn::Sum, totals_label: None, formula: None, unique_name: None, xml: None },
+            TableColumn {
+                identity: Default::default(),
+                name: "Amount".into(),
+                totals: TotalsFn::Sum,
+                totals_label: None,
+                formula: None,
+                unique_name: None,
+                xml: None,
+            },
         ],
         style: "TableStyleMedium2".into(),
         banded_rows: true,
@@ -1358,7 +1427,13 @@ fn solid_data_bar_survives_with_sparklines_and_gradient_neighbours() {
         |gradient: bool, max: CfValueKind| CfRule::DataBar { min: CfValueKind::Min, max, color: Color::Rgb(0x638EC6), gradient, show_value: true };
     let rules = [(true, "A1", CfValueKind::Max), (false, "B1", CfValueKind::Formula("$C$1".into())), (false, "D1:D3", CfValueKind::Number(9.0))];
     for (i, (gradient, range, max)) in rules.into_iter().enumerate() {
-        s.cond_formats.push(CondFormat { ranges: vec![rr(range)], rule: bar(gradient, max), priority: i as u32 + 1, stop_if_true: false });
+        s.cond_formats.push(CondFormat {
+            identity: Default::default(),
+            ranges: vec![rr(range)],
+            rule: bar(gradient, max),
+            priority: i as u32 + 1,
+            stop_if_true: false,
+        });
     }
     s.sparklines.push(Sparkline { cell: at("F1"), source: "A1:C1".into(), kind: SparklineKind::Line, color: Color::Rgb(0x376092), markers: false });
     let bytes = write_xlsx(&wb).unwrap();
@@ -1431,12 +1506,21 @@ fn a_table_filter_criteria_survive_a_round_trip() {
         s.set_value(at(&format!("A{}", r + 1)), Value::text(v));
     }
     s.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Sales".into(),
         range: rr("A1:A4"),
         header_row: true,
         totals_row: false,
-        columns: vec![TableColumn { name: "Region".into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None }],
+        columns: vec![TableColumn {
+            identity: Default::default(),
+            name: "Region".into(),
+            totals: TotalsFn::None,
+            totals_label: None,
+            formula: None,
+            unique_name: None,
+            xml: None,
+        }],
         style: "TableStyleMedium2".into(),
         banded_rows: true,
         banded_cols: false,
@@ -1473,9 +1557,17 @@ fn a_partial_sheet_filter_is_not_folded_into_a_table() {
     for (a, v) in [("A1", "Id"), ("B1", "Region"), ("A2", "1"), ("B2", "East"), ("A3", "2"), ("B3", "West")] {
         s.set_value(at(a), Value::text(v));
     }
-    let column =
-        |name: &str| TableColumn { name: name.into(), totals: TotalsFn::None, totals_label: None, formula: None, unique_name: None, xml: None };
+    let column = |name: &str| TableColumn {
+        identity: Default::default(),
+        name: name.into(),
+        totals: TotalsFn::None,
+        totals_label: None,
+        formula: None,
+        unique_name: None,
+        xml: None,
+    };
     s.tables.push(Table {
+        identity: Default::default(),
         id: 1,
         name: "Sales".into(),
         range: rr("A1:B3"),

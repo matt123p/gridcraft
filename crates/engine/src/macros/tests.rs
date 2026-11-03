@@ -133,7 +133,14 @@ fn macros_round_trip_through_xlsx_and_json() {
 }
 
 fn hidden(name: &str, text: &str) -> DefinedName {
-    DefinedName { name: name.into(), scope: None, formula: format!("\"{}\"", text.replace('"', "\"\"")), comment: String::new(), hidden: true }
+    DefinedName {
+        identity: Default::default(),
+        name: name.into(),
+        scope: None,
+        formula: format!("\"{}\"", text.replace('"', "\"\"")),
+        comment: String::new(),
+        hidden: true,
+    }
 }
 
 #[test]
@@ -141,7 +148,7 @@ fn a_visible_name_that_looks_like_macro_storage_is_left_alone() {
     // Macro storage is hidden workbook-scope names; a visible `_gc_macro_0_0` someone defined
     // is neither read as a macro nor removed when the workbook opens.
     let mut wb = Workbook::new();
-    let name = DefinedName { hidden: false, ..hidden("_gc_macro_0_0", "x") };
+    let name = DefinedName { identity: Default::default(), hidden: false, ..hidden("_gc_macro_0_0", "x") };
     wb.names.push(name.clone());
     let warnings = load(&mut wb);
     assert!(warnings.is_empty(), "{warnings:?}");
@@ -225,7 +232,7 @@ fn a_macro_built_in_code_goes_through_the_size_check_too() {
 }
 
 fn visible(name: &str) -> DefinedName {
-    DefinedName { name: name.into(), scope: None, formula: "Sheet1!$A$1".into(), comment: String::new(), hidden: false }
+    DefinedName { identity: Default::default(), name: name.into(), scope: None, formula: "Sheet1!$A$1".into(), comment: String::new(), hidden: false }
 }
 
 /// Saves `wb` to xlsx and returns the names in the file and the workbook opened from it.

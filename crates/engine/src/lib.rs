@@ -28,6 +28,7 @@ pub mod pivot_calc;
 pub mod record;
 pub mod sample;
 pub mod selection;
+mod table_ops;
 pub mod tables;
 pub mod windows;
 
@@ -44,6 +45,7 @@ pub use contents::{CellContent, MAX_CONTENT_BYTES, MAX_CONTENT_CELLS};
 pub use gridcraft_calc as calc;
 pub use gridcraft_core as core;
 pub use gridcraft_formula as formula;
+pub use gridcraft_functions as functions;
 pub use gridcraft_model as model;
 pub use gridcraft_numfmt as numfmt;
 pub use selection::Selection;

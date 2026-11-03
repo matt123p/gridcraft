@@ -192,7 +192,7 @@ pub(super) fn move_sheet(s: &mut Session, p: &Json) -> Result<Json> {
                     let formula = gridcraft_formula::parse_name(&nm.formula)
                         .map(|e| gridcraft_formula::print(&gridcraft_formula::adjust::rename_sheet(e, &base, &sh.name)))
                         .unwrap_or_else(|_| nm.formula.clone());
-                    gridcraft_model::DefinedName { scope: Some(at), formula, ..nm.clone() }
+                    gridcraft_model::DefinedName { identity: Default::default(), scope: Some(at), formula, ..nm.clone() }
                 })
                 .collect();
             for nm in cx.wb.names.iter_mut() {
