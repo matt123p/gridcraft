@@ -610,10 +610,13 @@ impl Session {
     }
     /// A new blank workbook titled `BookN`.
     pub fn new_workbook(&mut self) -> usize {
+        self.new_workbook_with_sheets(self.prefs.sheets_in_new_workbook.clamp(1, 255))
+    }
+    pub(crate) fn new_workbook_with_sheets(&mut self, count: usize) -> usize {
         let n = (1..).find(|n| !self.docs.iter().any(|d| d.title == format!("Book{n}") && d.path.is_none())).unwrap_or(1);
         let mut wb = Workbook::new();
         wb.props.author = self.prefs.user_name.clone();
-        for _ in 1..self.prefs.sheets_in_new_workbook.clamp(1, 255) {
+        for _ in 1..count.clamp(1, 255) {
             let name = wb.next_sheet_name();
             wb.sheets.push(Arc::new(gridcraft_model::Sheet::new(name)));
         }

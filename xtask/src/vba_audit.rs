@@ -204,6 +204,14 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
         "object-not-exposed" | "not-exposed" | "formula-bridge-not-exposed" | "definition-gap" => ("MISSING", None),
         _ => ("LEGACY_REVIEW", None),
     };
+    // Baseline rows are historical. Current shared dispatch evidence supersedes
+    // their old missing state, without certifying every Excel option or signature.
+    if let Some(descriptor) = descriptor {
+        (result_state, profile) = match descriptor.availability {
+            MemberAvailability::Implemented => ("PARTIAL", Some("GridCraft.Excel.v1")),
+            MemberAvailability::ServiceRequired => ("PLATFORM_SERVICE_NEEDED", None),
+        };
+    }
     let enum_values_complete = kind == "enumeration" && enum_table_member_count(markdown) == enum_values.len() && !enum_values.is_empty();
     if kind == "enumeration" {
         if enum_values_complete {
@@ -679,7 +687,7 @@ fn compare_generated_text(path: &Path, expected: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{deduplicate_enum_constants, duplicate_enum_constants, extract_default};
+    use super::{contract_row, deduplicate_enum_constants, duplicate_enum_constants, extract_default};
     use serde_json::Value;
 
     #[test]
@@ -701,5 +709,22 @@ mod tests {
         assert_eq!(constants[0].1, "xlManual");
         let aliases = duplicate_enum_constants(&[("Constants".into(), "xlManual".into(), -4135), ("XlSortOrder".into(), "xlManual".into(), -4135)]);
         assert_eq!(aliases, vec![("XlSortOrder".into(), "xlManual".into(), -4135)]);
+    }
+    #[test]
+    fn current_dispatch_updates_result_without_rewriting_historical_inventory() -> Result<(), String> {
+        let descriptors =
+            gridcraft_vba::member_descriptors().into_iter().map(|d| ((d.owner.to_ascii_lowercase(), d.name.to_ascii_lowercase()), d)).collect();
+        for (member, expected) in [("Workbooks", "PARTIAL"), ("Run", "PLATFORM_SERVICE_NEEDED")] {
+            let row = serde_json::json!({
+                "id":format!("Application.{member}"), "kind":"property", "owner":"Application", "member":member,
+                "status":"not-exposed", "source_path":format!("api/Excel.Application.{member}.md"), "packet":"OM03",
+                "url":"https://example.invalid/reference", "evidence":"historical audit"
+            });
+            let contract = contract_row(&row, "", &descriptors)?;
+            assert_eq!(contract["baseline_status"], "not-exposed");
+            assert_eq!(contract["result_state"], expected);
+            assert_eq!(contract["dispatch_evidence"], "shared-member-descriptor");
+        }
+        Ok(())
     }
 }

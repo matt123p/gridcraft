@@ -3,8 +3,10 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 mod address;
+mod application;
 mod clipboard;
 mod formatting;
+mod lifecycle;
 mod objects;
 mod ranges;
 mod references;
@@ -217,7 +219,11 @@ impl Bridge {
         if let Object::Range(_, range) = &object {
             range.validate()?;
         }
-        let object = if matches!(object, Object::Application) { object } else { Object::Document(self.context, Box::new(object)) };
+        let object = if matches!(object, Object::Application | Object::Workbooks | Object::Document(..)) {
+            object
+        } else {
+            Object::Document(self.context, Box::new(object))
+        };
         let index = self.objects.intern(object)?;
         Ok(Value::Object(self.reference(index)))
     }
@@ -294,7 +300,9 @@ impl Bridge {
             Import { name: "Application".into(), root: "Excel".into(), member: None, kind: InvokeKind::Get },
             Import { name: "ThisWorkbook".into(), root: "Workbook".into(), member: None, kind: InvokeKind::Get },
         ];
-        for name in ["ActiveWorkbook", "ActiveSheet", "ActiveCell", "Selection", "Worksheets", "Sheets", "Range", "Cells", "Rows", "Columns"] {
+        for name in
+            ["ActiveWorkbook", "ActiveSheet", "ActiveCell", "Selection", "Workbooks", "Worksheets", "Sheets", "Range", "Cells", "Rows", "Columns"]
+        {
             imports.push(Import {
                 name: name.into(),
                 root: "Excel".into(),
@@ -312,6 +320,7 @@ impl Bridge {
         ("ActiveSheet", "Worksheet"),
         ("ActiveCell", "Range"),
         ("Selection", "Range"),
+        ("Workbooks", "Workbooks"),
         ("Worksheets", "Worksheets"),
         ("Sheets", "Sheets"),
         ("Range", "Range"),
@@ -629,6 +638,9 @@ impl Host for WorkbookHost<'_> {
                 return Err(failure(70, "target workbook requires consent"));
             }
             self.bridge.ensure_group(self.session, doc).map_err(|e| failure(7, e.to_string()))?;
+            let activate = call.kind == InvokeKind::Call
+                && call.member.eq_ignore_ascii_case("Activate")
+                && matches!(object, Object::Workbook | Object::Sheet(_));
             let result = self
                 .session
                 .with_target(gridcraft_engine::Target::Doc(doc), |session| {
@@ -641,7 +653,15 @@ impl Host for WorkbookHost<'_> {
                     self.bridge.invoke_object(session, object, call)
                 })
                 .map_err(|e| failure(91, e.to_string()))?;
-            self.bridge.sync_sheets(self.session)?;
+            if result.is_ok()
+                && activate
+                && let Some(index) = self.session.document_index(doc)
+            {
+                self.session.set_active(index);
+            }
+            if self.session.active().is_some() {
+                self.bridge.sync_sheets(self.session)?;
+            }
             result
         })();
         match result {
@@ -657,6 +677,41 @@ impl Host for WorkbookHost<'_> {
 
 pub fn member_descriptors() -> Vec<MemberDescriptor> {
     [
+        ("Application", "Workbooks", "Property Get Workbooks() As Workbooks"),
+        ("Application", "Name", "Property Get Name() As String"),
+        ("Application", "Version", "Property Get Version() As String"),
+        ("Application", "OperatingSystem", "Property Get OperatingSystem() As String"),
+        ("Application", "CalculateFull", "Sub CalculateFull()"),
+        ("Application", "CalculateFullRebuild", "Sub CalculateFullRebuild()"),
+        ("Application", "Iteration", "Property Iteration As Boolean"),
+        ("Application", "MaxIterations", "Property MaxIterations As Long"),
+        ("Application", "MaxChange", "Property MaxChange As Double"),
+        ("Workbooks", "Count", "Property Get Count() As Long"),
+        ("Workbooks", "Item", "Property Get Item(Index As Variant) As Workbook"),
+        ("Workbooks", "Add", "Function Add(Optional Template As Variant) As Workbook"),
+        ("Workbooks", "Open", "Function Open(Filename As Variant, Optional UpdateLinks As Variant, Optional ReadOnly As Variant, Optional Format As Variant, Optional Password As Variant, Optional WriteResPassword As Variant, Optional IgnoreReadOnlyRecommended As Variant, Optional Origin As Variant, Optional Delimiter As Variant, Optional Editable As Variant, Optional Notify As Variant, Optional Converter As Variant, Optional AddToMru As Variant, Optional Local As Variant, Optional CorruptLoad As Variant) As Workbook"),
+        ("Workbooks", "Parent", "Property Get Parent() As Application"),
+        ("Workbooks", "Application", "Property Get Application() As Application"),
+        ("Workbook", "Activate", "Sub Activate()"),
+        ("Workbook", "Path", "Property Get Path() As String"),
+        ("Workbook", "FullName", "Property Get FullName() As String"),
+        ("Workbook", "CodeName", "Property Get CodeName() As String"),
+        ("Workbook", "Saved", "Property Get Saved() As Boolean"),
+        ("Workbook", "Protect", "Sub Protect(Optional Password As Variant, Optional Structure As Variant, Optional Windows As Variant)"),
+        ("Workbook", "Unprotect", "Sub Unprotect(Optional Password As Variant)"),
+        ("Workbook", "ProtectStructure", "Property Get ProtectStructure() As Boolean"),
+        ("Workbook", "Save", "Sub Save()"),
+        ("Workbook", "SaveAs", "Sub SaveAs(Filename As Variant, Optional FileFormat As Variant, Optional Password As Variant, Optional WriteResPassword As Variant, Optional ReadOnlyRecommended As Variant, Optional CreateBackup As Variant, Optional AccessMode As Variant, Optional ConflictResolution As Variant, Optional AddToMru As Variant, Optional TextCodepage As Variant, Optional TextVisualLayout As Variant, Optional Local As Variant)"),
+        ("Workbook", "SaveCopyAs", "Sub SaveCopyAs(Filename As Variant)"),
+        ("Workbook", "Close", "Sub Close(Optional SaveChanges As Variant, Optional Filename As Variant, Optional RouteWorkbook As Variant)"),
+        ("Worksheets", "Add", "Function Add(Optional Before As Variant, Optional After As Variant, Optional Count As Variant, Optional Type As Variant) As Worksheet"),
+        ("Sheets", "Add", "Function Add(Optional Before As Variant, Optional After As Variant, Optional Count As Variant, Optional Type As Variant) As Worksheet"),
+        ("Worksheet", "Index", "Property Get Index() As Long"),
+        ("Worksheet", "CodeName", "Property Get CodeName() As String"),
+        ("Worksheet", "Visible", "Property Visible As XlSheetVisibility"),
+        ("Worksheet", "Delete", "Function Delete() As Boolean"),
+        ("Worksheet", "Copy", "Sub Copy(Optional Before As Variant, Optional After As Variant)"),
+        ("Worksheet", "Move", "Sub Move(Optional Before As Variant, Optional After As Variant)"),
         ("Application", "Application", "Property Get Application() As Application"),
         ("Application", "Parent", "Property Get Parent() As Application"),
         ("Application", "ActiveCell", "Property Get ActiveCell() As Range"),
@@ -777,13 +832,22 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         name,
         signature,
         availability: MemberAvailability::Implemented,
-        implementation_symbol: if matches!(owner, "Font" | "Interior") {
+        implementation_symbol: if owner == "Workbooks"
+            || owner == "Application" && name == "Workbooks"
+            || owner == "Workbook" && matches!(name, "Activate" | "Save" | "SaveAs" | "SaveCopyAs" | "Close" | "Path" | "FullName" | "Saved" | "CodeName" | "ProtectStructure" | "Protect" | "Unprotect")
+            || matches!(owner, "Worksheets" | "Sheets") && name == "Add"
+            || owner == "Worksheet" && matches!(name, "Index" | "CodeName" | "Visible" | "Delete" | "Copy" | "Move") {
+            "crates/vba/src/lifecycle.rs::Bridge::lifecycle"
+        } else if owner == "Application" && matches!(name, "Name" | "Version" | "OperatingSystem" | "CalculateFull" | "CalculateFullRebuild" | "Iteration" | "MaxIterations" | "MaxChange") {
+            "crates/vba/src/application.rs::Bridge::application_state"
+        } else if matches!(owner, "Font" | "Interior") {
             "crates/vba/src/formatting.rs::Bridge::format"
         } else {
             "crates/vba/src/objects.rs::Bridge::invoke_object"
         },
     })
     .chain([
+        ("Application", "Run", "Function Run(Macro As Variant, Optional Arg1 As Variant, Optional Arg2 As Variant, Optional Arg3 As Variant, Optional Arg4 As Variant, Optional Arg5 As Variant, Optional Arg6 As Variant, Optional Arg7 As Variant, Optional Arg8 As Variant, Optional Arg9 As Variant, Optional Arg10 As Variant, Optional Arg11 As Variant, Optional Arg12 As Variant, Optional Arg13 As Variant, Optional Arg14 As Variant, Optional Arg15 As Variant, Optional Arg16 As Variant, Optional Arg17 As Variant, Optional Arg18 As Variant, Optional Arg19 As Variant, Optional Arg20 As Variant, Optional Arg21 As Variant, Optional Arg22 As Variant, Optional Arg23 As Variant, Optional Arg24 As Variant, Optional Arg25 As Variant, Optional Arg26 As Variant, Optional Arg27 As Variant, Optional Arg28 As Variant, Optional Arg29 As Variant, Optional Arg30 As Variant ) As Variant"),
         ("Application", "ScreenUpdating", "Property ScreenUpdating As Boolean"),
         ("Worksheet", "PasteSpecial", "Sub PasteSpecial(Optional Format As Variant, Optional Link As Variant, Optional DisplayAsIcon As Variant, Optional IconFileName As Variant, Optional IconIndex As Variant, Optional IconLabel As Variant, Optional NoHTMLFormatting As Variant)"),
         ("Range", "CopyPicture", "Sub CopyPicture(Optional Appearance As XlPictureAppearance, Optional Format As XlCopyPictureFormat)"),
@@ -792,7 +856,7 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         name,
         signature,
         availability: MemberAvailability::ServiceRequired,
-        implementation_symbol: "crates/vba/src/objects.rs::Bridge::invoke_object",
+        implementation_symbol: if owner == "Application" && name == "Run" { "crates/vba/src/application.rs::Bridge::application_state" } else { "crates/vba/src/objects.rs::Bridge::invoke_object" },
     }))
     .collect()
 }

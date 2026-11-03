@@ -1013,3 +1013,78 @@ All commands used Rust 1.99.1. Evidence logs are local under
 - Local `plan/STATUS.md`, `plan/execution-plan.md` and `plan/architecture.md`
   were absent; review used committed docs and current Rust sources. Cargo emitted
   unused-patch warnings and the existing non-audit xtask unused-argument warning.
+
+
+## OM03/OM04 implementation progress (2026-11-03)
+
+Status: **eligible synchronous and explicit-file subsets implemented; packets remain
+open for invocation/continuations and transfer services**. No full-packet or Excel
+parity claim is made. The dependency remains tiny-vba
+`12f56c647103255966ee6d978a62fb63ce06ef70`.
+
+| Projection | Eligibility and native evidence | Delivered contract |
+|---|---|---|
+| Application.Workbooks; Workbooks Count/Item/default/enumeration/Parent/Application | `ELIGIBLE_EXISTING`: Session documents, stable document UIDs and object registry | Live, one-based and case-insensitive filename lookup, nominal Excel.Workbooks type; enumeration snapshots handles. Global collection has no document owner. |
+| Workbooks.Add | `ELIGIBLE_EXISTING`: file.new and existing new-workbook sheet preference | Omitted template uses the preference; xlWBATWorksheet creates one worksheet. Other sheet types and file templates refuse. Maximum 64 documents. |
+| Workbooks.Open | `ELIGIBLE_EXISTING`: engine file.open and native import/password decoding | Explicit Filename and optional Password; omitted/zero UpdateLinks; omitted/False ReadOnly. Other supplied options refuse. Retains a pristine code-owner workbook. Import retains FromFile provenance, grants no consent and runs no macros/events. Browser filesystem errors propagate. |
+| Workbook Activate/Name/Path/FullName/CodeName/Saved | `ELIGIBLE_EXISTING`: native window activation, document path/dirty state and workbook code-name metadata | Activate survives temporary target restoration. Name follows the saved file name. CodeName is read-only and empty where native metadata is absent. Saved is read-only live dirty-state projection. |
+| Workbook Save/SaveAs/SaveCopyAs/Close | `ELIGIBLE_EXISTING`: file.save/saveAs/close, existing serializer/link rebase and file writer | Explicit supported OOXML destinations; matching supplied FileFormat only. Unsupported persistence options refuse. Save requires an existing path. SaveCopyAs preserves original path/dirty/saved state. Dirty Close requires explicit SaveChanges; failed saves keep the document open. No save/close prompts or cancellation callbacks are simulated. Closing the code owner ends its host through existing teardown. |
+| Worksheets/Sheets.Add | `ELIGIBLE_EXISTING`: home.insertSheet | Before/After worksheet objects, mutually exclusive; omitted destination inserts before active sheet; Count 1..255; worksheet type only. Returns first inserted sheet, activates it and remaps existing handles before interning new ones. |
+| Worksheet Move/Copy/Delete/Index/CodeName/Visible | `ELIGIBLE_EXISTING`: sheet.move, home.deleteSheet, sheet identities and Visibility | Same-workbook Before/After moves/copies only, native naming collisions and index remapping; deleted handles stay invalid even after subsequent insertion. Copy of a sheet with CodeName, tables or preserved package parts refuses because the native copy path cannot transfer those features without loss. No-destination/new-workbook and cross-workbook transfers refuse. Visible supports Visible/Hidden/VeryHidden through native protection and last-visible-sheet gates. Hidden-sheet deletion leaves the last visible sheet intact. |
+| Workbook Protect/Unprotect/ProtectStructure (ordinary OM09 High dependency) | `ELIGIBLE_EXISTING`: review.protectWorkbook and native password verification | Structure:=True subset, optional password; Windows protection refuses. Failed password verification keeps protection. Existing mutation protection remains enforced. |
+| Application Name/Version/OperatingSystem | `ELIGIBLE_EXISTING`: GridCraft build/target metadata | Reports GridCraft identity/version and the compilation target OS; does not impersonate an Excel installation. |
+| Application CalculateFull/CalculateFullRebuild/Iteration/MaxIterations/MaxChange | `ELIGIBLE_EXISTING`: native recalc_all rebuild and formulas.calculationOptions | Full rebuild uses existing calculator; settings read active document state and setters affect currently open documents. All participants require consent and pre-reserved undo groups before mutation. Invalid bounds refuse before writes. Newly opened documents retain their native iteration settings. Existing Calculation/Calculate now apply the same all-participant consent/group preflight. |
+| Application.Run | `SERVICE_UNAVAILABLE`: pinned foreign Reply supports Complete/Error/Wait, without nested invocation request/result routing | Explicit runtime error 1004 and SERVICE_REQUIRED descriptor. A fresh interpreter would lose live project globals, execution budgets and reentrancy semantics; no substitute interpreter is used. This remains required eligible OM03 work once a reviewed generic invocation contract exists. |
+
+The native seams live in `Session::open_workbook`,
+`Session::new_single_sheet_workbook` and `Session::set_worksheet_visibility`.
+Their command envelopes remain recordable/replayable (`file.open` keepBlank,
+`file.new` sheets, `sheet.visibility`). `file.saveCopy` uses existing serialization,
+link rebasing and IO without replacing the document's saved snapshot. No provider,
+chartsheet, template, read-only document mode, interactive continuation, event hook
+or VBA binary project editor was added. Existing Workbook_Open/Worksheet_Change
+ownership and consent regressions remain authoritative; lifecycle cancellation
+and ordering must accompany future host continuation support.
+
+The shared descriptors, nominal types, host globals and generated semantic contracts
+include these members. The historical inventory's baseline statuses are retained;
+contract dispatch evidence is refreshed by the existing Rust vba-audit exporter.
+Regression evidence is in `crates/vba/tests/workbooks.rs`: live collections,
+code-owner/active separation, stale handles, native file round trips, failed
+save/close, imported-document consent, same-workbook transfers, explicit service
+refusals, protection passwords and app-wide grouped calculation.
+
+Validation for this delivery:
+
+- Engine and VBA test suites passed; final workbook suite: 29 tests. Native
+  lifecycle regressions and all existing event/clipboard regressions passed.
+- Strict Clippy passed for engine, VBA and the audit-enabled xtask; audit-enabled
+  xtask tests: 28 passed. Formatting and `git diff --check` passed.
+- Native structural checks passed: assets, layers (17 crates), wasm, parity and
+  keytips. VBA including its tests also compiled for wasm32-unknown-unknown.
+- Regeneration and subsequent read-only vba-audit check passed: 5,996 source and
+  semantic rows, 272 enum types, 2,260 constants. Current descriptor evidence
+  updates result states without rewriting the historical inventory baseline.
+- Full workspace CI passed formatting/Clippy and stopped on two pre-existing UI
+  font failures: `column_autocomplete_folds_case_beyond_ascii` lacks `ẞ`, and
+  `language_switch_renders_the_ribbon_and_persists` lacks `ẻ`. Both also failed
+  before this delivery; no UI/font code was changed to suppress them.
+
+
+### Font-enabled CI retest (2026-11-03)
+
+The CI-pinned font checkout was already installed at `target/craft-fonts`, revision
+`b076417b5880bd4154bd22f00695b1d28c6bea83`; the earlier test builds had not enabled
+it. Rebuilding with the required font input resolves both missing-glyph failures.
+Both exact regression tests pass, the full UI integration suite passes all 903
+tests, and `cargo xtask ci` passes all ten stages, including tests, doctests and
+WASM. No font policy, glyph assertion or runtime code changed for this retest.
+
+Run from the GridCraft checkout:
+
+```sh
+CRAFT_FONTS_DIR="$PWD/target/craft-fonts" CRAFT_FONTS_REQUIRED=1 cargo xtask ci
+```
+
+This supersedes the no-font CI limitation above for builds using this font input.
+Font assets remain outside tracked GridCraft source.

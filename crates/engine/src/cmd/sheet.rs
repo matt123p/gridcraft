@@ -60,6 +60,7 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("sheet.rename", "Rename Sheet", ["Home", "Cells", "Format"], None, "{sheet?, name}", has_doc, rename_sheet),
         cmd!("sheet.move", "Move or Copy Sheet…", ["Home", "Cells", "Format"], None, "{sheet?, to: index, copy?: bool}", has_doc, move_sheet),
         cmd!("sheet.tabColor", "Tab Color", ["Home", "Cells", "Format"], None, "{sheet?, color: \"#FF0000\"|\"none\"}", has_doc, tab_color),
+        cmd!("sheet.visibility", "Set Sheet Visibility", [], None, "{sheet?, visibility: visible|hidden|veryHidden}", has_doc, visibility),
         cmd!("sheet.hide", "Hide Sheet", ["Home", "Cells", "Format", "Hide & Unhide"], None, "{sheet?}", has_doc, hide_sheet),
         cmd!("sheet.unhide", "Unhide Sheet…", ["Home", "Cells", "Format", "Hide & Unhide"], None, "{sheet}", has_doc, unhide_sheet),
         cmd!(noundo "sheet.activate", "Activate Sheet", [], None, "{sheet: index | name}", has_doc, activate),
@@ -893,4 +894,36 @@ pub(crate) fn structure(s: &mut Session, sheet: usize, r: RangeRef, operation: c
         DeleteUp => apply_delete_cells(s, sheet, r, false),
         DeleteLeft => apply_delete_cells(s, sheet, r, true),
     }
+}
+
+fn visibility(s: &mut Session, p: &Json) -> Result<Json> {
+    let sheet = target_sheet(s, p)?;
+    let value = match str_param(p, "visibility") {
+        Some("visible") => Visibility::Visible,
+        Some("hidden") => Visibility::Hidden,
+        Some("veryHidden") => Visibility::VeryHidden,
+        _ => return Err(bad("sheet.visibility", "invalid visibility")),
+    };
+    visibility_native(s, sheet, value)
+}
+
+pub(crate) fn visibility_native(s: &mut Session, sheet: usize, value: Visibility) -> Result<Json> {
+    let doc = s.doc()?;
+    let sh = doc.wb.sheet(sheet).ok_or_else(|| bad("sheet.visibility", "worksheet not found"))?;
+    if doc.wb.protected_structure {
+        return Err(crate::EngineError::Other("The workbook structure is protected.".into()));
+    }
+    if value != Visibility::Visible
+        && sh.visibility == Visibility::Visible
+        && doc.wb.sheets.iter().filter(|sh| sh.visibility == Visibility::Visible).count() <= 1
+    {
+        return Err(crate::EngineError::Other("A workbook must contain at least one visible worksheet.".into()));
+    }
+    edit(s, |cx| {
+        cx.sheet_mut(sheet)?.visibility = value;
+        if value != Visibility::Visible && cx.wb.active_sheet() == sheet {
+            cx.wb.set_active_sheet(cx.wb.sheets.iter().position(|sh| sh.visibility == Visibility::Visible).unwrap_or(0));
+        }
+        Ok(Json::Null)
+    })
 }

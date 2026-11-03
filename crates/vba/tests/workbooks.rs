@@ -486,3 +486,373 @@ fn macro_writes_text_format_and_records_replayable_typed_commands() -> R {
     assert_eq!(*after, *s.doc()?.wb);
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn workbooks_are_live_nominal_collections_and_activation_preserves_code_owner() -> R {
+    let mut s = session();
+    let owner = s.doc()?.uid;
+    s.prefs.sheets_in_new_workbook = 3;
+    run(
+        &mut s,
+        r#"Option Explicit
+Sub Main()
+Dim books As Excel.Workbooks
+Dim created As Excel.Workbook
+Dim book As Excel.Workbook
+Dim total As Long
+Set books = Application.Workbooks
+Set created = Workbooks.Add(xlWBATWorksheet)
+ThisWorkbook.Worksheets(1).Range("A1").Value2 = books.Count
+ThisWorkbook.Worksheets(1).Range("A2").Value2 = created.Worksheets.Count
+ThisWorkbook.Worksheets(1).Range("A3").Value2 = ActiveWorkbook.Name
+For Each book In books
+ total = total + 1
+Next book
+ThisWorkbook.Worksheets(1).Range("A4").Value2 = total
+ThisWorkbook.Activate
+Range("A5").Value2 = ActiveWorkbook.Name
+created.Activate
+Range("B1").Value2 = 99
+created.Close SaveChanges:=False
+ThisWorkbook.Worksheets(1).Range("A6").Value2 = books.Count
+On Error Resume Next
+created.Name
+ThisWorkbook.Worksheets(1).Range("A7").Value2 = Err.Number
+End Sub
+"#,
+    )?;
+    assert_eq!(s.doc()?.uid, owner);
+    assert_eq!(value(&s, "A1"), CellValue::Number(2.0));
+    assert_eq!(value(&s, "A2"), CellValue::Number(1.0));
+    assert_eq!(value(&s, "A3"), CellValue::Text("Book2".into()));
+    assert_eq!(value(&s, "A4"), CellValue::Number(2.0));
+    assert_eq!(value(&s, "A5"), CellValue::Text("Book1".into()));
+    assert_eq!(value(&s, "A6"), CellValue::Number(1.0));
+    assert_eq!(value(&s, "A7"), CellValue::Number(91.0));
+    assert!(value(&s, "B1").is_empty());
+    assert_eq!(s.doc()?.undo.len(), 1);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn sheet_lifecycle_remaps_handles_and_preserves_deleted_tombstones() -> R {
+    let mut s = session();
+    run(
+        &mut s,
+        r#"Option Explicit
+Sub Main()
+Dim original As Excel.Worksheet
+Dim added As Excel.Worksheet
+Dim saved As Excel.Range
+Set original = Worksheets(1)
+Set saved = original.Range("B1")
+Set added = Worksheets.Add(Before:=original, Count:=2, Type:=xlWorksheet)
+added.Name = "Added"
+saved.Value2 = 19
+original.Range("A1").Value2 = original.Index
+added.Move After:=original
+original.Range("A2").Value2 = added.Index
+added.Copy Before:=original
+original.Range("A3").Value2 = Worksheets.Count
+added.Visible = xlSheetVeryHidden
+original.Range("A4").Value2 = added.Visible
+added.Visible = xlSheetVisible
+added.Delete
+original.Range("A5").Value2 = Worksheets.Count
+On Error Resume Next
+added.Name
+original.Range("A6").Value2 = Err.Number
+Worksheets.Add
+Err.Clear
+added.Name
+original.Range("A7").Value2 = Err.Number
+End Sub
+"#,
+    )?;
+    let original = s.doc()?.wb.sheet_index("Sheet1").ok_or("missing original")?;
+    let sh = s.doc()?.wb.sheet(original).ok_or("sheet")?;
+    for (addr, expected) in [("A1", 3.0), ("A2", 3.0), ("A3", 4.0), ("A4", 2.0), ("A5", 3.0), ("A6", 91.0), ("A7", 91.0), ("B1", 19.0)] {
+        assert_eq!(sh.value(CellRef::parse(addr).ok_or("address")?), CellValue::Number(expected), "{addr}");
+    }
+    assert_eq!(s.doc()?.undo.len(), 1);
+    s.execute("edit.undo", json!({}))?;
+    assert_eq!(s.doc()?.wb.sheets.len(), 1);
+    assert!(value(&s, "B1").is_empty());
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn lifecycle_rejects_invalid_options_and_protected_structure_without_changes() -> R {
+    let mut s = session();
+    s.execute("home.insertSheet", json!({"name":"Other"}))?;
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    let books = object(call(&mut b, &mut s, app, InvokeKind::Get, "Workbooks", vec![]));
+    let sheets = object(call(&mut b, &mut s, app, InvokeKind::Get, "Worksheets", vec![]));
+    let sheet = object(call(&mut b, &mut s, sheets, InvokeKind::DefaultGet, "", vec![Value::Long(1)]));
+    let wb = object(call(&mut b, &mut s, books, InvokeKind::DefaultGet, "", vec![text("bOoK1")]));
+    let before = s.doc()?.wb.clone();
+    error(call(&mut b, &mut s, books, InvokeKind::Get, "Item", vec![Value::Long(0)]), 9);
+    error(call(&mut b, &mut s, books, InvokeKind::Call, "Add", vec![Value::Long(-4109)]), 1004);
+    error(call(&mut b, &mut s, sheets, InvokeKind::Call, "Add", vec![Value::Object(sheet), Value::Object(sheet)]), 1004);
+    error(call(&mut b, &mut s, sheets, InvokeKind::Call, "Add", vec![Value::Missing, Value::Missing, Value::Long(0)]), 1004);
+    error(call(&mut b, &mut s, wb, InvokeKind::Call, "Save", vec![]), 1004);
+    error(call(&mut b, &mut s, wb, InvokeKind::Call, "Close", vec![]), 1004);
+    assert_eq!(*before, *s.doc()?.wb);
+    assert!(s.take_ui_requests().is_empty());
+    s.execute("review.protectWorkbook", json!({"on":true}))?;
+    let protected = s.doc()?.wb.clone();
+    error(call(&mut b, &mut s, sheets, InvokeKind::Call, "Add", vec![]), 1004);
+    error(call(&mut b, &mut s, sheet, InvokeKind::Call, "Delete", vec![]), 1004);
+    error(call(&mut b, &mut s, sheet, InvokeKind::Call, "Copy", vec![Value::Object(sheet)]), 1004);
+    error(call(&mut b, &mut s, sheet, InvokeKind::Let, "Visible", vec![Value::Long(2)]), 1004);
+    assert_eq!(*protected, *s.doc()?.wb);
+    b.finish(&mut s)?;
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn workbook_files_roundtrip_copy_keeps_saved_state_and_open_never_replaces_owner() -> R {
+    let folder = std::env::temp_dir().join(format!("gridcraft-om04-{}", std::process::id()));
+    std::fs::create_dir_all(&folder)?;
+    let path = folder.join("original.xlsm").to_string_lossy().into_owned();
+    let copy = folder.join("copy.xlsm").to_string_lossy().into_owned();
+    let mut s = session();
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).vba_project = Some(b"authored inert OM04 project".to_vec().into());
+    let owner = s.doc()?.uid;
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    let wb = object(call(&mut b, &mut s, app, InvokeKind::Get, "ThisWorkbook", vec![]));
+    let cell = range(&mut b, &mut s, "A1");
+    complete(call(&mut b, &mut s, cell, InvokeKind::Let, "Value2", vec![Value::Long(12)]));
+    complete(call(&mut b, &mut s, wb, InvokeKind::Call, "SaveAs", vec![text(&path), Value::Long(52)]));
+    assert_eq!(complete(call(&mut b, &mut s, wb, InvokeKind::Get, "Saved", vec![])), Value::Boolean(true));
+    assert_eq!(complete(call(&mut b, &mut s, wb, InvokeKind::Get, "Name", vec![])), text("original.xlsm"));
+    complete(call(&mut b, &mut s, cell, InvokeKind::Let, "Value2", vec![Value::Long(23)]));
+    let saved = s.doc()?.saved.clone();
+    complete(call(&mut b, &mut s, wb, InvokeKind::Call, "SaveCopyAs", vec![text(&copy)]));
+    assert_eq!(s.doc()?.saved, saved);
+    assert!(s.doc()?.is_dirty());
+    assert_eq!(s.doc()?.path.as_deref(), Some(path.as_str()));
+    let (copy_wb, _) = gridcraft_engine::io::open_bytes("copy.xlsm", &std::fs::read(&copy)?)?;
+    assert_eq!(copy_wb.vba_project.as_deref().map(|v| v.as_slice()), Some(b"authored inert OM04 project".as_slice()));
+    assert_eq!(copy_wb.sheet(0).ok_or("sheet")?.value(CellRef::parse("A1").ok_or("cell")?), CellValue::Number(23.0));
+    let books = object(call(&mut b, &mut s, app, InvokeKind::Get, "Workbooks", vec![]));
+    let opened = object(call(&mut b, &mut s, books, InvokeKind::Call, "Open", vec![text(&copy), Value::Long(0), Value::Boolean(false)]));
+    assert_eq!(s.documents().len(), 2);
+    assert!(s.document(owner).is_some());
+    assert_eq!(s.doc()?.trust, Trust::FromFile);
+    // Open never grants execution consent in the imported document.
+    error(call(&mut b, &mut s, opened, InvokeKind::Get, "Name", vec![]), 70);
+    s.set_active(s.document_index(owner).ok_or("owner")?);
+    let before = s.documents().len();
+    error(call(&mut b, &mut s, books, InvokeKind::Call, "Open", vec![text(&folder.join("missing.xlsx").to_string_lossy())]), 1004);
+    error(call(&mut b, &mut s, books, InvokeKind::Call, "Open", vec![text(&path), Value::Missing, Value::Boolean(true)]), 1004);
+    assert_eq!(s.documents().len(), before);
+    b.finish(&mut s)?;
+    // Open must retain even a pristine blank code-owner workbook.
+    let mut blank = session();
+    let blank_id = blank.doc()?.uid;
+    let (mut bridge, _) = setup(&blank, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut bridge, &mut blank);
+    let books = object(call(&mut bridge, &mut blank, app, InvokeKind::Get, "Workbooks", vec![]));
+    object(call(&mut bridge, &mut blank, books, InvokeKind::Call, "Open", vec![text(&path)]));
+    assert_eq!(blank.documents().len(), 2);
+    assert!(blank.document(blank_id).is_some());
+    bridge.finish(&mut blank)?;
+    std::fs::remove_dir_all(folder)?;
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn application_calculation_settings_are_live_validated_and_grouped_across_documents() -> R {
+    let mut s = session();
+    let first = s.doc()?.uid;
+    s.new_workbook();
+    run(
+        &mut s,
+        r#"Sub Main()
+Application.Iteration = True
+Application.MaxIterations = 42
+Application.MaxChange = 0.005
+Range("A1").Value2 = Application.MaxIterations
+Application.CalculateFullRebuild
+On Error Resume Next
+Application.MaxIterations = 0
+Range("A2").Value2 = Err.Number
+Err.Clear
+Application.MaxChange = -1
+Range("A3").Value2 = Err.Number
+End Sub
+"#,
+    )?;
+    for doc in s.documents() {
+        assert!(doc.wb.calc.iterative);
+        assert_eq!(doc.wb.calc.max_iterations, 42);
+        assert_eq!(doc.wb.calc.max_change, 0.005);
+        assert_eq!(doc.undo.len(), 1);
+    }
+    assert_eq!(value(&s, "A1"), CellValue::Number(42.0));
+    assert_eq!(value(&s, "A2"), CellValue::Number(1004.0));
+    assert_eq!(value(&s, "A3"), CellValue::Number(1004.0));
+    s.execute_in(gridcraft_engine::Target::Doc(first), "edit.undo", json!({}))?;
+    assert!(!s.document(first).ok_or("first")?.wb.calc.iterative);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle() -> R {
+    let mut s = session();
+    run(
+        &mut s,
+        r#"Sub Main()
+ThisWorkbook.Protect Password:="secret", Structure:=True
+Range("A1").Value2 = ThisWorkbook.ProtectStructure
+On Error Resume Next
+Worksheets.Add
+Range("A2").Value2 = Err.Number
+Err.Clear
+ThisWorkbook.Unprotect "wrong"
+Range("A3").Value2 = Err.Number
+Range("A4").Value2 = ThisWorkbook.ProtectStructure
+ThisWorkbook.Unprotect "secret"
+Range("A5").Value2 = ThisWorkbook.ProtectStructure
+End Sub
+"#,
+    )?;
+    assert_eq!(value(&s, "A1"), CellValue::Bool(true));
+    assert_eq!(value(&s, "A2"), CellValue::Number(1004.0));
+    assert_eq!(value(&s, "A3"), CellValue::Number(1004.0));
+    assert_eq!(value(&s, "A4"), CellValue::Bool(true));
+    assert_eq!(value(&s, "A5"), CellValue::Bool(false));
+    assert_eq!(s.doc()?.wb.sheets.len(), 1);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn application_wide_calculation_refuses_untrusted_participants_before_mutation() -> R {
+    let mut s = session();
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let owner = s.doc()?.uid;
+    s.add_document(DocState::new(Workbook::new(), None, "External".into(), Trust::FromFile));
+    s.set_active(s.document_index(owner).ok_or("owner")?);
+    let app = root(&mut b, &mut s);
+    let before = s.documents().iter().map(|d| d.wb.clone()).collect::<Vec<_>>();
+    for (kind, member, args) in [
+        (InvokeKind::Let, "Iteration", vec![Value::Boolean(true)]),
+        (InvokeKind::Let, "Calculation", vec![Value::Long(-4135)]),
+        (InvokeKind::Call, "CalculateFull", vec![]),
+        (InvokeKind::Call, "CalculateFullRebuild", vec![]),
+        (InvokeKind::Call, "Calculate", vec![]),
+    ] {
+        error(call(&mut b, &mut s, app, kind, member, args), 70);
+    }
+    for (old, doc) in before.iter().zip(s.documents()) {
+        assert_eq!(**old, *doc.wb);
+    }
+    b.finish(&mut s)?;
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn sheet_transfers_refuse_cross_document_and_document_module_copies() -> R {
+    let mut s = session();
+    std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).sheet_mut(0).ok_or("sheet")?.code_name = Some("SheetCode".into());
+    let owner = s.doc()?.uid;
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    let original = object(call(&mut b, &mut s, app, InvokeKind::Get, "ActiveSheet", vec![]));
+    s.new_workbook();
+    let foreign = object(call(&mut b, &mut s, app, InvokeKind::Get, "ActiveSheet", vec![]));
+    let before = s.documents().iter().map(|d| d.wb.clone()).collect::<Vec<_>>();
+    error(call(&mut b, &mut s, original, InvokeKind::Call, "Move", vec![Value::Object(foreign)]), 1004);
+    error(call(&mut b, &mut s, original, InvokeKind::Call, "Copy", vec![Value::Object(original)]), 1004);
+    error(call(&mut b, &mut s, original, InvokeKind::Call, "Copy", vec![]), 1004);
+    for (old, doc) in before.iter().zip(s.documents()) {
+        assert_eq!(**old, *doc.wb);
+    }
+    assert_ne!(s.doc()?.uid, owner);
+    b.finish(&mut s)?;
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn failed_save_and_close_preserve_document_then_explicit_save_close_succeeds() -> R {
+    let mut s = session();
+    let owner = s.doc()?.uid;
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    let books = object(call(&mut b, &mut s, app, InvokeKind::Get, "Workbooks", vec![]));
+    let created = object(call(&mut b, &mut s, books, InvokeKind::Call, "Add", vec![]));
+    let added = s.doc()?.uid;
+    let cell = range(&mut b, &mut s, "A1");
+    complete(call(&mut b, &mut s, cell, InvokeKind::Let, "Value2", vec![Value::Long(42)]));
+    let before = s.doc()?.wb.clone();
+    let missing = std::env::temp_dir().join(format!("gridcraft-no-dir-{}", added)).join("book.xlsx").to_string_lossy().into_owned();
+    error(call(&mut b, &mut s, created, InvokeKind::Call, "SaveAs", vec![text(&missing)]), 1004);
+    error(call(&mut b, &mut s, created, InvokeKind::Call, "Close", vec![Value::Boolean(true), text(&missing)]), 1004);
+    assert_eq!(*before, *s.doc()?.wb);
+    assert_eq!(s.doc()?.path, None);
+    assert!(s.take_ui_requests().is_empty());
+    let path = std::env::temp_dir().join(format!("gridcraft-save-close-{}-{}.xlsx", std::process::id(), added)).to_string_lossy().into_owned();
+    complete(call(&mut b, &mut s, created, InvokeKind::Call, "Close", vec![Value::Boolean(true), text(&path)]));
+    assert_eq!(s.doc()?.uid, owner);
+    assert!(s.document(added).is_none());
+    let (wb, _) = gridcraft_engine::io::open_bytes("book.xlsx", &std::fs::read(&path)?)?;
+    assert_eq!(wb.sheet(0).ok_or("sheet")?.value(CellRef::parse("A1").ok_or("cell")?), CellValue::Number(42.0));
+    std::fs::remove_file(path)?;
+    b.finish(&mut s)?;
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn copying_a_table_sheet_refuses_instead_of_silently_dropping_the_table() -> R {
+    let mut s = session();
+    s.execute("range.setValues", json!({"range":"A1:B2","values":[["Name","Value"],["Example",12]]}))?;
+    s.execute("insert.table", json!({"range":"A1:B2","header":true}))?;
+    let (mut b, _) = setup(&s, "Sub Main()\nEnd Sub\n")?;
+    let app = root(&mut b, &mut s);
+    let sheet = object(call(&mut b, &mut s, app, InvokeKind::Get, "ActiveSheet", vec![]));
+    let before = s.doc()?.wb.clone();
+    error(call(&mut b, &mut s, sheet, InvokeKind::Call, "Copy", vec![Value::Object(sheet)]), 1004);
+    assert_eq!(*before, *s.doc()?.wb);
+    assert_eq!(s.doc()?.wb.sheets.len(), 1);
+    b.finish(&mut s)?;
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn lifecycle_function_expressions_support_omitted_parentheses() -> R {
+    let mut s = session();
+    run(
+        &mut s,
+        r#"Sub Main()
+Dim added As Excel.Worksheet
+Dim removed As Boolean
+Set added = Worksheets.Add
+removed = added.Delete
+Range("A1").Value2 = removed
+Range("A2").Value2 = Workbooks.Count
+On Error Resume Next
+Range("A3").Value2 = Application.Run("MissingMacro")
+Range("A4").Value2 = Err.Number
+End Sub
+"#,
+    )?;
+    assert_eq!(s.doc()?.wb.sheets.len(), 1);
+    assert_eq!(value(&s, "A1"), CellValue::Bool(true));
+    assert_eq!(value(&s, "A2"), CellValue::Number(1.0));
+    assert_eq!(value(&s, "A4"), CellValue::Number(1004.0));
+    Ok(())
+}

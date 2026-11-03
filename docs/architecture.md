@@ -194,7 +194,19 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 - XLSX reader builds the whole workbook in memory; no streaming (#175).
 - Unmodelled XLSX parts are not carried through a save.
 
+The OM03/OM04 projections use private `vba::application` and `vba::lifecycle`
+family handlers behind the existing shared dispatcher and registry. Workbooks is
+a global collection; its items retain document-qualified identities. Workbook
+activation is committed after temporary targeting is restored. Native file-open
+and visibility seams expose existing engine behavior, while `file.saveCopy`
+reuses serialization/link rebasing without changing the saved snapshot. App-wide
+calculation reserves all groups and checks each participant's consent before
+mutation. Nested Run invocation and interactive lifecycle continuations remain
+service gaps; no second interpreter or synthetic UI state is introduced.
+
 ## Revision history
+
+- 2026-11-03: Added OM03/OM04 private projection handlers and native lifecycle seams; retained explicit invocation/transfer service gaps.
 
 | Date | Change | Summary |
 |---|---|---|

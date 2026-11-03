@@ -112,3 +112,20 @@ impl Session {
         Ok(())
     }
 }
+
+impl Session {
+    /// Opens through the existing file service without replacing an embedding's blank owner.
+    pub fn open_workbook(&mut self, path: &str, password: Option<&str>) -> Result<Json> {
+        let params = json!({"path":path,"password":password,"keepBlank":true});
+        self.execute_with("file.open", || std::borrow::Cow::Borrowed(&params), |s, _| cmd::file::open_native(s, &params, true))
+    }
+    /// The xlWBATWorksheet projection uses one sheet regardless of the user's new-file preference.
+    pub fn new_single_sheet_workbook(&mut self) -> Result<Json> {
+        self.execute("file.new", json!({"sheets":1}))
+    }
+    /// Project the model's visibility enum using the same protection/last-visible gates as tabs.
+    pub fn set_worksheet_visibility(&mut self, sheet: usize, visibility: gridcraft_model::Visibility) -> Result<Json> {
+        let params = json!({"sheet":sheet,"visibility": match visibility { gridcraft_model::Visibility::Visible => "visible", gridcraft_model::Visibility::Hidden => "hidden", gridcraft_model::Visibility::VeryHidden => "veryHidden" }});
+        self.execute_with("sheet.visibility", || std::borrow::Cow::Borrowed(&params), |s, _| cmd::sheet::visibility_native(s, sheet, visibility))
+    }
+}

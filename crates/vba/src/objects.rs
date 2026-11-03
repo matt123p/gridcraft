@@ -9,6 +9,7 @@ pub(crate) enum Object {
     Application,
     Document(u64, Box<Object>),
     Workbook,
+    Workbooks,
     Worksheets,
     Sheets,
     Sheet(usize),
@@ -24,6 +25,7 @@ impl Object {
             Self::Application => "Application",
             Self::Document(_, object) => object.receiver_name(),
             Self::Workbook => "Workbook",
+            Self::Workbooks => "Workbooks",
             Self::Worksheets => "Worksheets",
             Self::Sheets => "Sheets",
             Self::Sheet(_) => "Worksheet",
@@ -155,6 +157,12 @@ impl Bridge {
     fn enumerate(&mut self, session: &Session, object: Object, call: &HostCall) -> HostResult<Value> {
         arguments(call, &[])?;
         let objects = match object {
+            Object::Workbooks => {
+                if session.documents().len() > MAX_OBJECTS {
+                    return Err(failure(7, "workbook enumeration budget"));
+                }
+                session.documents().iter().map(|doc| Object::Document(doc.uid, Box::new(Object::Workbook))).collect()
+            }
             Object::Worksheets | Object::Sheets => {
                 let n = session.doc().map_err(|e| failure(91, e.to_string()))?.wb.sheets.len();
                 if n > MAX_OBJECTS {
@@ -166,7 +174,8 @@ impl Bridge {
             Object::Range(sheet, range) => range.entries()?.into_iter().map(|r| Object::Range(sheet, r)).collect(),
             _ => return Err(failure(438, "object is not enumerable")),
         };
-        let objects = objects.into_iter().map(|o| Object::Document(self.context, Box::new(o))).collect();
+        let objects =
+            objects.into_iter().map(|o| if matches!(o, Object::Document(..)) { o } else { Object::Document(self.context, Box::new(o)) }).collect();
         let handles = self.objects.intern_many(objects)?;
         let mut array = if handles.is_empty() {
             vba_values::VbaArray::empty(vba_values::ScalarKind::Object, 1)
@@ -183,9 +192,7 @@ impl Bridge {
         }
         Ok(Value::Array(array))
     }
-    /// Single dispatcher over the Excel object profile: each branch mirrors one member name or
-    /// object kind. Splitting the ladder into helpers would separate the mapping from VBA's own
-    /// member table, so the size is deliberate.
+    /// Shared binding and object dispatch; private family handlers own newly projected members.
     #[allow(clippy::cognitive_complexity)]
     pub(crate) fn invoke_object(&mut self, session: &mut Session, object: Object, call: HostCall) -> HostResult<Value> {
         if let Object::Sheet(s) | Object::Range(s, _) | Object::Areas(s, _) = &object
@@ -211,7 +218,7 @@ impl Bridge {
                 call.kind = InvokeKind::Get;
                 call.member = match &object {
                     Object::Range(..) if call.arguments.is_empty() => "Value",
-                    Object::Range(..) | Object::Areas(..) | Object::Worksheets | Object::Sheets => "Item",
+                    Object::Range(..) | Object::Areas(..) | Object::Worksheets | Object::Sheets | Object::Workbooks => "Item",
                     _ => return Err(failure(438, "object has no default property")),
                 }
                 .into();
@@ -230,6 +237,12 @@ impl Bridge {
         }
         let member = call.member.to_ascii_lowercase();
         let receiver = object.receiver_name();
+        if let Some(result) = self.lifecycle(session, &object, &call) {
+            return result;
+        }
+        if let Some(result) = self.application_state(session, &object, &call) {
+            return result;
+        }
         if object == Object::Application && matches!(member.as_str(), "union" | "intersect") && read_kind(call.kind) {
             let names = (1..=30).map(|index| format!("Arg{index}")).collect::<Vec<_>>();
             let name_refs = names.iter().map(String::as_str).collect::<Vec<_>>();
@@ -387,7 +400,7 @@ impl Bridge {
         if read_kind(call.kind) && member == "parent" {
             arguments(&call, &[])?;
             return self.intern(match object {
-                Object::Application | Object::Workbook => Object::Application,
+                Object::Application | Object::Workbook | Object::Workbooks => Object::Application,
                 Object::Document(..) => return Err(failure(91, "unresolved document owner")),
                 Object::Sheet(_) | Object::Worksheets | Object::Sheets => Object::Workbook,
                 Object::Range(sheet, _) | Object::Areas(sheet, _) => Object::Sheet(sheet),
@@ -415,10 +428,7 @@ impl Bridge {
                 2 => gridcraft_engine::model::CalcMode::AutomaticExceptTables,
                 _ => return Err(failure(1004, "invalid calculation mode")),
             };
-            let documents: Vec<_> = session.documents().iter().map(|d| d.uid).collect();
-            for doc in documents {
-                self.ensure_group(session, doc).map_err(|e| failure(7, e.to_string()))?;
-            }
+            self.prepare_application_documents(session)?;
             session.set_application_calculation_mode(mode).map_err(|e| failure(1004, e.to_string()))?;
             return Ok(Value::Empty);
         }
@@ -477,6 +487,7 @@ impl Bridge {
         if member == "calculate" && matches!(object, Object::Application | Object::Workbook) && call.kind == InvokeKind::Call {
             arguments(&call, &[])?;
             if object == Object::Application {
+                self.prepare_application_documents(session)?;
                 session.calculate_application().map_err(|e| failure(1004, e.to_string()))?;
             } else {
                 session.calculate_workbook().map_err(|e| failure(1004, e.to_string()))?;
@@ -536,7 +547,10 @@ impl Bridge {
                     "cells" | "rows" | "columns" if object == Object::Application => self.invoke_object(session, Object::Sheet(implicit_sheet), call),
                     "name" if object == Object::Workbook => {
                         arguments(&call, &[])?;
-                        values::vba_text(&session.doc().map_err(|e| failure(91, e.to_string()))?.title)
+                        let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+                        values::vba_text(
+                            doc.path.as_deref().and_then(|p| std::path::Path::new(p).file_name()).and_then(|p| p.to_str()).unwrap_or(&doc.title),
+                        )
                     }
                     _ => Err(failure(438, format!("{receiver}.{} is not a supported member", call.member))),
                 }

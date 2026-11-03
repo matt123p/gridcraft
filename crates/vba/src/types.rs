@@ -14,7 +14,7 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             name: "Excel".into(),
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
-            types: ["Application", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets", "Areas", "Font", "Interior"]
+            types: ["Application", "Workbooks", "Workbook", "Worksheet", "Range", "Worksheets", "Sheets", "Areas", "Font", "Interior"]
                 .into_iter()
                 .map(|name| ReferenceType { name: name.into(), kind: ReferenceTypeKind::Object })
                 .chain(EXCEL_ENUM_TYPES.iter().map(|name| ReferenceType { name: (*name).into(), kind: ReferenceTypeKind::Enum }))
@@ -179,6 +179,14 @@ impl Objects {
         *self.values.write().map_err(|_| failure(91, "object store unavailable"))? = values;
         Ok(())
     }
+    /// Reserve space for handles before a lifecycle operation creates native state.
+    pub(crate) fn reserve(&self, count: usize) -> HostResult<()> {
+        let mut objects = self.values.write().map_err(|_| failure(91, "object store unavailable"))?;
+        if objects.len().checked_add(count).is_none_or(|n| n > MAX_OBJECTS) {
+            return Err(failure(7, "object handle budget exceeded"));
+        }
+        objects.try_reserve(count).map_err(|_| failure(7, "object handle allocation"))
+    }
     pub(crate) fn intern_many(&self, values: Vec<Object>) -> HostResult<Vec<usize>> {
         if self.closed.load(Ordering::Relaxed) {
             return Err(failure(91, "object store closed"));
@@ -235,6 +243,7 @@ impl ObjectTypeResolver for Objects {
             Object::Application => "application",
             Object::Document(..) => return Err(failure(91, "invalid nested document owner")),
             Object::Workbook => "workbook",
+            Object::Workbooks => "workbooks",
             Object::Worksheets => "worksheets",
             Object::Sheets => "sheets",
             Object::Sheet(_) => "worksheet",

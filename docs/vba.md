@@ -87,7 +87,7 @@ The interpreter, debugger, source importer and editor remain in the separate
 revision in Cargo manifests/lockfile. No sibling checkout or copied interpreter
 code is needed. WordCraft can use the same native protocol and revision with its
 own document objects. Workspace-root egui patches select the shared reviewed fork.
-The pin is `98c7038a297ca9453c01d7e4a5530e8fc8865a10`; corpus/reference
+The pin is `12f56c647103255966ee6d978a62fb63ce06ef70`; corpus/reference
 submodules are opt-in and are not fetched by dependency builds.
 
 ## Ownership and commands
@@ -455,3 +455,46 @@ WASM tests (Node 22), and 32 VBA UI/event/form/window tests. The audit, strict
 Clippy, layering and VBA-enabled web build pass. Full workspace CI reaches two
 unrelated missing-glyph failures without the optional craft-fonts checkout;
 exact commands and limitations are recorded in the implementation plan.
+
+
+## OM03/OM04 lifecycle subset (2026-11-03)
+
+`Application.Workbooks` and unqualified `Workbooks` expose the live session through
+Count, one-based/name Item, default access and For Each. Add supports the native
+new-file preference or `xlWBATWorksheet`. Open uses an explicit file name and
+optional password, preserves the code-owner workbook, and never grants consent
+or executes imported code. Imported handles require consent in their own host;
+opening from VBA does not silently authorize another document.
+
+Workbook Activate, Path, FullName, CodeName and read-only Saved project native
+state. Save requires an existing path; SaveAs and SaveCopyAs support explicit
+OOXML paths with limited format options. SaveCopyAs leaves the original's file
+and saved state alone. Dirty Close requires explicit SaveChanges, plus Filename
+if saving an unsaved workbook. Programmatic lifecycle calls do not open dialogs.
+The existing filesystem service returns a clear error in browser builds.
+
+Worksheets/Sheets.Add accepts Before/After, Count and worksheet Type. Worksheet
+Move/Copy require a same-workbook destination; copying sheets with CodeName, tables or preserved package parts,
+new-workbook transfers and cross-workbook transfers require missing native project
+transfer services. Index and read-only CodeName use native metadata. Visible
+supports all three native visibility states, and Delete preserves the last visible
+sheet. Existing handles follow sheet identities across insert/move/delete.
+Workbook structure Protect/Unprotect uses native password checks.
+
+Application Name/Version/OperatingSystem report GridCraft metadata. CalculateFull
+and CalculateFullRebuild invoke the native full rebuild. Iteration, MaxIterations
+and MaxChange read active workbook settings; setters update currently open
+workbooks after consent/group preflight. New documents retain native iteration
+settings. Application.Run returns an explicit service-unavailable diagnostic;
+the pinned interpreter still needs a generic nested invocation contract.
+
+These are bounded subsets. The [implementation progress ledger](vba-object-model-implementation-plan.md#om03om04-implementation-progress-2026-11-03)
+records exact options, engine evidence and remaining work. OM03/OM04 are not fully
+complete. No lifecycle event cancellation or interactive wait is simulated.
+
+
+Font-enabled retest (2026-11-03): enabling the existing CI-pinned
+`target/craft-fonts` checkout with `CRAFT_FONTS_DIR` and
+`CRAFT_FONTS_REQUIRED=1` resolves both missing-glyph failures. All 903 UI
+integration tests and all ten `cargo xtask ci` stages pass. The implementation
+plan records the exact invocation; no glyph assertions or font policy changed.
