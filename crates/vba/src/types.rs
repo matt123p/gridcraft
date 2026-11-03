@@ -20,6 +20,9 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
             types: [
+                "CellControl",
+                "Dialogs",
+                "Dialog",
                 "Author",
                 "Comments",
                 "Comment",
@@ -145,6 +148,11 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             constants: EXCEL_ENUM_CONSTANTS
                 .iter()
                 .map(|(module, name, n)| ReferenceConstant { name: (*name).into(), module: Some((*module).into()), value: Value::Long(*n) })
+                .chain(super::CELL_CONTROL_CONSTANTS.iter().copied().map(|(name, n)| ReferenceConstant {
+                    name: name.into(),
+                    module: None,
+                    value: Value::Long(n),
+                }))
                 .collect(),
         },
         ReferenceLibrary {

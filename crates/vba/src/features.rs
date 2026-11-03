@@ -136,7 +136,15 @@ impl Bridge {
         let handles = self.objects.intern_many(
             objects
                 .into_iter()
-                .map(|o| if matches!(o, Object::Application | Object::Document(..)) { o } else { Object::Document(self.context, Box::new(o)) })
+                .map(|o| {
+                    if matches!(o, Object::Application | Object::Document(..))
+                        || matches!(&o,Object::Feature(f) if matches!(f.kind,"Dialog"|"Dialogs"))
+                    {
+                        o
+                    } else {
+                        Object::Document(self.context, Box::new(o))
+                    }
+                })
                 .collect(),
         )?;
         let mut array = if handles.is_empty() {
@@ -150,6 +158,9 @@ impl Bridge {
         Ok(Value::Array(array))
     }
     pub(crate) fn feature_dispatch(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> Option<HostResult<Value>> {
+        if let Some(result) = self.interaction_api(session, object, call) {
+            return Some(result);
+        }
         if let Some(result) = self.annotation_api(session, object, call) {
             return Some(result);
         }

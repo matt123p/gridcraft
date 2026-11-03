@@ -1,6 +1,6 @@
 # Target-app parity: GridCraft vs Microsoft Excel
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM19 local VBA annotations/metadata delivered; bounded projection scope; no score change) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 native VBA interactions/controls delivered; bounded projection scope; no score change) · **Target:** Microsoft Excel (Microsoft 365)
 
 This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summarizes it,
 [`gaps.md`](gaps.md) lists every shortfall, and the area checklists hold the detail:
@@ -10,10 +10,10 @@ generated ribbon checklist is [`parity-checklist.md`](parity-checklist.md).
 
 ## Summary
 
-Selected Medium VBA OM19 now projects native local notes, threaded replies, cell
-hyperlinks and six built-in metadata fields. External navigation, remote IDs,
-custom properties and cell-handle lifetime limits remain explicit in the
-[OM19 acceptance ledger](vba-object-model-om19-acceptance.json). Eligible OM15 is next.
+Selected Medium VBA OM15 now projects existing native dialogs/pickers, status
+visibility, column autocomplete and cell-checkbox controls through owned host
+continuations. Exact service and capability limits remain in the
+[OM15 acceptance ledger](vba-object-model-om15-acceptance.json). OM20 profile reconciliation/sign-off is next.
 
 VBA audit update (2026-11-03, optional integration feature): the bounded profile
 projects only capabilities GridCraft already supports. It does not establish
@@ -353,6 +353,7 @@ The inventory carried over from the 2026-10-07 ROADMAP.md, updated for what land
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
 | 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-25 | minor | Automation: macro interface (Automate › Macros, the Macros and Record Macro dialogs, the step editor, shortcuts) (no score change) |
 | 2026-10-25 | trivial | Catalog count 276 / 292 in the summary table and the method, as `cargo xtask parity` measures (no score change) |

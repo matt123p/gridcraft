@@ -386,6 +386,10 @@ pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
         let params = build_params(&d);
         match app.run(cmd, params) {
             Ok(r) => {
+                #[cfg(feature = "vba")]
+                if let Some(token) = d.values.get("om15Token").and_then(Json::as_u64) {
+                    let _ = crate::vba::interaction_dialog_closed(app, token, true);
+                }
                 open = false;
                 if d.name == "solver" {
                     app.open_dialog("solverResults", r);
@@ -415,6 +419,10 @@ pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
     #[cfg(feature = "vba")]
     if !open && d.name == "saveChanges" && d.values.contains_key("vbaToken") {
         crate::vba::answer_save_prompt(app, crate::SaveAnswer::Cancel);
+    }
+    #[cfg(feature = "vba")]
+    if !open && let Some(token) = d.values.get("om15Token").and_then(Json::as_u64) {
+        let _ = crate::vba::interaction_dialog_closed(app, token, false);
     }
     if app.ui_window() != home {
         // A command run from the dialog switched windows: whatever it opened shows in the new

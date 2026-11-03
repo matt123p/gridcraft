@@ -6,7 +6,9 @@ mod address;
 mod annotation_api;
 mod application;
 mod host_ops;
+mod interaction_api;
 pub use host_ops::{LifecyclePrompt, PromptRequest, PromptResponse, PromptServices};
+pub use interaction_api::{CELL_CONTROL_CONSTANTS, InteractionKind, InteractionRequest, InteractionResponse, InteractionServices};
 pub use print_api::{PrintOperation, PrintRequest, PrintResponse, PrintServices};
 mod chart_api;
 mod chart_parts_api;
@@ -261,7 +263,8 @@ impl Bridge {
         if let Object::Range(_, range) = &object {
             range.validate()?;
         }
-        let global = matches!(&object, Object::Feature(f) if f.kind == "Watches" || f.kind == "Windows" && f.part == 1);
+        let global =
+            matches!(&object, Object::Feature(f) if matches!(f.kind, "Dialogs" | "Dialog" | "Watches") || f.kind == "Windows" && f.part == 1);
         let object = if matches!(object, Object::Application | Object::Workbooks | Object::Document(..)) || global {
             object
         } else {
@@ -747,7 +750,7 @@ impl Host for WorkbookHost<'_> {
                 && call.member.eq_ignore_ascii_case("Activate")
                 && matches!(object, Object::Workbook | Object::Sheet(_));
             let dynamic = matches!(&object, Object::Application | Object::Workbooks)
-                || matches!(&object, Object::Feature(f) if f.kind == "Watches" || f.kind == "Windows" && f.part == 1);
+                || matches!(&object, Object::Feature(f) if matches!(f.kind, "Dialogs" | "Dialog" | "Watches") || f.kind == "Windows" && f.part == 1);
             let target = if dynamic {
                 gridcraft_engine::Target::Active
             } else {
@@ -1029,6 +1032,7 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
     .chain(page_break_api::descriptors())
     .chain(print_api::descriptors())
     .chain(annotation_api::descriptors())
+    .chain(interaction_api::descriptors())
     .chain(conditional_api::descriptors())
     .chain(condition_details::descriptors())
     .chain(data_api::descriptors())

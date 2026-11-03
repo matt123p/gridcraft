@@ -174,8 +174,28 @@ fn filter_commands(commands: Vec<Json>, search: Option<&str>) -> Vec<Json> {
     commands.into_iter().filter(|c| has(c, "id") || has(c, "label") || in_menu(c)).collect()
 }
 
+#[cfg(feature = "vba")]
+fn dialog_guard(app: &mut SheetApp, method: &str, p: &Json) -> Option<Outcome> {
+    if (method == "ui.dialog" || method.starts_with("ui.dialog."))
+        && let Err(e) = crate::vba::before_command(app, method, p)
+    {
+        Some(err(e))
+    } else {
+        None
+    }
+}
+#[cfg(feature = "vba")]
+fn notify_dialog_completion(app: &mut SheetApp, token: Option<u64>, accepted: bool) {
+    if let Some(token) = token {
+        let _ = crate::vba::interaction_dialog_closed(app, token, accepted);
+    }
+}
 /// Dispatches one control request: commands, inspection, UI state, dialogs, editing, synthetic input, open/save/quit and screenshots. Unknown methods (and unknown command ids) return an error. Immediate answers request a repaint; `ui.screenshot` is admitted asynchronously instead of being answered here.
 pub fn handle(app: &mut SheetApp, ctx: &egui::Context, method: &str, p: &Json) -> Outcome {
+    #[cfg(feature = "vba")]
+    if let Some(outcome) = dialog_guard(app, method, p) {
+        return outcome;
+    }
     let s = |k: &str| p.get(k).and_then(Json::as_str);
     let f = |k: &str| p.get(k).and_then(Json::as_f64).unwrap_or(0.0) as f32;
     let out = match method {
@@ -199,6 +219,7 @@ pub fn handle(app: &mut SheetApp, ctx: &egui::Context, method: &str, p: &Json) -
                 ("view.darkMode", "Dark Mode", ""),
                 ("view.theme", "Display Theme", ""),
                 ("view.animations", "Animations", "{on?: bool} (toggles without it) → {on}"),
+                ("view.statusBarVisible", "Show Status Bar", "{on?: bool} → {on}"),
                 ("options.autoComplete", "Enable AutoComplete for cell values", "{on?: bool} (toggles without it) → {on}"),
                 ("view.interfaceScale", "Interface Size", "{percent: 75–200 | \"auto\"} (100 = auto; clamped)"),
                 ("ui.dialog", "Open Dialog", ""),
@@ -277,6 +298,9 @@ pub fn handle(app: &mut SheetApp, ctx: &egui::Context, method: &str, p: &Json) -
                     let r = app.run(cmd, params);
                     if r.is_err() {
                         app.return_dialog(home, d);
+                    } else {
+                        #[cfg(feature = "vba")]
+                        notify_dialog_completion(app, d.values.get("om15Token").and_then(Json::as_u64), true);
                     }
                     wrap(r)
                 }
@@ -294,6 +318,11 @@ pub fn handle(app: &mut SheetApp, ctx: &egui::Context, method: &str, p: &Json) -
                     Ok(()) => ok(Json::Null),
                     Err(e) => err(e),
                 };
+            }
+            #[cfg(feature = "vba")]
+            {
+                let token = app.dialog.as_ref().and_then(|d| d.values.get("om15Token")).and_then(Json::as_u64);
+                notify_dialog_completion(app, token, false);
             }
             app.dialog = None;
             ok(Json::Null)

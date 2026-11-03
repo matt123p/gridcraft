@@ -8,15 +8,15 @@ Selected High native-profile acceptance and exact exclusions: [evidence ledger](
 
 OM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).
 
-OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). These are native profiles, not whole-reference compatibility claims.
+OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). OM15 owned native dialogs/pickers, status visibility, autocomplete and cell-control acceptance: [evidence ledger](vba-object-model-om15-acceptance.json). These are native profiles, not whole-reference compatibility claims.
 
 ## State counts
 
 - `LEGACY_REVIEW`: 283
-- `MISSING`: 3182
-- `OUT_OF_SCOPE_GRIDCRAFT`: 695
-- `PARTIAL`: 1818
-- `PLATFORM_SERVICE_NEEDED`: 18
+- `MISSING`: 3067
+- `OUT_OF_SCOPE_GRIDCRAFT`: 791
+- `PARTIAL`: 1834
+- `PLATFORM_SERVICE_NEEDED`: 21
 
 ## Unresolved audit rows
 
@@ -45,22 +45,22 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `AboveAverage.SetLastPriority` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AboveAverage.StopIfTrue` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AboveAverage.Type` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Caption` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Content` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Coordinate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Execute` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action` | `MISSING` | `NOT_APPLICABLE` |
-| `Action.Name` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Action.Type` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Actions.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Actions.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Actions.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Actions.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Actions` | `MISSING` | `NOT_APPLICABLE` |
-| `Actions.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Caption` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Content` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Coordinate` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Execute` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `Action.Name` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Action.Type` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Actions.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Actions.Count` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Actions.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Actions.Item` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Actions` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `Actions.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Activate` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Add` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AddChartAutoFormat` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -165,8 +165,8 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.ConvertFormula` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CopyObjectsWithCells` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.Cursor` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.CursorMovement` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.Cursor` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.CursorMovement` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CustomListCount` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CutCopyMode` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DataEntryMode` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -183,8 +183,8 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.DefaultWebOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DeferAsyncQueries` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DeleteCustomList` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.Dialogs` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.DisplayAlerts` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.Dialogs` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.DisplayAlerts` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayClipboardWindow` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayCommentIndicator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayDocumentActionTaskPane` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -194,12 +194,12 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.DisplayFormulaBar` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayFullScreen` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayFunctionToolTips` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.DisplayInsertOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.DisplayInsertOptions` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayNoteIndicator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.DisplayPasteOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.DisplayPasteOptions` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayRecentFiles` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayScrollBars` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.DisplayStatusBar` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.DisplayStatusBar` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DisplayXMLSourcePane` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.DoubleClick` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.EditDirectlyInCell` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -220,11 +220,11 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.ExtendList` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FeatureInstall` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FileConverters` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.FileDialog` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.FileDialog` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FileExportConverters` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FileValidation` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FileValidationPivot` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.FindFile` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.FindFile` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FindFormat` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FixedDecimal` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.FixedDecimalPlaces` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -235,9 +235,9 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.GenerateTableRefs` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.GetCustomListContents` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.GetCustomListNum` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.GetOpenFilename` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.GetOpenFilename` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.GetPhonetic` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.GetSaveAsFilename` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.GetSaveAsFilename` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Goto` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Height` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Help` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -247,7 +247,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.Hwnd` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.IgnoreRemoteRequests` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.InchesToPoints` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.InputBox` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.InputBox` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Interactive` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.International` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Intersect` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -281,7 +281,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.ODBCErrors` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ODBCTimeout` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.OLEDBErrors` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.OnKey` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.OnKey` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.OnRepeat` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.OnTime` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.OnUndo` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -348,7 +348,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.ShowDevTools` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ShowMenuFloaties` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `application.showquickanalysis` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.ShowSelectionFloaties` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.ShowSelectionFloaties` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ShowStartupDialog` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ShowToolTips` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.SmartArtColors` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -359,7 +359,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.StandardFont` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.StandardFontSize` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.StartupPath` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.StatusBar` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.StatusBar` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.TemplatesPath` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ThisCell` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ThisWorkbook` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -440,21 +440,21 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Author.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Author.ProviderID` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Author.UserID` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect` | `MISSING` | `NOT_APPLICABLE` |
-| `AutoCorrect.AddReplacement` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.AutoExpandListRange` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.AutoFillFormulasInLists` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.CapitalizeNamesOfDays` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.CorrectCapsLock` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.CorrectSentenceCap` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.DeleteReplacement` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.DisplayAutoCorrectOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.ReplacementList` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.ReplaceText` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AutoCorrect.TwoInitialCapitals` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `AutoCorrect.AddReplacement` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.AutoExpandListRange` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.AutoFillFormulasInLists` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.CapitalizeNamesOfDays` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.CorrectCapsLock` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.CorrectSentenceCap` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.DeleteReplacement` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.DisplayAutoCorrectOptions` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.ReplacementList` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.ReplaceText` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AutoCorrect.TwoInitialCapitals` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AutoCorrect-graph-object` | `MISSING` | `NOT_APPLICABLE` |
 | `AutoCorrect-graph-property` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AutoFilter.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -1406,17 +1406,17 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `DeleteReplacement` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `DepthPercent` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Deselect` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialog.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialog.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialog` | `MISSING` | `NOT_APPLICABLE` |
-| `Dialog.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialog.Show` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialogs.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialogs.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialogs.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialogs.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Dialogs` | `MISSING` | `NOT_APPLICABLE` |
-| `Dialogs.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialog.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialog.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialog` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Dialog.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialog.Show` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialogs.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialogs.Count` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialogs.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialogs.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Dialogs` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Dialogs.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `DialogSheetView.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `DialogSheetView.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `DialogSheetView` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
@@ -1523,21 +1523,21 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `ErrorBars.Select` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ErrorBars-graph-object` | `MISSING` | `NOT_APPLICABLE` |
 | `ErrorBars-graph-property` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.BackgroundChecking` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.EmptyCellReferences` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.EvaluateToError` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.InconsistentFormula` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.InconsistentTableFormula` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.IndicatorColorIndex` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.ListDataValidation` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions` | `MISSING` | `NOT_APPLICABLE` |
-| `ErrorCheckingOptions.NumberAsText` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.OmittedCells` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.TextDate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ErrorCheckingOptions.UnlockedFormulaCells` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.BackgroundChecking` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.EmptyCellReferences` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.EvaluateToError` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.InconsistentFormula` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.InconsistentTableFormula` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.IndicatorColorIndex` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.ListDataValidation` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `ErrorCheckingOptions.NumberAsText` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.OmittedCells` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.TextDate` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ErrorCheckingOptions.UnlockedFormulaCells` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Errors.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Errors.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Errors.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3414,12 +3414,12 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `QueryTables.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `QueryTables` | `MISSING` | `NOT_APPLICABLE` |
 | `QueryTables.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `quickanalysis.application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `quickanalysis.creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `quickanalysis.hide` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `quickanalysis` | `MISSING` | `NOT_APPLICABLE` |
-| `quickanalysis.parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `quickanalysis.show` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `quickanalysis.application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `quickanalysis.creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `quickanalysis.hide` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `quickanalysis` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `quickanalysis.parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `quickanalysis.show` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Quit` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `RadarAxisLabels` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `RadarGroups` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3437,7 +3437,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.ApplyNames` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ApplyOutlineStyles` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Areas` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.AutoComplete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.AutoComplete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AutoFill` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AutoFilter` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AutoFit` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3446,10 +3446,10 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.Borders` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Calculate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.CalculateRowMajorOrder` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.CellControl` | `MISSING` | `NOT_APPLICABLE` |
+| `Range.CellControl` | `PARTIAL` | `NOT_APPLICABLE` |
 | `Range.Cells` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Characters` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.CheckSpelling` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.CheckSpelling` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Clear` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ClearComments` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ClearContents` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3479,7 +3479,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.DataTypeToText` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Dependents` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.DialogBox` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.DialogBox` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.DirectDependents` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.DirectPrecedents` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Dirty` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3511,7 +3511,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.FormulaLocal` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.FormulaR1C1` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.FormulaR1C1Local` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.FunctionWizard` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.FunctionWizard` | `PLATFORM_SERVICE_NEEDED` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Group` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.HasArray` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.HasFormula` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3592,7 +3592,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.SortSpecial` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SoundNote` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SparklineGroups` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.Speak` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.Speak` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SpecialCells` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SpillParent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Style` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3653,13 +3653,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `refresh` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ReplacementList` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ReplaceText` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Research.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Research.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Research.IsResearchService` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Research` | `MISSING` | `NOT_APPLICABLE` |
-| `Research.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Research.Query` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Research.SetLanguagePair` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Research.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Research.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Research.IsResearchService` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Research` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `Research.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Research.Query` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Research.SetLanguagePair` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ReversePlotOrder` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `RGB` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `RightAngleAxes` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4283,30 +4283,30 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `SparkVerticalAxis` | `MISSING` | `NOT_APPLICABLE` |
 | `SparkVerticalAxis.MinScaleType` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SparkVerticalAxis.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Speech.Direction` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Speech` | `MISSING` | `NOT_APPLICABLE` |
-| `Speech.Speak` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Speech.SpeakCellOnEnter` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.ArabicModes` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.ArabicStrictAlefHamza` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.ArabicStrictFinalYaa` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.ArabicStrictTaaMarboota` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.BrazilReform` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.DictLang` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.GermanPostReform` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.HebrewModes` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.IgnoreCaps` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.IgnoreFileNames` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.IgnoreMixedDigits` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.KoreanCombineAux` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.KoreanProcessCompound` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.KoreanUseAutoChangeList` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions` | `MISSING` | `NOT_APPLICABLE` |
-| `SpellingOptions.PortugalReform` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.RussianStrictE` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.SpanishModes` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.SuggestMainOnly` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `SpellingOptions.UserDict` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Speech.Direction` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Speech` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `Speech.Speak` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Speech.SpeakCellOnEnter` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.ArabicModes` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.ArabicStrictAlefHamza` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.ArabicStrictFinalYaa` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.ArabicStrictTaaMarboota` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.BrazilReform` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.DictLang` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.GermanPostReform` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.HebrewModes` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.IgnoreCaps` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.IgnoreFileNames` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.IgnoreMixedDigits` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.KoreanCombineAux` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.KoreanProcessCompound` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.KoreanUseAutoChangeList` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `SpellingOptions.PortugalReform` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.RussianStrictE` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.SpanishModes` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.SuggestMainOnly` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `SpellingOptions.UserDict` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SplitType` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SplitValue` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Strikethrough` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |

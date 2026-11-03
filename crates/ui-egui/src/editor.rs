@@ -342,45 +342,7 @@ pub fn ref_is_on_sheet(ref_sheet: Option<&str>, origin: &str, shown: &str) -> bo
 /// Excel-style AutoComplete: the one distinct text entry in the same column (contiguous data
 /// above and below) that starts with `typed` (case-insensitive). `None` when ambiguous.
 pub fn column_completion(sheet: &gridcraft_engine::model::Sheet, at: CellRef, typed: &str) -> Option<String> {
-    if typed.is_empty() || typed.starts_with('=') || typed.chars().all(|c| c.is_ascii_digit() || c == '.' || c == '-') {
-        return None;
-    }
-    let lower = typed.to_lowercase();
-    let mut found: Option<String> = None;
-    let mut ambiguous = false;
-    let mut scan = |row: u32| -> bool {
-        match sheet.value(CellRef::new(row, at.col)) {
-            gridcraft_engine::core::Value::Empty => false,
-            gridcraft_engine::core::Value::Text(t) => {
-                let folded = t.to_lowercase();
-                if folded.starts_with(&lower) && folded.len() > lower.len() {
-                    match &found {
-                        Some(f) if f.to_lowercase() != folded => ambiguous = true,
-                        None => found = Some(t.to_string()),
-                        _ => {}
-                    }
-                }
-                true
-            }
-            _ => true,
-        }
-    };
-    let mut r = at.row;
-    let mut n = 0;
-    while r > 0 && n < 5000 {
-        r -= 1;
-        n += 1;
-        if !scan(r) {
-            break;
-        }
-    }
-    let mut r = at.row + 1;
-    n = 0;
-    while n < 5000 && scan(r) {
-        r += 1;
-        n += 1;
-    }
-    if ambiguous { None } else { found }
+    gridcraft_engine::column_completion(sheet, at, typed)
 }
 
 /// The part of `full` after the `typed` prefix, counted in characters: case folding can change

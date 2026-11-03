@@ -100,6 +100,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     let om09_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM09")?;
     let om10_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM10")?;
     let om19_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM19")?;
+    let om15_acceptance = validate_native_acceptance(root, rows, &descriptors, "OM15")?;
     for test in OM12_TESTS.iter().chain(OM12_DRAWING_TESTS) {
         validate_test_reference(root, test)?;
     }
@@ -154,6 +155,13 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
                 "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om19-acceptance.json for local annotation, cell-handle, metadata and external-navigation limits"
             );
         }
+        if let Some(tests) = row["id"].as_str().and_then(|id| om15_acceptance.get(&fold_identifier(id))) {
+            merge_acceptance_tests(&mut contract, tests);
+            contract["om15_acceptance"] = json!(
+                "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om15-acceptance.json for modal ownership, native dialog/picker options, headless refusals and cell-control limits"
+            );
+        }
+        reconcile_om15_native_scope(&mut contract);
         reconcile_om19_native_scope(&mut contract);
         reconcile_om10_native_scope(&mut contract);
         reconcile_om09_native_scope(&mut contract);
@@ -202,6 +210,29 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
             office_contracts.push(json!({"id":format!("Office.{}.{}",d.owner,d.name),"source_path":source,"signature":d.signature,"implementation_symbol":d.implementation_symbol,"test_ids":if matches!(d.owner,"DocumentProperties"|"DocumentProperty") { &OM19_METADATA_TESTS[..] } else { OM12_DRAWING_TESTS }}));
         }
     }
+    let mut cell_source = String::new();
+    archive
+        .by_name(&format!("VBA-Docs-{COMMIT}/api/Excel.Range.CellControl.md"))
+        .map_err(|e| e.to_string())?
+        .read_to_string(&mut cell_source)
+        .map_err(|e| e.to_string())?;
+    let mut inline_contracts = Vec::new();
+    let mut inline_keys = BTreeSet::new();
+    for (member, source_text) in [("Type", "Property: Type"), ("SetCheckbox", ".SetCheckbox")] {
+        if !cell_source.contains(source_text) {
+            return Err(format!("CellControl.{member} lacks pinned inline source"));
+        }
+        let key = (fold_identifier("CellControl"), fold_identifier(member));
+        let d = descriptors.get(&key).ok_or("missing CellControl descriptor")?;
+        inline_keys.insert(key);
+        inline_contracts.push(json!({"id":format!("CellControl.{member}"),"source_path":"api/Excel.Range.CellControl.md","signature":d.signature,"implementation_symbol":d.implementation_symbol,"test_ids":["crates/vba/tests/interactions.rs::checkbox_controls_preserve_values_and_formulas_rebase_and_roundtrip","crates/vba/tests/interactions.rs::checkbox_value_changes_deliver_exact_native_event_targets_once"]}));
+    }
+    for (name, n) in gridcraft_vba::CELL_CONTROL_CONSTANTS {
+        if !cell_source.contains(&format!("{name} = {n}")) {
+            return Err(format!("missing inline constant {name}"));
+        }
+        inline_contracts.push(json!({"id":name,"value":n,"source_path":"api/Excel.Range.CellControl.md"}));
+    }
     let office_types = [
         "MsoAutoShapeType",
         "MsoShapeType",
@@ -237,6 +268,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         .filter(|key| {
             !contract_ids.contains(*key)
                 && !office_keys.contains(*key)
+                && !inline_keys.contains(*key)
                 && !DOCUMENTATION_EXCEPTIONS.iter().any(|(owner, member, _)| key.0 == *owner && key.1 == *member)
         })
         .map(|(owner, member)| format!("{owner}.{member}"))
@@ -270,6 +302,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
             "reason": reason,
         })).collect::<Vec<_>>(),
         "office_runtime_extensions":office_contracts,
+        "inline_excel_runtime_extensions":inline_contracts,
         "pages": contracts,
     });
     let enum_source = render_enum_source(&enum_types, &constants, &aliases);
@@ -364,6 +397,43 @@ fn validate_native_acceptance(
     }
     println!("{packet} native acceptance: {} required source contracts; native product gaps remain explicit", result.len());
     Ok(result)
+}
+fn reconcile_om15_native_scope(row: &mut Value) {
+    if row["packet"] != "OM15" || row["implementation_symbol"].is_string() {
+        return;
+    }
+    let owner = row["owner"].as_str().unwrap_or("").to_ascii_lowercase();
+    let member = row["member"].as_str().unwrap_or("").to_ascii_lowercase();
+    if member.is_empty() && matches!(owner.as_str(), "dialogs" | "dialog") {
+        row["result_state"] = json!("PARTIAL");
+        row["implementation_symbol"] = json!("crates/vba/src/types.rs::references");
+        row["dispatch_evidence"] = json!("native selected dialog graph; Show uses owned UI continuation");
+        return;
+    }
+    let service = owner == "range" && matches!(member.as_str(), "checkspelling" | "functionwizard");
+    let reason = if service {
+        "Existing worksheet spelling/function tools have no selected range-owned VBA completion contract; these adapters remain outside the selected OM15 profile, not new product features"
+    } else if owner == "application" {
+        "No corresponding native application-wide cursor, redraw/alert suppression, arbitrary key override, custom status text, insert/paste options, selection floaties or configurable Office.FileDialog graph. Native filename pickers and status visibility are projected separately"
+    } else if owner == "autocorrect" {
+        "No independent native AutoCorrect replacement list/capitalization/table-expansion settings graph; structured-table behavior is not application AutoCorrect state"
+    } else if owner == "errorcheckingoptions" {
+        "Native error indicators/checking do not expose independent per-rule enable switches, indicator palette index or background-check configuration"
+    } else if matches!(owner.as_str(), "action" | "actions" | "research" | "speech") || member == "speak" {
+        "No native smart-tag action/provider, research or speech runtime; provider-backed and Low interactions remain deferred"
+    } else if owner == "spellingoptions" {
+        "Native spell checking has no corresponding configurable Excel locale/dictionary/script-specific options object"
+    } else if owner == "quickanalysis" {
+        "No native Quick Analysis overlay/service object"
+    } else if owner == "range" && member == "dialogbox" {
+        "No native Excel 5 dialog-sheet runtime; generic tiny-vba user forms are a separate surface, not a dialog-sheet/control compatibility claim"
+    } else if member == "creator" {
+        "No Office application creator signature is invented for GridCraft"
+    } else {
+        return;
+    };
+    row["result_state"] = json!(if service { "PLATFORM_SERVICE_NEEDED" } else { "OUT_OF_SCOPE_GRIDCRAFT" });
+    row["native_capability_gate"] = json!(reason);
 }
 fn reconcile_om19_native_scope(row: &mut Value) {
     if row["packet"] != "OM19" || row["implementation_symbol"].is_string() {
@@ -1162,7 +1232,7 @@ fn render_report(contracts: &Value) -> Result<String, String> {
         *counts.entry(state.to_owned()).or_default() += 1;
     }
     let mut out = format!(
-        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\nOM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).\n\nOM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). These are native profiles, not whole-reference compatibility claims.\n\n## State counts\n\n",
+        "# VBA object-model audit report\n\nPinned source: MicrosoftDocs/VBA-Docs `{COMMIT}` (SHA256 `{ARCHIVE_SHA256}`).\n\n{} source pages; page counts are not a compatibility percentage. The inventory is an audit catalogue, not an implementation backlog. A missing projection is VBA work only when GridCraft already supports the underlying behavior; otherwise it is `OUT_OF_SCOPE_GRIDCRAFT` under the [accepted v1 scope](vba-object-model-v1-priority-final.md).\n\nSelected High native-profile acceptance and exact exclusions: [evidence ledger](vba-object-model-high-acceptance.json). Required obligations are validated against source IDs and Rust test functions; catalogue PARTIAL rows retain their meaning.\n\nOM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).\n\nOM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). OM15 owned native dialogs/pickers, status visibility, autocomplete and cell-control acceptance: [evidence ledger](vba-object-model-om15-acceptance.json). These are native profiles, not whole-reference compatibility claims.\n\n## State counts\n\n",
         pages.len()
     );
     for (state, count) in counts {

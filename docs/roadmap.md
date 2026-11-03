@@ -1,6 +1,6 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM19 local VBA annotations/metadata delivered; bounded projection scope) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 native VBA interactions/controls delivered; bounded projection scope) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
@@ -8,10 +8,10 @@ list is [`gaps.md`](gaps.md); numbers and method are in
 
 ## Current focus
 
-Selected Medium VBA OM19 now projects native local notes, threaded replies, cell
-hyperlinks and six built-in metadata fields. External navigation, remote IDs,
-custom properties and cell-handle lifetime limits remain explicit in the
-[OM19 acceptance ledger](vba-object-model-om19-acceptance.json). Eligible OM15 is next.
+Selected Medium VBA OM15 now projects existing native dialogs/pickers, status
+visibility, column autocomplete and cell-checkbox controls through owned host
+continuations. Exact service and capability limits remain in the
+[OM15 acceptance ledger](vba-object-model-om15-acceptance.json). OM20 profile reconciliation/sign-off is next.
 
 Optional VBA follows the accepted
 [v1 object-model profile](vba-object-model-v1-priority-final.md): expose only
@@ -130,6 +130,7 @@ to check our files, and Windows machines with the reported GPU drivers.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
 | 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-23 | minor | Measuring: tests run through `cargo xtask test` |
 | 2026-10-11 | minor | PivotTable calculated fields landed |

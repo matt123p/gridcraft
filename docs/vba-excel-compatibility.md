@@ -7,6 +7,11 @@ cell hyperlinks and six built-in metadata fields. See the
 [OM19 ledger](vba-object-model-om19-acceptance.json) for exact signatures,
 cell-handle limits and unavailable remote/external-navigation/custom-property services.
 
+The selected OM15 profile adds owned native dialog/picker continuations,
+status-bar visibility, column autocomplete and existing cell-checkbox controls.
+See the [OM15 ledger](vba-object-model-om15-acceptance.json) for exact modal,
+headless/browser and unavailable InputBox/Office control/settings limits.
+
 Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
 Unchanged Excel workbook source is measured as compatibility evidence, not the
 implementation target. `GridCraft.Excel.v1` is a bounded standard-module profile;

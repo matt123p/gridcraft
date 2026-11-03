@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10 and OM19 native profiles completed; eligible OM15 interaction work is next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10, OM19 and OM15 selected native profiles completed; OM20 profile reconciliation and sign-off is next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -353,7 +353,7 @@ specific needed receiver/command contract, not completion of every listed packet
 | OM09 | 96 | Medium default; ordinary protection members High | Native protection permissions, selection rights and Allow Edit Ranges completed; IRM/ACL/protected-view/encryption-writer gaps remain explicit. Mutation protection enforcement applies throughout. |
 | OM10 | 133 | Medium | Native page setup/header definitions, bounded pagination/breaks, PDF export and actual host print/download/preview continuations completed; exact printer/option/graphic gaps remain explicit. |
 | OM19 | 101 | Medium | Existing local notes/links/metadata; relevant OM04/OM05 receivers and event hooks if the operation needs them. |
-| OM15 | 115 | Medium | Existing interactions/controls; actual host-service continuation and relevant OM03/OM08/OM11 contracts only. |
+| OM15 | 115 | Medium | Selected native dialogs, filename pickers, FindFile, status visibility, column autocomplete and cell-checkbox controls completed; missing/unselected interaction services and Office control/settings graphs remain explicit. |
 | OM14 | 305 | Low — deferred | Connections/query/import/XML/refresh automation: classify/report only; no projection work now, including otherwise eligible local variants. |
 | OM16 | 138 | Low — deferred | Remote/collaboration/publishing: classify/report only; no projection/provider work now. |
 | OM17 | 570 | Low — deferred | Legacy/Graph/platform/VBE interoperability: classify/report only; no projection/platform work now. |
@@ -989,6 +989,7 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## Revision history
 
+- 2026-11-03: Completed selected OM15 native interactions/controls with owned UI continuations, modal lifetime guards, native/WASM evidence and source-ledger reconciliation; OM20 sign-off is next.
 - 2026-11-03: Completed selected OM19 local annotation/metadata projection with source acceptance; eligible OM15 is next.
 - 2026-11-03: Started Medium OM12 with embedded chart graph/settings, native identity and routing, source-contract test evidence and native/WASM validation.
 
@@ -1715,3 +1716,92 @@ Validation:
   OM19 required contracts and **10** supplemental Office metadata members.
 
 Eligible OM15 interaction/control projection is next; Low runtime work remains deferred.
+
+
+## OM15 selected native interaction/control profile completion (2026-11-03)
+
+Status: **OM15 complete for the selected native profile**. The selected Medium
+profiles have landed; **OM20 profile reconciliation/sign-off is next**. This does
+not declare all Excel interaction APIs or every Medium member implemented. The
+[OM15 acceptance ledger](vba-object-model-om15-acceptance.json) records **14**
+canonical source contracts, two inline CellControl members and three inline
+constants on the pinned `Range.CellControl` page.
+
+Delivered projections:
+
+- Application.Dialogs/Dialogs/Dialog expose seven existing native dialogs using
+  their exact Excel IDs: Column Width 47, Row Height 127, Zoom 256, Insert Cells
+  55, Delete Cells 54, Define Name 61 and Hyperlink 596. Count/enumeration cover
+  this native set; Item uses Excel IDs. Show accepts omitted arguments only,
+  waits for the actual dialog and returns real OK/Cancel results. Invalid form
+  submissions keep the dialog open. Both keyboard and control-channel completion
+  use the actual native command; no compatibility-only modal is created.
+- GetOpenFilename/GetSaveAsFilename return native picker paths or Boolean False
+  on Cancel without opening/saving. Native service filters/title/buttons are
+  fixed, single selection only; unsupported options refuse before invoking the
+  service. Save suggestions use InitialFilename or the native workbook title.
+  FindFile additionally invokes the existing workbook loader after a successful
+  native pick. Browser filename-based open and absent pickers fail explicitly.
+- DisplayStatusBar reads/changes actual UiState visibility through the native
+  UI command `view.statusBarVisible`; there is no fake headless setting or
+  new custom-status text model.
+- Range.AutoComplete shares the existing editor algorithm through a small
+  toolkit-free engine helper. Unicode case folding, contiguous-column matching,
+  ambiguity/no-match behavior and the 5000-row scan in each direction are kept.
+  VBA adds bounded input and aggregate work; it does not depend on the editor's
+  AutoComplete preference or change selection.
+- Range.CellControl exposes the existing cell-checkbox format. Type returns
+  xlTypeNone=0, xlTypeCheckbox=2 or Empty for mixed formats; SetCheckbox calls
+  the native insert.checkbox command and preserves existing values/formulas.
+  Empty cells become False. Worksheet_Change targets are reserved before edits
+  and include only cells whose values change, once. Formatting-only repeated
+  calls produce no value event. Protection, undo, structural rebasing and XLSX
+  persistence use the existing paths.
+
+All UI work crosses owned tokenized continuations. No document borrow or store
+lock survives a wait. Native document/window/sheet/selection/range-epoch and
+consent checks run before modal effects. Invalid or oversized selections fail
+before requests are delivered. Responses are delivered once and type-checked;
+duplicate and reset/close-stale tokens refuse. Owner changes or revoked consent
+cancel the pending work. The editor yields to the existing modal and its prior
+visibility returns on completion/reset. No extra provider, Office control
+runtime, new dialog or tiny-vba intrinsic implementation was added.
+
+Explicit profile limits remain: InputBox has no generic typed/range input
+service and fails 1004, Office.FileDialog has no equivalent configurable object
+graph, and dialog presets/custom picker filters/multiselect are unsupported.
+Range.CheckSpelling and FunctionWizard have existing tools but no selected
+range-owned VBA completion contract; they remain visible as service-needed
+rows outside this selected native profile. Independent ScreenUpdating,
+DisplayAlerts, custom StatusBar, Cursor/OnKey overrides, AutoCorrect and
+ErrorCheckingOptions state, dialog sheets, smart tags, speech/research providers
+and arbitrary Office/ActiveX/OLE controls are not fabricated. Existing shape
+OnAction/assigned-macro wiring remains OM12/OM11 evidence, and generic user forms
+remain the shared tiny-vba contract. Low runtime work stays deferred.
+
+Validation:
+
+- `CRAFT_FONTS_DIR=/tmp/gridcraft-acceptance-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci`:
+  all **10** steps passed, including **3,023** native tests and all **9** OM15
+  adapter tests. The existing approved font input was used; no fonts/assets or CI
+  workflow changes were made.
+- Full Node 22 / wasm-bindgen VBA suite: **240** tests passed, including **8**
+  OM15 tests. The successful native FindFile filesystem test is native-only;
+  browser/headless absence and owned service transport are tested separately.
+- Optional VBA UI lifecycle/forms/events/printing/interactions regression run:
+  **49** tests passed, including **6** new interaction tests. The separate
+  `vba-window` regression run passed **4** further tests.
+- Strict clippy with optional `gridcraft-ui-egui/vba` and `xtask/vba-audit`,
+  final formatting, generated-source audit write/check and whitespace checks
+  passed. All seven dialog ID mappings reached their existing native dialog.
+- Rendered and visually inspected the actual paused VBA-owned Column Width
+  dialog (`/tmp/gridcraft-om15-dialog.png`). The native field and OK/Cancel are
+  visible, the editor yields to the modal, and keyboard/accessibility harness
+  checks pass. The screenshot remains a local artifact.
+- The unchanged **5,996** pinned Excel pages remain reconciled. OM15 has **14**
+  required canonical callable contracts, **2** inline CellControl members and
+  **3** inline constants. Its **115** pages classify as **15 PARTIAL**,
+  **3 PLATFORM_SERVICE_NEEDED** and **97 OUT_OF_SCOPE_GRIDCRAFT**; page counts
+  are not feature counts or a compatibility percentage.
+
+OM20 profile reconciliation/sign-off is next. Low runtime work remains deferred.

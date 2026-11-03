@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "packet": "OM15",
+  "reviewed": "2026-11-03",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "status": "IMPLEMENTED_NATIVE_PROFILE",
+  "scope": "Selected existing native dialog/picker, status visibility, column autocomplete and cell-checkbox projection. No new dialog, control, input UI, Office FileDialog/settings object or remote provider is added. Headless and missing services fail explicitly; this is not all Excel interactions or complete reference compatibility.",
+  "required_obligations": [
+    {
+      "id": "native_dialogs",
+      "native_evidence": "crates/vba/src/interaction_api.rs; crates/vba/src/host_ops.rs; crates/ui-egui/src/vba_interaction.rs; crates/engine/src/completion.rs; crates/engine/src/cmd/extra/cells.rs",
+      "source_ids": [
+        "Application.Dialogs",
+        "Dialog.Application",
+        "Dialog.Parent",
+        "Dialog.Show",
+        "Dialogs.Application",
+        "Dialogs.Count",
+        "Dialogs.Item",
+        "Dialogs.Parent"
+      ],
+      "test_ids": [
+        "crates/vba/tests/interactions.rs::headless_interactions_and_unsupported_options_refuse_without_fake_results",
+        "crates/ui-egui/tests/vba_interactions.rs::existing_column_width_dialog_waits_for_real_confirmation_and_keeps_failed_edits_open",
+        "crates/ui-egui/tests/vba_interactions.rs::cancel_reset_and_project_close_remove_owned_modal_without_replaying_it",
+        "crates/ui-egui/tests/vba_interactions.rs::modal_owner_changes_and_revoked_consent_fail_without_mutating_either_sheet",
+        "crates/ui-egui/tests/vba_interactions.rs::existing_dialog_renders_and_keyboard_ok_cancel_complete_the_vba_call",
+        "crates/vba/tests/interactions.rs::malformed_modal_selection_refuses_before_delivering_a_request",
+        "crates/ui-egui/tests/vba_interactions.rs::every_selected_excel_dialog_id_opens_its_existing_native_dialog"
+      ],
+      "profile": "Seven existing command dialogs: Column Width 47, Row Height 127, Zoom 256, Insert Cells 55, Delete Cells 54, Define Name 61, Hyperlink 596. Item uses Excel IDs, Count/enumeration cover only these native entries; global object identity is shared. Show supports omitted Arg1..Arg30 only; presets refuse. Show suspends, releases borrows and returns actual OK=True or Cancel=False. Failed commands keep the dialog open. Dialog borrows no engine document; owner document/window/sheet/selection/range epoch and consent are checked before commands. UI and control entry points share the guard. Reset/close remove the owned modal and stale token; editor visibility is restored."
+    },
+    {
+      "id": "pickers",
+      "native_evidence": "crates/vba/src/interaction_api.rs; crates/vba/src/host_ops.rs; crates/ui-egui/src/vba_interaction.rs; crates/engine/src/completion.rs; crates/engine/src/cmd/extra/cells.rs",
+      "source_ids": [
+        "Application.FindFile",
+        "Application.GetOpenFilename",
+        "Application.GetSaveAsFilename"
+      ],
+      "test_ids": [
+        "crates/vba/tests/interactions.rs::picker_continuations_return_paths_or_false_without_opening_or_saving",
+        "crates/vba/tests/interactions.rs::reset_and_consent_revocation_cancel_owned_interaction_tokens",
+        "crates/vba/tests/interactions.rs::find_file_uses_the_existing_loader_only_after_a_successful_picker_result",
+        "crates/ui-egui/tests/vba_interactions.rs::filename_pickers_and_status_visibility_use_actual_host_services",
+        "crates/vba/tests/interactions.rs::malformed_modal_selection_refuses_before_delivering_a_request"
+      ],
+      "profile": "Native existing pick_open/pick_save callbacks only. Default workbook filters/title/buttons; GetOpenFilename supports omitted/False MultiSelect. GetSaveAsFilename accepts InitialFilename (otherwise native workbook title). Unsupported presets refuse before a callback. Filename queries return a bounded path or Boolean False on Cancel and do not open/save. FindFile additionally opens through the existing loader only after a successful native pick; no browser path-based open is claimed. Requests are delivered once, duplicate/late responses refuse, and reset/consent revocation cancel without replay."
+    },
+    {
+      "id": "status_visibility",
+      "native_evidence": "crates/vba/src/interaction_api.rs; crates/vba/src/host_ops.rs; crates/ui-egui/src/vba_interaction.rs; crates/engine/src/completion.rs; crates/engine/src/cmd/extra/cells.rs",
+      "source_ids": [
+        "Application.DisplayStatusBar"
+      ],
+      "test_ids": [
+        "crates/ui-egui/tests/vba_interactions.rs::filename_pickers_and_status_visibility_use_actual_host_services"
+      ],
+      "profile": "Get/Let use the actual native UiState.status_bar field and existing status-bar renderer through an owned host operation and the UI command view.statusBarVisible. No fake headless global or custom status text is stored."
+    },
+    {
+      "id": "column_autocomplete",
+      "native_evidence": "crates/vba/src/interaction_api.rs; crates/vba/src/host_ops.rs; crates/ui-egui/src/vba_interaction.rs; crates/engine/src/completion.rs; crates/engine/src/cmd/extra/cells.rs",
+      "source_ids": [
+        "Range.AutoComplete"
+      ],
+      "test_ids": [
+        "crates/vba/tests/interactions.rs::autocomplete_uses_native_contiguous_column_logic_without_changing_selection"
+      ],
+      "profile": "Single-cell native contiguous-column algorithm is shared with the editor, retaining Unicode case folding, ambiguity/no-match empty strings, 5000 rows in each direction, no selection changes and no UI preference dependency. Macro calls share the 1,000,000 scan-work budget (10,000 reserved per call); input cap 32768 bytes."
+    },
+    {
+      "id": "cell_controls",
+      "native_evidence": "crates/vba/src/interaction_api.rs; crates/vba/src/host_ops.rs; crates/ui-egui/src/vba_interaction.rs; crates/engine/src/completion.rs; crates/engine/src/cmd/extra/cells.rs",
+      "source_ids": [
+        "Range.CellControl"
+      ],
+      "test_ids": [
+        "crates/vba/tests/interactions.rs::checkbox_controls_preserve_values_and_formulas_rebase_and_roundtrip",
+        "crates/vba/tests/interactions.rs::checkbox_value_changes_deliver_exact_native_event_targets_once",
+        "crates/vba/tests/interactions.rs::protected_and_oversized_controls_and_unknown_dialog_arguments_fail_before_mutation"
+      ],
+      "profile": "Native checkbox format only; Type returns 0, 2 or Empty for mixed cell formats; SetCheckbox uses existing insert.checkbox, preserves values/formulas and fills empty cells with False. MAX_CELLS budget and one rectangular area. Protected sheets refuse. Exact changed-empty-cell event targets are reserved before mutation, with the existing 64-area callback bound; formatting-only repeats do not generate value-change events. Structural edits rebase handles. Existing undo and XLSX codecs persist native checkbox formatting. Type/SetCheckbox and three xlType constants come from inline sections of the existing Range.CellControl source page."
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "typed_input_and_office_dialog_graph",
+      "reason": "Application.InputBox explicitly requires a missing general typed/range input service. No input dialog or intrinsic is added. Office.FileDialog configuration/filter/multiselect/folder/SelectedItems/Execute graph is absent; existing native filename pickers are a narrower projection."
+    },
+    {
+      "id": "other_native_tools",
+      "reason": "Range.CheckSpelling and FunctionWizard have existing interactive tools but no selected range-owned VBA completion contract; they remain explicit PLATFORM_SERVICE_NEEDED rows outside this selected profile. No fake success or new tool is supplied."
+    },
+    {
+      "id": "settings_controls_and_providers",
+      "reason": "No independent ScreenUpdating/DisplayAlerts/custom StatusBar/Cursor/OnKey suppression/override/settings state, AutoCorrect or ErrorCheckingOptions configuration object, dialog-sheet runtime, arbitrary Office form-control/third-party ActiveX/OLE runtime, smart tags, research or speech provider. Existing shape OnAction/assigned-macro wiring remains covered by OM12/OM11 and shared user forms remain tiny-vba contracts. Low runtime work stays deferred."
+    }
+  ],
+  "validation": {
+    "ci": "All 10 cargo xtask ci steps passed with the existing approved CRAFT_FONTS_DIR=/tmp/gridcraft-acceptance-fonts and CRAFT_FONTS_REQUIRED=1 input. No asset or CI workflow changes.",
+    "workspace_native_tests": 3023,
+    "native_om15_tests": 9,
+    "full_wasm_vba_tests": 240,
+    "wasm_om15_tests": 8,
+    "optional_vba_ui_regressions": 49,
+    "new_ui_interaction_tests": 6,
+    "separate_editor_window_tests": 4,
+    "canonical_required_contracts": 14,
+    "inline_members": 2,
+    "inline_constants": 3,
+    "source_packet_pages": 115,
+    "source_packet_states": {
+      "PARTIAL": 15,
+      "PLATFORM_SERVICE_NEEDED": 3,
+      "OUT_OF_SCOPE_GRIDCRAFT": 97
+    },
+    "visual_check": "Actual native Column Width dialog rendered from a suspended VBA call, visually inspected, with real keyboard OK/Cancel and accessibility harness checks. Local artifact /tmp/gridcraft-om15-dialog.png."
+  }
+}

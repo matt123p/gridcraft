@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (reviewed VBA adapter boundary and incremental object-model delivery) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM15 owned native interaction continuations and shared column completion) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -55,6 +55,13 @@ The resolver shares the bridge's existing object store with bounded read queries
 no document borrow or store lock survives a query/host call. tiny-vba owns only
 generic identity, verified metadata and validation. [M1.1 evidence](vba-m1-types.md)
 records the ownership and lifecycle checks.
+OM15 interaction requests reuse the same bounded host-operation store. They own
+only tokens, payloads and native identity/selection snapshots across frames;
+UI modal effects recheck owner and consent and complete through actual command
+OK/Cancel. Native column completion is shared as a toolkit-free engine query
+rather than copied into the VBA adapter. Cell-checkbox binding keeps native
+commands, pre-reserved value-change events, protection and undo.
+
 Object-model scheduling follows the [priority delivery stages](vba-object-model-implementation-plan.md#work-packets-and-delivery-order):
 eligible High first, then selected Medium subsets; Low runtime work is deferred.
 OM IDs remain stable catalogue identifiers, with event/protection work attached
@@ -222,6 +229,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM15 owned interaction boundary and native column-completion sharing |
 | 2026-11-03 | minor | OM10 native print projections and owned printer/download/picker/preview continuations wired to real UI services |
 | 2026-11-03 | minor | OM09 native permission/edit-range projection, definition lifetimes, grant revocation and selection-only command plumbing |
 | 2026-11-03 | minor | OM08 native window scopes, session-owned window/watch collections, close continuations and explicit worksheet/window state boundary |

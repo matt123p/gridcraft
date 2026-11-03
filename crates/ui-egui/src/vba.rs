@@ -1,4 +1,6 @@
 //! Optional shell glue; the editor/debugger itself is rendered by tiny-vba.
+#[path = "vba_interaction.rs"]
+mod interaction;
 use crate::{SheetApp, theme};
 use gridcraft_vba::worksheet::{Functions, Project};
 use gridcraft_vba::{
@@ -17,6 +19,7 @@ pub struct Editor {
     confirm_close: bool,
     pub(crate) pending_prompt: Option<PromptRequest>,
     pending_print: Option<PendingPrint>,
+    pending_interaction: Option<interaction::Pending>,
     external_lifecycle: Option<ExternalLifecycle>,
     lifecycle_commit: bool,
     approved_close: Option<u64>,
@@ -158,6 +161,7 @@ struct ExternalLifecycle {
     save: bool,
 }
 pub fn before_command(app: &mut SheetApp, id: &str, params: &Json) -> Result<bool> {
+    interaction::before_command(app, id, params)?;
     let Some(editor) = app.vba.as_mut() else {
         return Ok(true);
     };
@@ -406,6 +410,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             confirm_close: false,
             pending_prompt: None,
             pending_print: None,
+            pending_interaction: None,
             external_lifecycle: None,
             lifecycle_commit: false,
             approved_close: None,
@@ -493,6 +498,12 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             editor.ide.entry = entry.into();
             editor.bridge.set_prompt_services(prompt_services(&app.services));
             editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
+            editor.bridge.set_interaction_services(gridcraft_vba::InteractionServices {
+                dialogs: true,
+                open_picker: app.services.pick_open.is_some(),
+                save_picker: app.services.pick_save.is_some(),
+                status_visibility: true,
+            });
             editor.bridge.dispatch(&mut app.session, &mut editor.ide, Action::Run).map_err(error)?;
             editor.visible = false;
         }
@@ -506,6 +517,9 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             let d = app.session.doc_mut().map_err(error)?;
             d.calc.custom_functions = None;
             recalculate(&mut app.session)?;
+            if editor.pending_interaction.take().is_some() && app.dialog.as_ref().is_some_and(|d| d.values.contains_key("om15Token")) {
+                app.dialog = None;
+            }
             app.vba = None;
         }
         _ => {
@@ -532,6 +546,12 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             }
             editor.bridge.set_prompt_services(prompt_services(&app.services));
             editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
+            editor.bridge.set_interaction_services(gridcraft_vba::InteractionServices {
+                dialogs: true,
+                open_picker: app.services.pick_open.is_some(),
+                save_picker: app.services.pick_save.is_some(),
+                status_visibility: true,
+            });
             editor.bridge.dispatch(&mut app.session, &mut editor.ide, action).map_err(error)?;
         }
     }
@@ -548,6 +568,12 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
     }
     editor.bridge.set_prompt_services(prompt_services(&app.services));
     editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
+    editor.bridge.set_interaction_services(gridcraft_vba::InteractionServices {
+        dialogs: true,
+        open_picker: app.services.pick_open.is_some(),
+        save_picker: app.services.pick_save.is_some(),
+        status_visibility: true,
+    });
     editor.bridge.set_formula_locale(app.ui.language.formula_locale());
     let progress = if editor.external_lifecycle.as_ref().is_some_and(|p| p.batch.is_some()) {
         editor.bridge.tick_lifecycle(&mut app.session, &mut editor.ide)
@@ -612,6 +638,7 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
     }
     finish_native_close(app, ctx);
     poll_print_io(app, ctx);
+    interaction::poll(app, ctx);
 }
 /// Owns only service tokens/worker state across frames, never a document borrow.
 fn poll_print_io(app: &mut SheetApp, ctx: &egui::Context) {
@@ -1144,6 +1171,12 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let Some(mut editor) = app.vba.take() else { return };
     editor.bridge.set_prompt_services(prompt_services(&app.services));
     editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
+    editor.bridge.set_interaction_services(gridcraft_vba::InteractionServices {
+        dialogs: true,
+        open_picker: app.services.pick_open.is_some(),
+        save_picker: app.services.pick_save.is_some(),
+        status_visibility: true,
+    });
     let mut commands = Vec::new();
     let mut save_workbook = false;
     let mut allow = false;
@@ -1388,4 +1421,8 @@ pub fn answer_save_prompt(app: &mut SheetApp, answer: crate::SaveAnswer) -> bool
     }
     editor.pending_prompt = None;
     true
+}
+
+pub(crate) fn interaction_dialog_closed(app: &mut SheetApp, token: u64, accepted: bool) -> Result<()> {
+    interaction::complete(app, token, accepted)
 }

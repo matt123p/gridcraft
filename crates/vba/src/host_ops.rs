@@ -34,6 +34,7 @@ pub(crate) struct Operations {
     next: u64,
     pub pending: BTreeMap<u64, Operation>,
     pub services: PromptServices,
+    pub interaction_services: super::InteractionServices,
     pub print_services: super::print_api::PrintServices,
 }
 pub(crate) struct Operation {
@@ -46,6 +47,7 @@ pub(crate) struct Operation {
     window_close: Option<u64>,
 }
 enum Action {
+    Interaction { request: Option<super::InteractionRequest>, expected: super::InteractionKind, response: Option<HostResult<Value>> },
     Print { request: Option<super::print_api::PrintOperation>, response: Option<HostResult<Value>> },
     Procedure(SuspendedCall),
     Event { event: &'static str, save_ui: bool, success: bool },
@@ -129,6 +131,47 @@ impl Bridge {
         });
         Ok(())
     }
+    pub fn set_interaction_services(&mut self, services: super::InteractionServices) {
+        self.operations.interaction_services = services;
+    }
+    pub fn take_interaction_request(&mut self) -> Option<super::InteractionRequest> {
+        self.operations.pending.iter_mut().find_map(|(token, op)| match op.actions.front_mut() {
+            Some(Action::Interaction { request, response: None, .. }) => request.take().map(|mut r| {
+                r.token = *token;
+                r
+            }),
+            _ => None,
+        })
+    }
+    pub fn interaction_pending(&self, token: u64) -> bool {
+        self.operations.pending.get(&token).is_some_and(|op| matches!(op.actions.front(), Some(Action::Interaction { response: None, .. })))
+    }
+    pub fn interaction_permitted(&self, session: &Session, request: &super::InteractionRequest) -> bool {
+        self.permitted(session)
+            && self.interaction_pending(request.token)
+            && self.operations.pending.get(&request.token).is_some_and(|op| op.doc == request.doc)
+            && session.document(request.doc).is_some_and(|d| {
+                (d.trust.allows_code() || d.uid == self.doc && self.consent)
+                    && d.range_epoch == request.range_epoch
+                    && d.selection == request.selection
+                    && d.wb.active().is_some_and(|sh| sh.identity.same(&request.sheet))
+            })
+            && session.active_window() == Some(request.window)
+    }
+    pub fn respond_to_interaction(&mut self, token: u64, response: std::result::Result<super::InteractionResponse, String>) -> HostResult<()> {
+        let op = self.operations.pending.get_mut(&token).ok_or_else(|| failure(91, "stale interaction request"))?;
+        let Some(Action::Interaction { expected, response: slot, .. }) = op.actions.front_mut() else {
+            return Err(failure(5, "not waiting for interaction"));
+        };
+        if slot.is_some() {
+            return Err(failure(5, "interaction already completed"));
+        }
+        *slot = Some(match response {
+            Ok(r) => expected.response(r),
+            Err(e) => Err(failure(1004, e)),
+        });
+        Ok(())
+    }
     pub fn set_prompt_services(&mut self, services: PromptServices) {
         self.operations.services = services;
     }
@@ -175,6 +218,11 @@ impl Bridge {
         Ok(token)
     }
     pub(crate) fn defer_call(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> HostResult<Option<u64>> {
+        if let Some(request) = self.defer_interaction(session, object, call)? {
+            let expected = request.kind.clone();
+            let doc = request.doc;
+            return self.add_operation(doc, VecDeque::from([Action::Interaction { request: Some(request), expected, response: None }])).map(Some);
+        }
         if let Some(request) = self.defer_print_call(session, object, call)? {
             let doc = session.doc().map_err(|e| failure(91, e.to_string()))?.uid;
             return self.add_operation(doc, VecDeque::from([Action::Print { request: Some(request), response: None }])).map(Some);
@@ -332,6 +380,21 @@ impl Bridge {
                 return Ok(());
             };
             match action {
+                Action::Interaction { request, expected, response } => {
+                    if let Some(result) = response {
+                        op.result = match (expected, result) {
+                            (super::InteractionKind::FindFile, Ok(Value::String(path))) => {
+                                let path = Value::String(path);
+                                self.invoke_object(session, Object::Workbooks, call("Open", vec![path]))?;
+                                Ok(Value::Boolean(true))
+                            }
+                            (_, result) => result,
+                        };
+                    } else {
+                        op.actions.push_front(Action::Interaction { request, expected, response: None });
+                        return Ok(());
+                    }
+                }
                 Action::Print { request, response } => {
                     if let Some(result) = response {
                         op.result = result;

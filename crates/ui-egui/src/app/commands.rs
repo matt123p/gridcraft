@@ -189,6 +189,10 @@ impl SheetApp {
                 self.ui.animations = p.get("on").and_then(Json::as_bool).unwrap_or(!self.ui.animations);
                 Ok(json!({"on": self.ui.animations}))
             }
+            "view.statusBarVisible" => {
+                self.ui.status_bar = p.get("on").and_then(Json::as_bool).unwrap_or(self.ui.status_bar);
+                Ok(json!({"on":self.ui.status_bar}))
+            }
             "options.autoComplete" => {
                 self.ui.autocomplete = p.get("on").and_then(Json::as_bool).unwrap_or(!self.ui.autocomplete);
                 Ok(json!({"on": self.ui.autocomplete}))
