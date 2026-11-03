@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12 and OM13 native profiles completed; selected OM08 view work is next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13 and OM08 native profiles completed; remaining eligible OM09 work is next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -349,7 +349,7 @@ specific needed receiver/command contract, not completion of every listed packet
 | OM11 | 123 | High by owning feature | Existing event hooks, cancellation/order and lifecycle semantics; implement alongside the corresponding operation. |
 | OM12 | 1,220 | Medium | Existing basic charts/drawings; needs OM04 object ownership and relevant OM05 formatting; OM08 only for genuinely window-dependent members. |
 | OM13 | 838 | Medium | Existing local pivots; relevant OM04/OM06 and table/formula contracts where used; provider/model behavior excluded. |
-| OM08 | 163 | Medium | Existing windows/panes/views; relevant OM03/OM04 document/window identity. |
+| OM08 | 163 | Medium | Native window/selection/lifecycle, saved-view and watch-list profile completed; independent panes/views and geometry services remain explicit native gaps. See completion record below. |
 | OM09 | 96 | Medium default; ordinary protection members High | Existing protection/permission projections; relevant OM04 receivers. Mutation protection enforcement applies throughout. |
 | OM10 | 133 | Medium | Existing page setup/print/export; relevant OM04/OM05 state, OM08 only for view-dependent calls, actual export/print service. |
 | OM19 | 101 | Medium | Existing local notes/links/metadata; relevant OM04/OM05 receivers and event hooks if the operation needs them. |
@@ -1430,3 +1430,68 @@ Final validation (2026-11-03):
 - Optional native `ui-egui/vba-window` and WASM `gridcraft-web/vba` builds passed.
   The tiny-vba dependency revision is unchanged. No new Office oracle execution,
   XLSX slicer codec, external service, asset or workflow was introduced.
+
+
+## OM08 native window profile completion (2026-11-03)
+
+Status: **OM08 complete for its existing native profile**. The selected Medium
+sequence continues with remaining eligible OM09, then OM10, OM19 and OM15.
+The [OM08 acceptance ledger](vba-object-model-om08-acceptance.json) links **50**
+required source contracts to executable Rust tests and records the exact limits.
+
+- `Application.Windows`, `Workbook.Windows`, `ActiveWindow`, `Window.NewWindow`
+  and `Workbook.NewWindow` project real native session IDs. Collections support
+  one-based/default/caption lookup and bounded enumeration. Parent/Application,
+  read-only Caption, Index/WindowNumber, xlWorkbook Type, SelectedSheets,
+  ActiveSheet, ActiveCell, Selection and RangeSelection use native ownership.
+- Reads of parked windows preserve user focus, activation recency and the live
+  view of inactive workbooks. Dynamic roots follow the view currently shown by
+  the UI. Explicit activation and new windows retain their chosen focus;
+  next/previous cycle through native visible-list order. Global collections
+  survive closing their originating workbook. Closed window handles fail 91.
+- Native parked views now follow existing sheet identity across rename/reorder.
+  Visible, hide/unhide and non-last Close use engine commands. Non-last Close
+  ignores save options as Excel specifies. Last-window Close reuses workbook
+  callbacks, save consent and prompt continuations; it returns Boolean success
+  or False on callback/user cancellation. Destination workbook trust still applies.
+- CustomViews expose the existing sheet-ordinal/selection/zoom/freeze snapshot.
+  Add requires explicit `PrintSettings:=False, RowColSettings:=False`; unsupported
+  defaults/options refuse before edits. Metadata, geometry bounds and protected
+  selections are validated before Show. Names are read-only. Native XLSX retains
+  the stash. Saved sheet ordinals are not persisted worksheet identities, so
+  snapshots should be recreated after changing workbook sheet topology.
+- Application.Watches aggregates existing native per-document lists. Add accepts
+  one qualified cell via a Range; Source returns that Range, and deletion uses
+  existing commands and permission checks. Native text references do not track
+  worksheet rename/deletion. Ambiguous legacy relative watch entries refuse
+  Source instead of rebinding to another sheet.
+- Native saved-view and watch collections use their hidden defined-name stash's
+  lifetime. Any edit invalidates prior child handles in that collection/document;
+  reacquire them. Collections, metadata and returned handles are bounded before
+  mutations. These are narrower lifetime semantics than Excel's individual objects.
+
+Native zoom, freeze, gridlines/headings and display modes are **worksheet-owned**;
+scroll persistence is also per sheet. They are not projected as independent Window
+or Pane state. Native Split aliases freeze, so there is no fabricated Panes graph.
+Single-window Goto Scroll=True retains existing saved-top-left behavior; with two
+windows on one workbook it refuses before navigation effects. Scroll=False keeps
+native per-window selection behavior. WorksheetView/SheetViews, dialog/module views,
+TreeviewControl, ScrollArea and side-by-side synchronization have no eligible backend.
+Window geometry, VisibleRange, pixel conversion and Arrange require an actual
+window/viewport service on native and browser hosts; headless never substitutes
+inferred dimensions. No window activation event source is invented.
+
+Final validation (2026-11-03):
+
+- Font-enabled `cargo xtask ci`: **all 10 stages passed**, including **207**
+  native VBA tests and the workspace engine/model/XLSX/UI suites.
+- Full Node 22 / wasm-bindgen VBA suite: **199 tests passed**, including all
+  **18** OM08 regressions. Native and browser hosts share the same adapter.
+- Strict audit-enabled xtask Clippy passed; **29** xtask tests passed.
+- Desktop `gridcraft-ui-egui/vba-window` and browser `gridcraft-web/vba` checks passed.
+- Pinned audit regeneration and no-write verification passed for all **5,996**
+  source pages, preserving High/OM12/OM13 evidence and **50** OM08 required contracts.
+
+The final close regression verifies that a BeforeClose callback creating a sibling
+window cannot accidentally close the shared workbook. No UI layout, vendor assets,
+workflow or tiny-vba dependency revision changed.

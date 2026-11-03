@@ -20,7 +20,11 @@ pub struct WindowView {
     /// The active sheet's name, so a sheet inserted, deleted or moved meanwhile in another
     /// window still finds it.
     pub sheet_name: String,
+    /// Session identity follows sheet rename and reorder while this view is parked.
+    pub sheet_identity: Option<gridcraft_model::sheet::SheetIdentity>,
     pub sheet_selections: Vec<Selection>,
+    /// Owners of the per-sheet selection slots at capture time.
+    pub sheet_identities: Vec<gridcraft_model::sheet::SheetIdentity>,
     pub selected_sheets: Vec<usize>,
 }
 
@@ -46,22 +50,50 @@ impl WindowView {
             selection: d.selection.clone(),
             sheet: d.wb.active_sheet(),
             sheet_name: d.wb.sheets.get(d.wb.active_sheet()).map(|s| s.name.clone()).unwrap_or_default(),
+            sheet_identity: d.wb.sheets.get(d.wb.active_sheet()).map(|s| s.identity.clone()),
             sheet_selections: d.sheet_selections.clone(),
+            sheet_identities: d.wb.sheets.iter().map(|s| s.identity.clone()).collect(),
             selected_sheets: d.selected_sheets.clone(),
         }
     }
 
     fn apply(self, d: &mut DocState) {
         let sheets = &d.wb.sheets;
-        let at = if sheets.get(self.sheet).is_some_and(|s| s.name == self.sheet_name) {
+        let at = if let Some(at) = self.sheet_identity.as_ref().and_then(|id| sheets.iter().position(|s| s.identity.same(id))) {
+            at
+        } else if sheets.get(self.sheet).is_some_and(|s| s.name == self.sheet_name) {
             self.sheet
         } else {
             sheets.iter().position(|s| s.name == self.sheet_name).unwrap_or(self.sheet)
         };
-        d.wb.set_active_sheet(at.min(sheets.len().saturating_sub(1)));
+        let at = at.min(sheets.len().saturating_sub(1));
+        let mapping = self
+            .sheet_identities
+            .iter()
+            .enumerate()
+            .map(|(i, id)| if sheets.get(i).is_some_and(|s| s.identity.same(id)) { Some(i) } else { sheets.iter().position(|s| s.identity.same(id)) })
+            .collect::<Vec<_>>();
+        let mut selections = Vec::new();
+        for (old, selection) in self.sheet_selections.into_iter().enumerate() {
+            if let Some(next) = mapping.get(old).copied().flatten() {
+                if selections.len() <= next {
+                    selections.resize(next + 1, Selection::default());
+                }
+                if let Some(slot) = selections.get_mut(next) {
+                    *slot = selection;
+                }
+            }
+        }
+        let mut selected = self.selected_sheets.iter().filter_map(|i| mapping.get(*i).copied().flatten()).collect::<Vec<_>>();
+        selected.sort_unstable();
+        selected.dedup();
+        if selected.is_empty() {
+            selected.push(at);
+        }
+        d.wb.set_active_sheet(at);
         d.selection = self.selection;
-        d.sheet_selections = self.sheet_selections;
-        d.selected_sheets = self.selected_sheets;
+        d.sheet_selections = selections;
+        d.selected_sheets = selected;
     }
 }
 
@@ -302,6 +334,23 @@ impl Session {
                 })
                 .collect(),
         )
+    }
+
+    /// Reads an existing window's parked view without changing activation order or the
+    /// live view of an inactive workbook. `f` must not change window lifecycle/focus.
+    pub fn with_window_view<T>(&mut self, id: u64, f: impl FnOnce(&mut Session) -> T) -> Result<T> {
+        let doc = self.window(id).map(|w| w.doc_uid).ok_or_else(|| EngineError::Other("window closed".into()))?;
+        let old = self.active_window;
+        let live = self.windows.iter().find(|w| w.doc_uid == doc && w.view.is_none()).map(|w| w.id);
+        self.show_window(id);
+        let result = f(self);
+        if let Some(live) = live {
+            self.show_window(live);
+        }
+        if let Some(old) = old {
+            self.show_window(old);
+        }
+        Ok(result)
     }
 
     /// Runs `f` with the target window active, then brings back the window that was active, so a

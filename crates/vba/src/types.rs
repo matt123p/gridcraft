@@ -19,6 +19,12 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
             types: [
+                "Watches",
+                "Watch",
+                "Windows",
+                "Window",
+                "CustomViews",
+                "CustomView",
                 "PivotCaches",
                 "PivotCache",
                 "PivotTables",
@@ -429,6 +435,7 @@ impl ObjectTypeResolver for Objects {
         let name = match object {
             Object::Application => "application",
             Object::Feature(ref f) => match f.kind {
+                "WindowSheets" => "Sheets",
                 "ConditionFont" | "ShapeFont" => "Font",
                 "SeriesInterior" => "Interior",
                 "SeriesBorder" | "TrendlineBorder" => "Border",

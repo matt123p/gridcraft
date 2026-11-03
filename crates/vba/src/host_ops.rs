@@ -42,6 +42,7 @@ pub(crate) struct Operation {
     started: bool,
     result: HostResult<Value>,
     cancel: bool,
+    window_close: Option<u64>,
 }
 enum Action {
     Procedure(SuspendedCall),
@@ -108,6 +109,11 @@ impl Bridge {
         *slot = Some(response);
         Ok(())
     }
+    pub(crate) fn window_close_result(&mut self, token: u64, window: u64) {
+        if let Some(op) = self.operations.pending.get_mut(&token) {
+            op.window_close = Some(window);
+        }
+    }
     pub(crate) fn cancel_operation(&mut self, token: u64) {
         self.operations.pending.remove(&token);
     }
@@ -117,7 +123,9 @@ impl Bridge {
         }
         let token = self.operations.next.checked_add(1).ok_or_else(|| failure(7, "host token exhaustion"))?;
         self.operations.next = token;
-        self.operations.pending.insert(token, Operation { doc, actions, callback: None, started: false, result: empty(), cancel: false });
+        self.operations
+            .pending
+            .insert(token, Operation { doc, actions, callback: None, started: false, result: empty(), cancel: false, window_close: None });
         Ok(token)
     }
     pub(crate) fn defer_call(&mut self, session: &Session, object: &Object, call: &HostCall) -> HostResult<Option<u64>> {
@@ -258,6 +266,12 @@ impl Bridge {
             op.actions.clear();
             op.started = false;
         }
+        if op.actions.is_empty()
+            && (op.result.is_ok() || op.result.as_ref().is_err_and(|e| e.number == 1004 && e.description == "file operation cancelled"))
+            && let Some(window) = op.window_close
+        {
+            op.result = Ok(Value::Boolean(session.window(window).is_none()));
+        }
         let ready = op.actions.is_empty() || op.started;
         self.operations.pending.insert(token, op);
         Ok(ready)
@@ -316,6 +330,10 @@ impl Bridge {
                     return Ok(());
                 }
                 Action::PlanClose(original) => {
+                    if op.window_close.is_some() && session.windows().iter().filter(|w| w.doc_uid == op.doc).count() > 1 {
+                        op.actions.push_front(Action::CommitClose);
+                        continue;
+                    }
                     let args = arguments(&original, &["SaveChanges", "Filename", "RouteWorkbook"])?;
                     if !matches!(args[2], Value::Missing) {
                         return Err(failure(1004, "workbook routing is unavailable"));
@@ -428,6 +446,16 @@ impl Bridge {
                     }
                 }
                 Action::CommitClose => {
+                    // A callback/prompt can create a sibling after the original last-window check.
+                    if let Some(window) = op.window_close
+                        && session.windows().iter().filter(|w| w.doc_uid == op.doc).count() > 1
+                    {
+                        op.result = session
+                            .execute("window.close", serde_json::json!({"window":window}))
+                            .map(|_| Value::Empty)
+                            .map_err(|e| failure(1004, e.to_string()));
+                        continue;
+                    }
                     op.result = session
                         .with_target(gridcraft_engine::Target::Doc(op.doc), |s| {
                             self.sync_sheets(s)?;

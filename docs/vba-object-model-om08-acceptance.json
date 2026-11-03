@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "packet": "OM08",
+  "reviewed": "2026-11-03",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "status": "IMPLEMENTED_NATIVE_PROFILE",
+  "scope": "Native window identity, ownership, selection, focus, lifecycle, saved-view and watch-list projection. Native capability gaps remain explicit; this does not complete the entire Excel window API or Medium stage. No independent pane/view or platform window service is added.",
+  "required_obligations": [
+    {
+      "id": "window_ownership",
+      "native_evidence": "crates/engine/src/windows.rs; crates/engine/src/cmd/extra/window.rs; crates/vba/src/window_api.rs",
+      "profile": "Native monotonically allocated window IDs; live insertion-order global/workbook collections, captions, one-based workbook-relative Index/WindowNumber, xlWorkbook Type, selected sheets, active sheet/cell and native multi-area range selections. Targeted reads restore focus. Explicit Activate and new windows retain focus; next/previous use the visible native list. Caption is read-only. SaveChanges is ignored for non-last windows. Last-window Close uses the existing workbook lifecycle with callbacks, prompts and Boolean completion. Deleted windows fail 91. Native parked active sheets follow session sheet identity across rename/reorder. Read-only window scopes also restore inactive workbooks\u2019 live view without changing activation recency. Dynamic roots follow the currently shown native/UI window. Application collections are session-owned and survive closing a different originating workbook. User cancellation of a Close prompt returns False. If a close callback or paused prompt adds a sibling, commit closes only the original window and preserves the workbook.",
+      "source_ids": [
+        "Application.ActiveWindow",
+        "Application.Windows",
+        "Window.Activate",
+        "Window.ActivateNext",
+        "Window.ActivatePrevious",
+        "Window.ActiveCell",
+        "Window.ActiveSheet",
+        "Window.Application",
+        "Window.Caption",
+        "Window.Close",
+        "Window.Index",
+        "Window.NewWindow",
+        "Window.Parent",
+        "Window.RangeSelection",
+        "Window.SelectedSheets",
+        "Window.Selection",
+        "Window.Type",
+        "Window.Visible",
+        "Window.WindowNumber",
+        "Windows.Application",
+        "Windows.Count",
+        "Windows.Item",
+        "Windows.Parent",
+        "Workbook.NewWindow",
+        "Workbook.Windows"
+      ],
+      "test_ids": [
+        "crates/vba/tests/windows.rs::window_graph_keeps_parked_selection_and_explicit_activation",
+        "crates/vba/tests/windows.rs::global_windows_preserve_cross_workbook_ownership_and_focus",
+        "crates/vba/tests/windows.rs::window_close_hides_and_rejects_stale_handles_without_closing_workbook",
+        "crates/vba/tests/windows.rs::last_window_close_reuses_workbook_lifecycle_and_boolean_result",
+        "crates/vba/tests/windows.rs::last_window_beforeclose_cancellation_returns_false",
+        "crates/vba/tests/windows.rs::parked_window_follows_native_sheet_identity_after_rename_and_reorder",
+        "crates/vba/tests/windows.rs::window_targets_enforce_workbook_consent_before_any_effect",
+        "crates/vba/tests/windows.rs::last_window_close_waits_for_the_existing_save_changes_prompt",
+        "crates/vba/tests/windows.rs::inactive_window_reads_preserve_native_most_recent_live_view",
+        "crates/vba/tests/windows.rs::dynamic_window_roots_follow_the_view_currently_shown_by_the_ui",
+        "crates/vba/tests/windows.rs::application_window_and_watch_collections_survive_originating_window_close",
+        "crates/vba/tests/windows.rs::last_window_close_prompt_cancellation_returns_false_and_keeps_the_view",
+        "crates/vba/tests/windows.rs::beforeclose_creating_a_sibling_cannot_close_the_shared_workbook"
+      ]
+    },
+    {
+      "id": "native_saved_views",
+      "native_evidence": "crates/engine/src/windows.rs; crates/engine/src/cmd/extra/window.rs; crates/vba/src/custom_view_api.rs",
+      "profile": "Bounded native CustomViews stash captures sheet ordinal, selection, sheet zoom and sheet freeze. Add requires explicit PrintSettings=False and RowColSettings=False; defaults and True refuse before effects. Names are read-only and duplicate names refuse. Show validates stored metadata and protected selection before commands. Native snapshot uses sheet positions, not a persisted worksheet lifetime; changing workbook sheet topology can invalidate its meaning. Any collection edit invalidates all prior CustomView handles via the stash defined-name lifetime; callers reacquire them. Native XLSX preserves the stash. These snapshots do not add independent per-window view settings.",
+      "source_ids": [
+        "CustomView.Application",
+        "CustomView.Delete",
+        "CustomView.Name",
+        "CustomView.Parent",
+        "CustomView.PrintSettings",
+        "CustomView.RowColSettings",
+        "CustomView.Show",
+        "CustomViews.Add",
+        "CustomViews.Application",
+        "CustomViews.Count",
+        "CustomViews.Item",
+        "CustomViews.Parent",
+        "Workbook.CustomViews"
+      ],
+      "test_ids": [
+        "crates/vba/tests/windows.rs::native_saved_view_options_snapshots_and_xlsx_persistence",
+        "crates/vba/tests/windows.rs::saved_view_handles_invalidate_on_native_collection_replacement",
+        "crates/vba/tests/windows.rs::malformed_saved_view_fails_before_focus_and_selection_change"
+      ]
+    },
+    {
+      "id": "native_watch_lists",
+      "native_evidence": "crates/engine/src/windows.rs; crates/engine/src/cmd/extra/window.rs; crates/vba/src/watch_api.rs",
+      "profile": "Application.Watches aggregates native per-document lists in workbook/list order. Add accepts a single-cell same-session Range, stores qualified native cell text, checks destination trust, and returns the existing handle on duplicate source. Source returns a Range only for a qualified single-cell source; legacy relative/malformed UI entries refuse rather than retarget. Native text references do not track sheet rename/deletion. Any watch-list edit invalidates prior handles in that document; reacquire them. Delete-all validates all destination permissions before effects. Uses existing native watch command and undo-preservation behavior; no new watch codec/event source.",
+      "source_ids": [
+        "Application.Watches",
+        "Watch.Application",
+        "Watch.Delete",
+        "Watch.Parent",
+        "Watch.Source",
+        "Watches.Add",
+        "Watches.Application",
+        "Watches.Count",
+        "Watches.Delete",
+        "Watches.Item",
+        "Watches.Parent"
+      ],
+      "test_ids": [
+        "crates/vba/tests/windows.rs::watches_aggregate_native_workbooks_and_reject_replaced_handles",
+        "crates/vba/tests/windows.rs::window_targets_enforce_workbook_consent_before_any_effect"
+      ]
+    },
+    {
+      "id": "navigation_and_backend_refusals",
+      "native_evidence": "crates/vba/src/objects.rs; crates/engine/src/cmd/edit; crates/model/src/sheet.rs",
+      "profile": "Existing Application.Goto with Scroll=False works on the active native window. Existing single-window Scroll=True retains its worksheet-saved top-left behavior. With two windows on the same workbook Scroll=True refuses before selection/history effects because native scroll storage is sheet-owned. Independent Window/Panes zoom, freeze/split, scrolling, display flags and display modes are out of scope until native per-window state exists. No substitute single Pane or inferred viewport is returned. Geometry, pixel transforms, VisibleRange and arrangement need a real window/viewport host service on both native and browser; headless never fabricates measurements. SheetViews and dialog/module/TreeviewControl graphs, ScrollArea restrictions, synchronized side-by-side state and Office Creator identity have no native backend. Caption assignment and native missing per-window activation events are unsupported.",
+      "source_ids": [
+        "Application.Goto"
+      ],
+      "test_ids": [
+        "crates/vba/tests/windows.rs::headless_window_gaps_refuse_before_selection_or_sheet_view_mutation",
+        "crates/vba/tests/ranges.rs::application_goto_records_replays_and_scrolls_native_history"
+      ]
+    }
+  ]
+}

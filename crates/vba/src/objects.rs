@@ -337,6 +337,9 @@ impl Bridge {
                 ),
             };
             let scroll = args.get(1).filter(|value| !matches!(value, Value::Missing)).map(super::address::boolean).transpose()?.unwrap_or(false);
+            if scroll && session.windows().iter().filter(|w| session.doc().is_ok_and(|d| w.doc_uid == d.uid)).count() > 1 {
+                return Err(failure(1004, "per-window scrolling is unavailable for multiple windows"));
+            }
             let mut params = serde_json::json!({"reference":reference,"record":true});
             if let Some(active) = preferred_active {
                 params["active"] = serde_json::Value::String(active);

@@ -222,6 +222,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM08 native window scopes, session-owned window/watch collections, close continuations and explicit worksheet/window state boundary |
 | 2026-11-03 | minor | OM13 native local pivot/field/item/slicer graph, source lifetimes, report-owned cache views and explicit persistence/service boundaries |
 | 2026-11-03 | minor | Complete OM12 native chart/drawing graph, series/trendline/shape identities, Office child types and bounded snapshots |
 | 2026-11-03 | minor | First OM12 embedded chart projection, nonserialized chart identity, explicit native sheet routing and renderer/round-trip evidence |
@@ -308,3 +309,26 @@ views, not a new shared runtime cache. Slicer views similarly reflect existing
 independent table widgets. Native model snapshots serialize those widgets, but
 XLSX does not implement their codec. The [OM13 ledger](vba-object-model-om13-acceptance.json)
 keeps this persistence gap and provider/model/timeline exclusions explicit.
+
+
+## OM08 window projection boundary (2026-11-03)
+
+The private VBA `window_api`, `custom_view_api` and `watch_api` project existing
+engine window IDs and hidden defined-name stashes. Window objects retain native
+session identity and document ownership; application-level Windows/Watches are
+session-owned. Read-only `Session::with_window_view` scopes swap parked selections
+without changing activation recency and restore the inactive document's live view
+as well as user focus. Mutating calls use native target scopes and commands.
+Native parked active-sheet snapshots use the existing SheetIdentity across rename
+and reorder. Last-window Close translates to the existing workbook lifecycle,
+retaining permission checks, callback cancellation, prompts and Boolean completion.
+
+Native WindowView contains selection and active/selected sheets. Zoom, display
+flags, freeze and saved scroll positions belong to Sheet; there is no independent
+split-pane model. VBA does not move or duplicate these into compatibility state.
+Native geometry/viewport/pixel services are absent from the adapter on desktop,
+browser and headless hosts. Saved views and watches use bounded native stash
+snapshots, with conservative collection-wide lifetime invalidation after edits.
+Saved views retain native sheet ordinals; watches retain native reference text.
+The [OM08 ledger](vba-object-model-om08-acceptance.json) records these narrower
+contracts, unsupported per-window settings and unconnected platform services.

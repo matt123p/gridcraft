@@ -11,6 +11,7 @@ mod chart_parts_api;
 mod clipboard;
 mod condition_details;
 mod conditional_api;
+mod custom_view_api;
 mod data_api;
 mod drawing_api;
 mod features;
@@ -23,6 +24,8 @@ mod pivot_api;
 mod pivot_fields_api;
 mod series_api;
 mod slicer_api;
+mod watch_api;
+mod window_api;
 pub use lifecycle_events::{LifecycleEvent, LifecycleEventBatch};
 mod named_style_api;
 mod objects;
@@ -252,7 +255,8 @@ impl Bridge {
         if let Object::Range(_, range) = &object {
             range.validate()?;
         }
-        let object = if matches!(object, Object::Application | Object::Workbooks | Object::Document(..)) {
+        let global = matches!(&object, Object::Feature(f) if f.kind == "Watches" || f.kind == "Windows" && f.part == 1);
+        let object = if matches!(object, Object::Application | Object::Workbooks | Object::Document(..)) || global {
             object
         } else {
             Object::Document(self.context, Box::new(object))
@@ -340,6 +344,8 @@ impl Bridge {
             Import { name: "Run".into(), root: "Excel".into(), member: Some("Run".into()), kind: InvokeKind::Call },
         ];
         for name in [
+            "ActiveWindow",
+            "Windows",
             "ActiveWorkbook",
             "ActiveSheet",
             "ActiveCell",
@@ -368,6 +374,8 @@ impl Bridge {
     const HOST_GLOBAL_TYPES: &'static [(&'static str, &'static str)] = &[
         ("Application", "Application"),
         ("ThisWorkbook", "Workbook"),
+        ("ActiveWindow", "Window"),
+        ("Windows", "Windows"),
         ("ActiveWorkbook", "Workbook"),
         ("ActiveSheet", "Worksheet"),
         ("ActiveCell", "Range"),
@@ -691,7 +699,7 @@ impl Host for WorkbookHost<'_> {
     fn identity(&self) -> u64 {
         self.bridge.identity
     }
-    fn invoke(&mut self, call: HostCall) -> Reply {
+    fn invoke(&mut self, mut call: HostCall) -> Reply {
         let mut suspended = None;
         let result = (|| {
             self.bridge.check(self.session)?;
@@ -700,10 +708,30 @@ impl Host for WorkbookHost<'_> {
             }
             self.bridge.sync_sheets(self.session)?;
             let object = self.bridge.objects.get(call.target)?;
-            let (doc, object) = match object {
+            let (doc, mut object) = match object {
                 Object::Document(doc, object) => (doc, *object),
                 object => (self.session.doc().map_err(|_| failure(91, "workbook closed"))?.uid, object),
             };
+            let window = if let Object::Feature(f) = &object {
+                if matches!(f.kind, "Window" | "WindowSheets") {
+                    let w = self.session.window(f.key).filter(|w| w.doc_uid == doc).ok_or_else(|| failure(91, "window closed"))?;
+                    Some(w.id)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            let window_close = matches!(&object, Object::Feature(f) if f.kind == "Window")
+                && matches!(call.kind, InvokeKind::Get | InvokeKind::Call)
+                && call.member.eq_ignore_ascii_case("Close");
+            if window_close {
+                call.kind = InvokeKind::Call;
+            }
+            // The last window closes its document through the existing cancellable lifecycle.
+            if window_close && self.session.windows().iter().filter(|w| w.doc_uid == doc).count() == 1 {
+                object = Object::Workbook;
+            }
             let target = self.session.document(doc).ok_or_else(|| failure(91, "workbook closed"))?;
             if !target.trust.allows_code() && !(doc == self.bridge.doc && self.bridge.consent) {
                 return Err(failure(70, "target workbook requires consent"));
@@ -712,27 +740,53 @@ impl Host for WorkbookHost<'_> {
             let activate = call.kind == InvokeKind::Call
                 && call.member.eq_ignore_ascii_case("Activate")
                 && matches!(object, Object::Workbook | Object::Sheet(_));
-            let result = self
-                .session
-                .with_target(gridcraft_engine::Target::Doc(doc), |session| {
-                    self.bridge.sync_sheets(session)?;
-                    // Resolve again after sheet topology synchronization.
-                    let object = match self.bridge.objects.get(call.target)? {
-                        Object::Document(_, object) => *object,
-                        _ => object,
-                    };
-                    self.bridge.sync_chart_owner(session, &object)?;
-                    let object = match self.bridge.objects.get(call.target)? {
-                        Object::Document(_, object) => *object,
-                        object => object,
-                    };
-                    if let Some(token) = self.bridge.defer_call(session, &object, &call)? {
-                        suspended = Some(token);
-                        return Ok(Value::Empty);
+            let dynamic = matches!(&object, Object::Application | Object::Workbooks)
+                || matches!(&object, Object::Feature(f) if f.kind == "Watches" || f.kind == "Windows" && f.part == 1);
+            let target = if dynamic {
+                gridcraft_engine::Target::Active
+            } else {
+                window.map(gridcraft_engine::Target::Window).unwrap_or(gridcraft_engine::Target::Doc(doc))
+            };
+            let read_window = window.filter(|_| {
+                matches!(call.kind, InvokeKind::Get | InvokeKind::Call | InvokeKind::DefaultGet | InvokeKind::Enumerate)
+                    && !["Activate", "ActivateNext", "ActivatePrevious", "Close", "NewWindow"].iter().any(|m| call.member.eq_ignore_ascii_case(m))
+            });
+            let invoke = |session: &mut Session| {
+                self.bridge.sync_sheets(session)?;
+                // Resolve again after sheet topology synchronization.
+                let object = match self.bridge.objects.get(call.target)? {
+                    Object::Document(_, resolved) if window.is_none() || object != Object::Workbook => *resolved,
+                    _ => object,
+                };
+                self.bridge.sync_chart_owner(session, &object)?;
+                let object = match self.bridge.objects.get(call.target)? {
+                    Object::Document(_, resolved) if window.is_none() || object != Object::Workbook => *resolved,
+                    _ => object,
+                };
+                if let Some(token) = self.bridge.defer_call(session, &object, &call)? {
+                    if let Some(window) = window {
+                        self.bridge.window_close_result(token, window);
                     }
-                    self.bridge.invoke_object(session, object, call)
-                })
-                .map_err(|e| failure(91, e.to_string()))?;
+                    suspended = Some(token);
+                    return Ok(Value::Empty);
+                }
+                self.bridge.invoke_object(session, object, call.clone())
+            };
+            let result =
+                if let Some(window) = read_window { self.session.with_window_view(window, invoke) } else { self.session.with_target(target, invoke) }
+                    .map_err(|e| failure(91, e.to_string()))?;
+            let result = if result.is_ok() && suspended.is_none() && window_close {
+                Ok(Value::Boolean(window.is_some_and(|id| self.session.window(id).is_none())))
+            } else {
+                result
+            };
+            if result.is_ok()
+                && call.kind == InvokeKind::Call
+                && call.member.eq_ignore_ascii_case("Activate")
+                && let Some(window) = window
+            {
+                self.session.activate_window(window);
+            }
             if result.is_ok()
                 && activate
                 && let Some(index) = self.session.document_index(doc)
@@ -953,6 +1007,9 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
     .chain(pivot_api::descriptors())
     .chain(pivot_fields_api::descriptors())
     .chain(slicer_api::descriptors())
+    .chain(window_api::descriptors())
+    .chain(watch_api::descriptors())
+    .chain(custom_view_api::descriptors())
     .chain(chart_api::descriptors())
     .chain(chart_parts_api::descriptors())
     .chain(series_api::descriptors())

@@ -557,3 +557,34 @@ OM13 is complete for its existing local native profile. Standalone/shared pivot
 caches, external model/provider services and unsupported Excel leaves remain
 explicit exclusions in the [acceptance ledger](vba-object-model-om13-acceptance.json)
 and [completion record](vba-object-model-implementation-plan.md#om13-native-local-pivot-profile-completion-2026-11-03).
+
+
+## OM08 windows, saved views and watches (2026-11-03)
+
+`ActiveWindow`, application/workbook Windows collections and native Window handles
+now preserve native window identity, per-window selection and active-sheet state.
+Read-only inspection restores both user focus and inactive workbooks' live views
+without changing activation order. Parent/Application, native captions and numbers,
+selected sheets, activation, new windows, visibility and close operations are
+available. Global collections remain valid when another workbook closes.
+Last-window Close shares the existing workbook callbacks/save prompts and returns
+Boolean completion, including False on cancellation. Trust checks still apply.
+
+CustomViews reuse native snapshots of sheet ordinal, selection, sheet zoom and
+sheet freeze; Add requires explicit False for PrintSettings and RowColSettings.
+Native XLSX preserves these snapshots. Recreate saved views after sheet topology
+changes: native snapshots retain ordinal references. Watches aggregate native
+workbook lists, support single-cell Range sources and use native deletion/undo
+behavior. Stored watch references are text and do not track sheet rename/deletion.
+Edits invalidate prior CustomView or Watch handles through their native stash
+identity; reacquire those handles after editing the collection.
+
+Zoom, freeze/split, gridlines/headings and display modes remain worksheet-owned
+native state. Their independent Window/Panes projections are explicitly unavailable.
+Goto Scroll=True refuses with multiple windows on one workbook before changing
+selection or history; its existing single-window saved-scroll behavior remains.
+Geometry, VisibleRange, pixel conversions and arrangement require a real native
+or browser window service. Headless does not report fabricated measurements.
+The [OM08 ledger](vba-object-model-om08-acceptance.json) and
+[completion record](vba-object-model-implementation-plan.md#om08-native-window-profile-completion-2026-11-03)
+record 50 tested contracts and the remaining backend/service gaps.
