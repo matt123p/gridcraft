@@ -9,7 +9,8 @@ const EXCEL_TYPES_VERSION: &str = "GridCraft.Excel.v1";
 include!("vba_enum_data.rs");
 include!("vba_office_enums.rs");
 const EXCEL_OFFICE_ALIASES: &[&str] = &["FillFormat", "LineFormat", "ColorFormat", "TextFrame2"];
-pub(crate) const OFFICE_TYPES: &[&str] = &["FillFormat", "LineFormat", "ColorFormat", "TextFrame2", "TextRange2", "Font2"];
+pub(crate) const OFFICE_TYPES: &[&str] =
+    &["FillFormat", "LineFormat", "ColorFormat", "TextFrame2", "TextRange2", "Font2", "DocumentProperties", "DocumentProperty"];
 const OFFICE_VERSION: &str = "GridCraft.Office.v1";
 
 pub(crate) fn references() -> Result<ReferenceSet> {
@@ -19,6 +20,13 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
             types: [
+                "Author",
+                "Comments",
+                "Comment",
+                "CommentsThreaded",
+                "CommentThreaded",
+                "Hyperlinks",
+                "Hyperlink",
                 "HPageBreaks",
                 "VPageBreaks",
                 "HPageBreak",
@@ -221,6 +229,25 @@ impl Objects {
             .cloned()
             .ok_or_else(|| failure(91, "invalid object reference"))?;
         Ok(object)
+    }
+    pub(crate) fn invalidate_annotation(&self, document: u64, sheet: usize, cell: gridcraft_engine::core::CellRef, link: bool) -> HostResult<()> {
+        let mut objects = self.values.write().map_err(|_| failure(91, "object store unavailable"))?;
+        for stored in objects.iter_mut() {
+            if let Object::Document(doc, inner) = stored
+                && *doc == document
+                && let Object::Feature(f) = inner.as_mut()
+                && f.sheet == Some(sheet)
+                && (if link {
+                    f.kind == "Hyperlink"
+                } else {
+                    matches!(f.kind, "Comment" | "CommentThreaded" | "Author") || f.label.as_deref() == Some("replies")
+                })
+                && f.range.as_ref().is_some_and(|r| r.areas.iter().any(|r| r.contains(cell)))
+            {
+                f.sheet = Some(usize::MAX);
+            }
+        }
+        Ok(())
     }
     pub(crate) fn invalidate_ranges(&self, document: u64) -> HostResult<()> {
         let mut objects = self.values.write().map_err(|_| failure(91, "object store unavailable"))?;

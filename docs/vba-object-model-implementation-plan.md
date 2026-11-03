@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09 and OM10 native profiles completed; eligible OM19 annotation work is next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10 and OM19 native profiles completed; eligible OM15 interaction work is next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -989,6 +989,7 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## Revision history
 
+- 2026-11-03: Completed selected OM19 local annotation/metadata projection with source acceptance; eligible OM15 is next.
 - 2026-11-03: Started Medium OM12 with embedded chart graph/settings, native identity and routing, source-contract test evidence and native/WASM validation.
 
 - 2026-11-03: Delivered remaining OM03/OM04 continuations and selected OM11 persistence events; reconciled High native-profile evidence and exact exclusions.
@@ -1645,3 +1646,72 @@ Final validation (2026-11-03):
 OM09 was committed separately as `9d8e1b5d` before this packet began. OM10 remains
 an existing-native-capability projection, with no vendor assets, workflow changes,
 new renderer/codec/print controls or tiny-vba dependency revision.
+
+
+## OM19 local annotation/metadata profile completion (2026-11-03)
+
+Status: **OM19 complete for the selected existing local native profile**. Medium
+continues with eligible OM15 interactions and built-in controls. The
+[OM19 acceptance ledger](vba-object-model-om19-acceptance.json) links **53** source
+contracts to real VBA integration tests. This is a bounded native projection;
+it does not establish the full Excel annotation family or complete Medium.
+
+Delivered behavior:
+
+- Classic Comments/Comment, Range.Comment/AddComment/NoteText, same-sheet
+  navigation, author labels, idempotent visibility, deletion and enumeration.
+  Comment.Text uses UTF-16 positions; edits that split surrogate pairs fail.
+  NoteText reads/writes chunks of at most 255 UTF-16 units.
+- Local CommentsThreaded/CommentThreaded, AddCommentThreaded, root text editing,
+  AddReply, typed Replies collections and navigation within each thread.
+  Author.Name reads the existing local display label. It does not synthesize
+  provider or user IDs. Individual reply editing/deletion has no native command
+  and fails explicitly, as do remote identity and local timestamp requests.
+- Worksheet/Range Hyperlinks, cell-only Add, Item/Count/enumeration, native
+  Address/SubAddress, ScreenTip and TextToDisplay updates, Range and deletion.
+  Internal Follow invokes existing link navigation. External Follow and browser
+  request/history/new-window options fail before queuing an external action;
+  the UI's OpenUrl queue is not an acknowledged VBA navigation continuation.
+- BuiltinDocumentProperties adapts all six native text fields: Title, Subject,
+  Author, Keywords, Comments (description), Company. Office.DocumentProperties
+  and DocumentProperty retain native parents and exact Excel indexes
+  1/2/3/4/5/21; other fields fail instead of returning fabricated defaults.
+- All mutations use existing engine commands and macro undo groups. Annotation
+  maps are separate from sparse cell content, so the adapter adds the missing
+  protected-sheet guard before any note/link mutation. Existing consent and
+  document/sheet routing apply. Structural VBA edits rebase cell-owned handles;
+  explicit OM19 Delete invalidates parked annotation/reply/author handles.
+
+Native limits remain visible: no custom workbook/worksheet-property store,
+rich-text note Shape graph, shape hyperlink anchors, remote author identities,
+sound-note service, favorites/linked-document creator or Excel calculation
+thread configuration. Cell-map handles do not track a native cut to another
+cell; a delete/recreate performed wholly outside these VBA members may rebind
+an old cell handle. External topology epochs invalidate feature ranges. No
+independent COM object lifetime is claimed. Same-sheet navigation uses Nothing
+at boundaries in this native profile.
+
+Tests exercise protected/untrusted receivers, UTF-16 editing, duplicate refusal,
+collection defaults and nominal types, root/reply navigation, copy/cut payloads,
+structural rebase, stale deletion handles, internal/external navigation, six
+built-in metadata fields, macro undo and existing note/thread/link XLSX codecs.
+The unchanged 5,996-page pinned source inventory and shared Office source archive
+remain the provenance for regenerated contracts. No intrinsic-language, formula,
+provider, drawing, storage or collaboration feature was added.
+
+Validation:
+
+- `CRAFT_FONTS_DIR=/tmp/gridcraft-acceptance-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci`:
+  all **10** steps passed, including **3,014** native tests. The first run without
+  the optional font input failed two existing UI glyph tests (ẞ/ẻ); using the
+  cached approved acceptance-font bundle resolved both without source changes.
+- Full native VBA suite: **239** passed before the final hostile-input regression;
+  repository CI subsequently passed all **8** final OM19 tests with the final code.
+- Full Node 22 / wasm-bindgen VBA suite: **231** passed. After final allocation
+  hardening and the added hostile-input regression, the final OM19 WASM suite
+  passed all **8** tests.
+- Final strict adapter/audit clippy, generated-source audit write/check and
+  `git diff --check` passed. Audit retains **5,996** pinned Excel pages, **53**
+  OM19 required contracts and **10** supplemental Office metadata members.
+
+Eligible OM15 interaction/control projection is next; Low runtime work remains deferred.

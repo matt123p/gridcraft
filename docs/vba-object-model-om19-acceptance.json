@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "packet": "OM19",
+  "reviewed": "2026-11-03",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "status": "IMPLEMENTED_NATIVE_PROFILE",
+  "scope": "Existing local cell annotation maps and six built-in workbook metadata text fields; no new remote service, sound-note feature, drawing graph, custom-property store or codec. External Follow requires a navigation continuation and fails explicitly. This is a selected native profile, not the whole Excel annotation family.",
+  "required_obligations": [
+    {
+      "id": "classic_notes",
+      "native_evidence": "crates/vba/src/annotation_api.rs; crates/engine/src/cmd/insert/links.rs; crates/engine/src/cmd/file.rs; crates/model/src/features.rs",
+      "profile": "Classic notes only in Comments; Range.Comment is Nothing when absent or threaded. Bound text editing uses UTF-16 positions and rejects split surrogate edits; NoteText accepts at most 255 UTF-16 units per call. Visibility setters are idempotent. Same-sheet navigation returns Nothing at boundaries. Collections enumerate in native cell order. Protected sheets refuse annotation mutation because the native model has no independent annotation permission.",
+      "source_ids": [
+        "Comment.Application",
+        "Comment.Author",
+        "Comment.Delete",
+        "Comment.Next",
+        "Comment.Parent",
+        "Comment.Previous",
+        "Comment.Text",
+        "Comment.Visible",
+        "Comments.Application",
+        "Comments.Count",
+        "Comments.Item",
+        "Comments.Parent",
+        "Range.AddComment",
+        "Range.Comment",
+        "Range.NoteText",
+        "Worksheet.Comments"
+      ],
+      "test_ids": [
+        "crates/vba/tests/annotations.rs::notes_text_visibility_collections_and_structural_rebase",
+        "crates/vba/tests/annotations.rs::annotations_fail_without_side_effects_on_protected_or_untrusted_targets",
+        "crates/vba/tests/annotations.rs::note_text_unicode_and_copy_move_keep_native_payloads",
+        "crates/vba/tests/annotations.rs::deleted_annotation_handles_do_not_alias_replacements_and_reply_navigation_is_local",
+        "crates/vba/tests/annotations.rs::oversized_native_annotation_text_and_invalid_arguments_refuse_before_allocation"
+      ]
+    },
+    {
+      "id": "local_threads",
+      "native_evidence": "crates/vba/src/annotation_api.rs; crates/engine/src/cmd/insert/links.rs; crates/engine/src/cmd/file.rs; crates/model/src/features.rs",
+      "profile": "Native local roots and ordered replies; AddReply uses native local author preference. Replies collection has CommentsThreaded nominal type; navigation remains within roots or replies. Native command service cannot edit/delete individual replies: those operations return 1004. Author.Name reads the native local display label; remote ProviderID/UserID and Date services are unavailable, with no fabricated remote identity or timestamp. Root deletion deletes native thread.",
+      "source_ids": [
+        "Author.Application",
+        "Author.Name",
+        "CommentThreaded.AddReply",
+        "CommentThreaded.Application",
+        "CommentThreaded.Author",
+        "CommentThreaded.Delete",
+        "CommentThreaded.Next",
+        "CommentThreaded.Parent",
+        "CommentThreaded.Previous",
+        "CommentThreaded.Replies",
+        "CommentThreaded.Text",
+        "CommentsThreaded.Application",
+        "CommentsThreaded.Count",
+        "CommentsThreaded.Item",
+        "CommentsThreaded.Parent",
+        "Range.AddCommentThreaded",
+        "Range.CommentThreaded",
+        "Worksheet.CommentsThreaded"
+      ],
+      "test_ids": [
+        "crates/vba/tests/annotations.rs::local_threads_and_replies_preserve_native_text_without_remote_identity",
+        "crates/vba/tests/annotations.rs::annotations_fail_without_side_effects_on_protected_or_untrusted_targets",
+        "crates/vba/tests/annotations.rs::deleted_annotation_handles_do_not_alias_replacements_and_reply_navigation_is_local"
+      ]
+    },
+    {
+      "id": "cell_hyperlinks",
+      "native_evidence": "crates/vba/src/annotation_api.rs; crates/engine/src/cmd/insert/links.rs; crates/engine/src/cmd/file.rs; crates/model/src/features.rs",
+      "profile": "One-cell Range anchors in the same document and receiver footprint only; no shape or multi-cell anchors. Address/SubAddress map to the native target/external flag, ScreenTip and TextToDisplay use native commands. Internal Follow uses existing link.open selection behavior; NewWindow or explicit request/history options and external Follow refuse before navigation. Delete and collection Delete preserve native cell content/style. Protected sheets refuse edits.",
+      "source_ids": [
+        "Hyperlink.Address",
+        "Hyperlink.Application",
+        "Hyperlink.Delete",
+        "Hyperlink.Follow",
+        "Hyperlink.Parent",
+        "Hyperlink.Range",
+        "Hyperlink.ScreenTip",
+        "Hyperlink.SubAddress",
+        "Hyperlink.TextToDisplay",
+        "Hyperlink.Type",
+        "Hyperlinks.Add",
+        "Hyperlinks.Application",
+        "Hyperlinks.Count",
+        "Hyperlinks.Delete",
+        "Hyperlinks.Item",
+        "Hyperlinks.Parent",
+        "Range.Hyperlinks",
+        "Worksheet.Hyperlinks"
+      ],
+      "test_ids": [
+        "crates/vba/tests/annotations.rs::hyperlinks_and_builtin_metadata_round_trip_and_undo",
+        "crates/vba/tests/annotations.rs::annotations_fail_without_side_effects_on_protected_or_untrusted_targets",
+        "crates/vba/tests/annotations.rs::deleted_annotation_handles_do_not_alias_replacements_and_reply_navigation_is_local",
+        "crates/vba/tests/annotations.rs::internal_follow_and_external_service_refusal_are_explicit",
+        "crates/vba/tests/annotations.rs::oversized_native_annotation_text_and_invalid_arguments_refuse_before_allocation"
+      ]
+    },
+    {
+      "id": "builtin_metadata",
+      "native_evidence": "crates/vba/src/annotation_api.rs; crates/engine/src/cmd/insert/links.rs; crates/engine/src/cmd/file.rs; crates/model/src/features.rs",
+      "profile": "Only Title, Subject, Author, Keywords, Comments (native description), Company; case-insensitive names and actual Excel property indexes 1,2,3,4,5,21. Count/enumeration cover six native fields. Other indexes fail. Office.DocumentProperties/DocumentProperty expose Name, Value, Type=4 and LinkToContent=False via actual file.properties commands; Office child contracts use the same pinned archive outside the unchanged Excel inventory.",
+      "source_ids": [
+        "Workbook.BuiltinDocumentProperties"
+      ],
+      "test_ids": [
+        "crates/vba/tests/annotations.rs::hyperlinks_and_builtin_metadata_round_trip_and_undo",
+        "crates/vba/tests/annotations.rs::internal_follow_and_external_service_refusal_are_explicit"
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "cell_handles",
+      "reason": "Native maps have no persistent annotation IDs. Handles are document/sheet/cell-qualified, follow VBA structural edits, and explicit OM19 Delete invalidates parked handles. Copy/cut payloads use native semantics; a parked handle does not follow a native cut to another cell. External topology epochs invalidate feature ranges. Delete/recreate performed wholly outside these VBA members may rebind a cell handle; no independent Excel COM lifetime is claimed."
+    },
+    {
+      "id": "remote_and_missing_product_graphs",
+      "reason": "No remote Author/provider/person services, locally created timestamps, note Shape/rich-text graph, shape hyperlink anchors, custom workbook/worksheet property store, sound notes, browser favorites, linked document creator or Excel thread-pool configuration object. Missing underlying capabilities remain out of scope; Low remains deferred."
+    },
+    {
+      "id": "persistence",
+      "reason": "Existing native undo, copy/cut and XLSX codecs own annotation payload persistence. Local thread authors are labels, not durable provider identities. No codec or collaboration protocol is added."
+    },
+    {
+      "id": "external_follow",
+      "reason": "Existing UI OpenUrl requests are not an acknowledged VBA continuation. External Follow fails 1004; internal native navigation is implemented. No external action is queued on failure."
+    }
+  ],
+  "validation": {
+    "native_annotation_tests": 8,
+    "wasm_annotation_tests": 8,
+    "workspace_native_tests": 3014,
+    "ci": "All 10 cargo xtask ci steps passed with the cached approved CRAFT_FONTS_DIR=/tmp/gridcraft-acceptance-fonts, CRAFT_FONTS_REQUIRED=1. Initial missing-glyph UI failures without fonts resolved by this existing acceptance build input; no font/UI source changes.",
+    "pinned_excel_pages": 5996,
+    "required_source_contracts": 53,
+    "supplemental_office_metadata_members": 10
+  }
+}

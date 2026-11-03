@@ -1,12 +1,17 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM19 local VBA annotations/metadata delivered; bounded projection scope) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
 [`target-app-parity.md`](target-app-parity.md). Estimates are Opus 5.5 agent-hours.
 
 ## Current focus
+
+Selected Medium VBA OM19 now projects native local notes, threaded replies, cell
+hyperlinks and six built-in metadata fields. External navigation, remote IDs,
+custom properties and cell-handle lifetime limits remain explicit in the
+[OM19 acceptance ledger](vba-object-model-om19-acceptance.json). Eligible OM15 is next.
 
 Optional VBA follows the accepted
 [v1 object-model profile](vba-object-model-v1-priority-final.md): expose only
@@ -125,6 +130,7 @@ to check our files, and Windows machines with the reported GPU drivers.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-23 | minor | Measuring: tests run through `cargo xtask test` |
 | 2026-10-11 | minor | PivotTable calculated fields landed |
 | 2026-10-10 | minor | Current focus and M15 updated for the 10-10 merges |

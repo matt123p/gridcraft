@@ -8,14 +8,14 @@ Selected High native-profile acceptance and exact exclusions: [evidence ledger](
 
 OM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).
 
-OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). These are native profiles, not whole-reference compatibility claims.
+OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). OM10 native page setup, pagination and PDF export acceptance: [evidence ledger](vba-object-model-om10-acceptance.json). OM19 local notes, threaded replies, cell hyperlinks and built-in metadata acceptance: [evidence ledger](vba-object-model-om19-acceptance.json). These are native profiles, not whole-reference compatibility claims.
 
 ## State counts
 
 - `LEGACY_REVIEW`: 283
-- `MISSING`: 3287
-- `OUT_OF_SCOPE_GRIDCRAFT`: 650
-- `PARTIAL`: 1758
+- `MISSING`: 3182
+- `OUT_OF_SCOPE_GRIDCRAFT`: 695
+- `PARTIAL`: 1818
 - `PLATFORM_SERVICE_NEEDED`: 18
 
 ## Unresolved audit rows
@@ -433,13 +433,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Areas.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Areas` | `PARTIAL` | `NOT_APPLICABLE` |
 | `Areas.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Author.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Author.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Author` | `MISSING` | `NOT_APPLICABLE` |
-| `Author.Name` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Author.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Author.ProviderID` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Author.UserID` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Author.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Author.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Author` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Author.Name` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Author.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Author.ProviderID` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Author.UserID` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AutoCorrect` | `MISSING` | `NOT_APPLICABLE` |
 | `AutoCorrect.AddReplacement` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `AutoCorrect.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -1068,41 +1068,41 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Columns` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ColumnWidth` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `CommandBars` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Author` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment` | `MISSING` | `NOT_APPLICABLE` |
-| `Comment.Next` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Previous` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Shape` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Text` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comment.Visible` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comments.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comments.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comments.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comments.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Comments` | `MISSING` | `NOT_APPLICABLE` |
-| `Comments.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentsThreaded.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentsThreaded.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentsThreaded.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentsThreaded.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentsThreaded` | `MISSING` | `NOT_APPLICABLE` |
-| `CommentsThreaded.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.AddReply` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Author` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Date` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded` | `MISSING` | `NOT_APPLICABLE` |
-| `CommentThreaded.Next` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Previous` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Replies` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CommentThreaded.Text` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Author` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Comment.Next` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Previous` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Shape` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Text` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comment.Visible` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comments.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comments.Count` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comments.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comments.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Comments` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Comments.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentsThreaded.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentsThreaded.Count` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentsThreaded.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentsThreaded.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentsThreaded` | `PARTIAL` | `NOT_APPLICABLE` |
+| `CommentsThreaded.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.AddReply` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Author` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Date` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded` | `PARTIAL` | `NOT_APPLICABLE` |
+| `CommentThreaded.Next` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Previous` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Replies` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CommentThreaded.Text` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ConditionValue.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ConditionValue.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ConditionValue` | `MISSING` | `NOT_APPLICABLE` |
@@ -1207,20 +1207,20 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `CubeFields.Item` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `CubeFields` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
 | `CubeFields.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperties.Add` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperties.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperties.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperties.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperties.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperties` | `MISSING` | `NOT_APPLICABLE` |
-| `CustomProperties.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperty.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperty.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperty.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperty` | `MISSING` | `NOT_APPLICABLE` |
-| `CustomProperty.Name` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperty.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `CustomProperty.Value` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperties.Add` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperties.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperties.Count` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperties.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperties.Item` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperties` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `CustomProperties.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperty.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperty.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperty.Delete` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperty` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `CustomProperty.Name` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperty.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `CustomProperty.Value` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `CustomView.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `CustomView.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `CustomView.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -1802,31 +1802,31 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `HPageBreaks.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `HPageBreaks` | `PARTIAL` | `NOT_APPLICABLE` |
 | `HPageBreaks.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Address` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.AddToFavorites` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.CreateNewDocument` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Address` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.AddToFavorites` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.CreateNewDocument` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Hyperlink.EmailSubject` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Follow` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink` | `MISSING` | `NOT_APPLICABLE` |
-| `Hyperlink.Name` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Range` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.ScreenTip` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Shape` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.SubAddress` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.TextToDisplay` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlink.Type` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks.Add` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Hyperlinks` | `MISSING` | `NOT_APPLICABLE` |
-| `Hyperlinks.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Follow` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Hyperlink.Name` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Range` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.ScreenTip` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Shape` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.SubAddress` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.TextToDisplay` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlink.Type` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks.Add` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks.Count` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Hyperlinks` | `PARTIAL` | `NOT_APPLICABLE` |
+| `Hyperlinks.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Icon.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Icon.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Icon.Index` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -2385,13 +2385,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `ModuleView.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ModuleView.Sheet` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `MoveAfterReturn` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `MultiThreadedCalculation.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `MultiThreadedCalculation.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `MultiThreadedCalculation.Enabled` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `MultiThreadedCalculation` | `MISSING` | `NOT_APPLICABLE` |
-| `MultiThreadedCalculation.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `MultiThreadedCalculation.ThreadCount` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `MultiThreadedCalculation.ThreadMode` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `MultiThreadedCalculation.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `MultiThreadedCalculation.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `MultiThreadedCalculation.Enabled` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `MultiThreadedCalculation` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `MultiThreadedCalculation.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `MultiThreadedCalculation.ThreadCount` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `MultiThreadedCalculation.ThreadMode` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `name(property)` | `LEGACY_REVIEW` | `RECEIVER_OR_ALIAS_TRIAGE` |
 | `Name.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Name.Category` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3425,8 +3425,8 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `RadarGroups` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range` | `PARTIAL` | `NOT_APPLICABLE` |
 | `Range.Activate` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.AddComment` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.AddCommentThreaded` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.AddComment` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.AddCommentThreaded` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AddIndent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Address` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AddressLocal` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3461,8 +3461,8 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.ColumnDifferences` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Columns` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ColumnWidth` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.Comment` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.CommentThreaded` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.Comment` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.CommentThreaded` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Consolidate` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ConvertToLinkedDataType` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Copy` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3520,7 +3520,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.Height` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Hidden` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.HorizontalAlignment` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.Hyperlinks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.Hyperlinks` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ID` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.IndentLevel` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Insert` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3542,7 +3542,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.Name` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.NavigateArrow` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Next` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.NoteText` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.NoteText` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.NumberFormat` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.NumberFormatLocal` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Offset` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3590,7 +3590,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.ShrinkToFit` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Sort` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SortSpecial` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.SoundNote` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.SoundNote` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SparklineGroups` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Speak` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.SpecialCells` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4198,13 +4198,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `SortFields.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SortFields` | `MISSING` | `NOT_APPLICABLE` |
 | `SortFields.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.import` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.play` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `soundnote.record` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.delete` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.import` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.play` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `soundnote.record` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SparkAxes.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SparkAxes.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `SparkAxes.Horizontal` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4904,7 +4904,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.BeforeXmlExport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BeforeXmlImport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.BreakLink` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.BuiltinDocumentProperties` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.BuiltinDocumentProperties` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.CalculationVersion` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.CanCheckIn` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `workbook.casesensitive` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5165,8 +5165,8 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Worksheet.ClearCircles` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.CodeName` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Columns` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.Comments` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.CommentsThreaded` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.Comments` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.CommentsThreaded` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ConsolidationFunction` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ConsolidationOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ConsolidationSources` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5188,7 +5188,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Worksheet.FilterMode` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.FollowHyperlink` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.HPageBreaks` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.Hyperlinks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.Hyperlinks` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Index` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `worksheet.lensgalleryrendercomplete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ListObjects` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |

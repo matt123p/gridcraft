@@ -2,6 +2,11 @@
 
 Reviewed 2026-11-03 against public Microsoft Learn documentation and the actual
 `gridcraft-vba` adapter and the tiny-vba Git revision pinned in its manifest/lockfile.
+The selected OM19 native profile now exposes local notes/threaded replies,
+cell hyperlinks and six built-in metadata fields. See the
+[OM19 ledger](vba-object-model-om19-acceptance.json) for exact signatures,
+cell-handle limits and unavailable remote/external-navigation/custom-property services.
+
 Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
 Unchanged Excel workbook source is measured as compatibility evidence, not the
 implementation target. `GridCraft.Excel.v1` is a bounded standard-module profile;

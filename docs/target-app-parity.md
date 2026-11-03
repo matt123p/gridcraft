@@ -1,6 +1,6 @@
 # Target-app parity: GridCraft vs Microsoft Excel
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope; no score change) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM19 local VBA annotations/metadata delivered; bounded projection scope; no score change) · **Target:** Microsoft Excel (Microsoft 365)
 
 This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summarizes it,
 [`gaps.md`](gaps.md) lists every shortfall, and the area checklists hold the detail:
@@ -9,6 +9,11 @@ This is the authoritative parity assessment. [`ROADMAP.md`](../ROADMAP.md) summa
 generated ribbon checklist is [`parity-checklist.md`](parity-checklist.md).
 
 ## Summary
+
+Selected Medium VBA OM19 now projects native local notes, threaded replies, cell
+hyperlinks and six built-in metadata fields. External navigation, remote IDs,
+custom properties and cell-handle lifetime limits remain explicit in the
+[OM19 acceptance ledger](vba-object-model-om19-acceptance.json). Eligible OM15 is next.
 
 VBA audit update (2026-11-03, optional integration feature): the bounded profile
 projects only capabilities GridCraft already supports. It does not establish
@@ -348,6 +353,7 @@ The inventory carried over from the 2026-10-07 ROADMAP.md, updated for what land
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-10-25 | minor | Automation: macro interface (Automate › Macros, the Macros and Record Macro dialogs, the step editor, shortcuts) (no score change) |
 | 2026-10-25 | trivial | Catalog count 276 / 292 in the summary table and the method, as `cargo xtask parity` measures (no score change) |
 | 2026-10-22 | minor | Several windows on the desktop: a native window per workbook window, New Window on the same workbook, Switch Windows and Arrange All; "one window" removed from UI/UX fidelity, Hardware and the interaction-fidelity discount; no score change |

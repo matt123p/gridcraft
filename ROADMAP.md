@@ -2,7 +2,12 @@
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM19 local VBA annotations/metadata delivered; bounded projection scope; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+
+Selected Medium VBA OM19 now projects native local notes, threaded replies, cell
+hyperlinks and six built-in metadata fields. External navigation, remote IDs,
+custom properties and cell-handle lifetime limits remain explicit in the
+[OM19 acceptance ledger](docs/vba-object-model-om19-acceptance.json). Eligible OM15 is next.
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -147,6 +152,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | What landed |
 |---|---|
+| 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |
 | 2026-11-03 | Native-backed VBA formula/name/function, formatting/rule, data/outline/what-if and local table projections; native identities, matrix-layout conversions and explicit unsupported-option reporting. Bounded profile only; remaining invocation/continuation work still blocks whole-High sign-off. |
 | 2026-10-27 | Native typed `range.setContents` command and host API preserve literal/error/formula types and destination formats. VBA now writes Text-formatted cells through the shared engine lifecycle; recordings replay the exact typed contents. |
 | 2026-10-27 | Optional tiny-vba adapter and shared editor/debugger, pinned as a separate Git dependency; bounded workbook object profile, native/WASM acceptance and source/package preservation. See [the exact scope](docs/vba.md). |

@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 mod address;
+mod annotation_api;
 mod application;
 mod host_ops;
 pub use host_ops::{LifecyclePrompt, PromptRequest, PromptResponse, PromptServices};
@@ -1027,6 +1028,7 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
     .chain(page_setup_api::descriptors())
     .chain(page_break_api::descriptors())
     .chain(print_api::descriptors())
+    .chain(annotation_api::descriptors())
     .chain(conditional_api::descriptors())
     .chain(condition_details::descriptors())
     .chain(data_api::descriptors())
