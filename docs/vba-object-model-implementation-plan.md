@@ -199,11 +199,11 @@ overall compatibility percentage.
 
 ### OM01 — cross-cutting execution and diagnostics
 
-The shared IDE hardcodes `Limits::default()` at normal launch and idle document
-callback creation (`tiny-vba/crates/vba-ide/src/lib.rs`); the VM default currently
-permits 1,024 host calls. Add an explicit host-configurable bounded execution
-policy through the shared IDE, then choose and test GridCraft's macro budget.
-Do not just remove the VM limit or increase every consumer's global defaults.
+The shared IDE now accepts bounded execution limits used at normal launch and
+idle document callback creation (`tiny-vba/crates/vba-ide/src/lib.rs`). GridCraft
+sets a macro profile with a 12,000 host-call cap and 1 GiB payload cap; the VM
+default remains 1,024 host calls for other consumers. Do not remove the VM limit
+or increase every consumer's global defaults.
 Validate configuration, freeze it for a running/paused/waiting session, use it
 on every launch/callback route, and keep inspection/UDF budgets distinct.
 Count work over slices/continuations; a pause must not replenish the budget.
@@ -589,8 +589,8 @@ have independently observed Excel behavior or completed implementation designs.
   compatibility percentage. OM00's inventory/contract acceptance is complete;
   those result states remain work for their owning implementation packets.
 - **OM01a — configurable bounded execution limits:** published in tiny-vba and
-  pinned by GridCraft. GridCraft configures 20,000,000 instructions, 16,384 host
-  calls and a 512 MiB payload ceiling for workbook macro sessions; limits carry
+  pinned by GridCraft. GridCraft configures 25,000,000 instructions, 12,000 host
+  calls and a 1 GiB payload ceiling for workbook macro sessions; limits carry
   across pause/resume and idle document-event sessions. The shared IDE embedding
   regression passed. Catalogue, completion/object-browser metadata and the audit
   now derive from `MemberDescriptor`; descriptor reconciliation rejects duplicate

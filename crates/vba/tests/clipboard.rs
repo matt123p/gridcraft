@@ -90,6 +90,8 @@ End Sub"#;
         }
     }
     assert_eq!(s.doc()?.sheet_index(), 0);
+    // The bounded undo stack is full after populating all 100 fixture cells;
+    // one undo must still remove the complete macro's writes as one group.
     s.execute("edit.undo", json!({}))?;
     for index in 1..=4 {
         for d in 1..=5 {

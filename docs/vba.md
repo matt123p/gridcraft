@@ -38,14 +38,12 @@ operations, SkipBlanks and Transpose, using Excel's documented enum values;
 source-theme and conditional-format merge modes explicitly refuse.
 No system clipboard access is introduced.
 
-This is not complete recorded-macro support. The shared IDE currently limits an
-invocation to 1,024 host calls; the 4x5/40-column ingredient loop exceeds that
-limit when every meal slot is populated. The authored clipboard regression uses
-two populated slots at opposite corners, and does not establish full Food.xlsm
-execution. tiny-vba now has an unpinned configurable bounded execution-limit
-change and a pause/resume budget regression. After that shared revision is
-published and pinned, GridCraft still needs to choose its host-call budget and
-test full bounded macro completion.
+GridCraft configures each macro invocation with bounded execution limits,
+including a 12,000 host-call cap and a 1 GiB payload cap for VM snapshots. The
+limits are cumulative across debugger pauses and resumes; worksheet UDFs retain
+their separate smaller budget. The fully populated 4x5/40-column ingredient
+loop passes the clipboard regression. This does not establish full Food.xlsm
+execution or Excel compatibility beyond the documented subset.
 
 The editor shows a blocked notice until workbook trust or explicit session consent
 permits execution. Click **Allow VBA for this editor session**, then Run or Into.

@@ -21,7 +21,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
 use vba_foreign::{Completion, ForeignError, HostCall, InvokeKind, Reply};
-pub use vba_ide::{self, Action, Host, Ide, Mode, ObjectRef, Value};
+pub use vba_ide::{self, Action, Host, Ide, Limits, Mode, ObjectRef, Value};
 use vba_ide::{ApiMember, Diagnostic, Import};
 
 pub type Result<T> = std::result::Result<T, Diagnostic>;
@@ -29,9 +29,23 @@ type HostResult<T> = std::result::Result<T, ForeignError>;
 static NEXT_HOST: AtomicU64 = AtomicU64::new(1);
 pub const MAX_OBJECTS: usize = 8192;
 pub const MAX_CELLS: usize = 65_536;
-/// Per-invocation VM host-call cap for workbook macros; UDF execution has its own budget.
-pub const MACRO_HOST_CALL_LIMIT: u64 = 16_384;
 const MAX_QUEUED_EVENTS: usize = 256;
+
+/// Per-invocation macro limits for the workbook host. The workbook model and
+/// clipboard already cap individual operations; these limits bound aggregate work.
+pub const MACRO_EXECUTION_LIMITS: Limits = Limits {
+    instructions: 25_000_000,
+    slice: 4096,
+    depth: 128,
+    locations: 4096,
+    stack_entries: 65_536,
+    host_calls: 12_000,
+    host_polls: 100_000,
+    // The VM reserves 64 KiB of reply/snapshot space per host call. Keep this
+    // aggregate cap within the IDE's 1 GiB maximum while allowing recorded loops.
+    payload: 1024 * 1024 * 1024,
+    callbacks: 256,
+};
 
 /// Availability declared once for completion, the object browser, dispatch
 /// validation and the offline object-model audit.
@@ -207,12 +221,7 @@ impl Bridge {
         self.configure_with_workbook(ide, Some(wb))
     }
     fn configure_with_workbook(&self, ide: &mut Ide, wb: Option<&gridcraft_model::Workbook>) -> Result<()> {
-        ide.configure_execution_limits(vba_ide::Limits {
-            instructions: 20_000_000,
-            host_calls: MACRO_HOST_CALL_LIMIT,
-            payload: 512 * 1024 * 1024,
-            ..vba_ide::Limits::default()
-        })?;
+        ide.configure_execution_limits(MACRO_EXECUTION_LIMITS.clone())?;
         let comparison_context =
             vba_vm::IntrinsicContextConfig::new("invariant".into(), "Gregorian".into(), "UTF-16".into(), usize::BITS as u8).map_err(diagnostic)?;
         ide.configure_string_comparison_service(Arc::new(vba_runtime::BinaryStringComparisonService), comparison_context).map_err(diagnostic)?;
