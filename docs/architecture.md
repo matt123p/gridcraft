@@ -222,6 +222,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | OM09 native permission/edit-range projection, definition lifetimes, grant revocation and selection-only command plumbing |
 | 2026-11-03 | minor | OM08 native window scopes, session-owned window/watch collections, close continuations and explicit worksheet/window state boundary |
 | 2026-11-03 | minor | OM13 native local pivot/field/item/slicer graph, source lifetimes, report-owned cache views and explicit persistence/service boundaries |
 | 2026-11-03 | minor | Complete OM12 native chart/drawing graph, series/trendline/shape identities, Office child types and bounded snapshots |
@@ -332,3 +333,26 @@ snapshots, with conservative collection-wide lifetime invalidation after edits.
 Saved views retain native sheet ordinals; watches retain native reference text.
 The [OM08 ledger](vba-object-model-om08-acceptance.json) records these narrower
 contracts, unsupported per-window settings and unconnected platform services.
+
+
+## OM09 native protection boundary (2026-11-03)
+
+The private `permission_api` projects native SheetProtection and EditRange state
+through the shared document/sheet-qualified registry. EditRange gains a session
+identity token, skipped by serialization and ignored by content equality, to
+preserve handles through native COW/undo while rejecting deletion/recreation.
+Definition changes and owner-sheet deletion revoke matching DocState unlocks.
+Range.AllowEdit calls the same native locked-cell policy as writes; bounded
+queries cannot create permissions. Existing Protect/Unprotect remain method calls.
+
+A narrow selectionOnly path in review.protectSheet changes existing selection
+flags without replacing password hashes or edit rights. It requires a protected
+sheet and rejects mixed permission/password parameters. No dormant selection
+state, UI-only bypass or independent protection mode is introduced. Native XLSX
+retains hashes/options/ranges; session unlocks remain outside file state.
+
+Opaque securityDescriptor metadata and code consent do not establish user ACLs,
+IRM or protected-view documents. Encrypted reading already exists; retained file
+password/encryption settings and writing do not. Those graphs/services, independent
+chart protection and named-style inclusion flags remain explicit native gaps in
+the [OM09 acceptance ledger](vba-object-model-om09-acceptance.json).

@@ -588,3 +588,28 @@ or browser window service. Headless does not report fabricated measurements.
 The [OM08 ledger](vba-object-model-om08-acceptance.json) and
 [completion record](vba-object-model-implementation-plan.md#om08-native-window-profile-completion-2026-11-03)
 record 50 tested contracts and the remaining backend/service gaps.
+
+
+## OM09 native protection permissions (2026-11-03)
+
+Worksheet.Protection now exposes native allowed-action flags and AllowEditRanges.
+Typed edit ranges support bounded lookup/enumeration, Add, Title rename, Range,
+ChangePassword, Unprotect and Delete using native commands. Handles follow native
+lifetimes through COW/undo; deletion/recreation cannot rebind them. Changing a
+definition or deleting its worksheet revokes its session authentication.
+Range.AllowEdit reports the native content-edit policy for up to 65,536 cells.
+XLSX preserves hashes/options/ranges, while session unlocks are never persisted.
+
+EnableSelection updates native protected-sheet selection flags while preserving
+the password and all edit rights. Setting it before Protect is unsupported because
+the native model has no dormant selection preference. UI-only protection remains
+unsupported, and unsupported grant options refuse before effects. Permission getters
+are read-only; status flags reflect native worksheet protection, not independent
+object/scenario protection modes.
+
+The [OM09 ledger](vba-object-model-om09-acceptance.json) records 33 required contracts
+and their bounds. IRM, resolved user ACLs, protected-view windows, independent chart
+protection, write reservation/sharing, signatures and encryption settings/writing
+have no eligible native backend. Stored Windows security descriptors remain opaque
+metadata. Existing encrypted-file opening still uses Workbooks.Open Password;
+code consent and a password string never imply document encryption or IRM.

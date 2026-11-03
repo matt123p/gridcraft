@@ -89,6 +89,7 @@ pub(super) fn delete_sheet(s: &mut Session, p: &Json) -> Result<Json> {
         cx.structural = true;
         Ok(())
     })?;
+    d.unlocked_ranges.retain(|(owner, _)| *owner != name);
     if i < d.sheet_selections.len() {
         d.sheet_selections.remove(i);
     }

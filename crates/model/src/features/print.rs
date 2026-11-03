@@ -177,6 +177,9 @@ pub struct SheetProtection {
 /// password (XLSX `<protectedRange>`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditRange {
+    /// Session lifetime follows COW/undo, never files or content equality.
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub title: String,
     pub ranges: Vec<RangeRef>,
     pub password: Option<crate::PasswordHash>,

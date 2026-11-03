@@ -14,7 +14,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Protect Sheet…",
             ["Review", "Protect"],
             None,
-            "{password?, formatCells?, formatColumns?, formatRows?, insertRows?, insertColumns?, deleteRows?, deleteColumns?, sort?, autofilter?}",
+            "{sheet?, selectionOnly?: bool (change selection flags on an already protected sheet without replacing its password), selectLockedCells?, selectUnlockedCells?, password?, formatCells?, formatColumns?, formatRows?, insertRows?, insertColumns?, deleteRows?, deleteColumns?, sort?, autofilter?}",
             has_doc,
             protect_sheet
         ),
@@ -132,6 +132,25 @@ fn convert_notes(s: &mut Session, _: &Json) -> Result<Json> {
 
 fn protect_sheet(s: &mut Session, p: &Json) -> Result<Json> {
     let sheet = target_sheet(s, p)?;
+    if bool_param(p, "selectionOnly").unwrap_or(false) {
+        if p.as_object()
+            .is_some_and(|o| o.keys().any(|k| !matches!(k.as_str(), "sheet" | "selectionOnly" | "selectLockedCells" | "selectUnlockedCells")))
+        {
+            return Err(bad("review.protectSheet", "selectionOnly cannot replace passwords or edit permissions"));
+        }
+        let mut protection = s
+            .doc()?
+            .wb
+            .sheet(sheet)
+            .and_then(|sh| sh.protection.clone())
+            .ok_or_else(|| bad("review.protectSheet", "selection flags require a protected sheet"))?;
+        protection.select_locked = bool_param(p, "selectLockedCells").unwrap_or(protection.select_locked);
+        protection.select_unlocked = bool_param(p, "selectUnlockedCells").unwrap_or(protection.select_unlocked);
+        return edit(s, |cx| {
+            cx.sheet_mut(sheet)?.protection = Some(protection);
+            Ok(Json::Null)
+        });
+    }
     // Re-protecting a password-protected sheet would replace the password without knowing it:
     // unprotect it first, as in Excel. One without a password can take new options directly.
     let has_password = |pr: &SheetProtection| pr.password.is_some() || pr.legacy_password_hash.is_some();
@@ -215,6 +234,13 @@ fn allow_edit_ranges(s: &mut Session, p: &Json) -> Result<Json> {
             .position(|r| r.title.eq_ignore_ascii_case(t))
             .ok_or_else(|| bad("review.allowEditRanges", format!("no range titled `{t}`")))
     };
+    let mut revoke = Vec::new();
+    if matches!(action, "modify" | "delete") {
+        let i = find(title)?;
+        if let Some(r) = sh.edit_ranges.get(i) {
+            revoke.push(r.title.clone());
+        }
+    }
     let hash = |pw: &str, title: &str| new_password_hash(d, &format!("{sheet_name}\u{0}{title}"), pw);
     if matches!(action, "add" | "modify" | "delete") && sh.is_protected() {
         return Err(EngineError::Other("Unprotect the sheet to change its edit ranges.".into()));
@@ -248,7 +274,7 @@ fn allow_edit_ranges(s: &mut Session, p: &Json) -> Result<Json> {
             }
             let ranges = target_ranges(s, p)?;
             let password = str_param(p, "password").filter(|pw| !pw.is_empty()).map(|pw| hash(pw, &t));
-            let r = EditRange { title: t, ranges, password, security_descriptor: None };
+            let r = EditRange { identity: Default::default(), title: t, ranges, password, security_descriptor: None };
             edit(s, |cx| {
                 cx.sheet_mut(sheet)?.edit_ranges.push(r.clone());
                 Ok(())
@@ -287,6 +313,17 @@ fn allow_edit_ranges(s: &mut Session, p: &Json) -> Result<Json> {
             })?;
         }
         other => return Err(bad("review.allowEditRanges", format!("unknown action `{other}`"))),
+    }
+    if matches!(action, "add" | "modify" | "delete") {
+        if action == "add"
+            && let Some(r) = s.doc()?.wb.sheet(sheet).and_then(|sh| sh.edit_ranges.last())
+        {
+            revoke.push(r.title.clone());
+        }
+        if let Some(new_title) = str_param(p, "newTitle") {
+            revoke.push(new_title.trim().to_string());
+        }
+        s.doc_mut()?.unlocked_ranges.retain(|(sh, title)| *sh != sheet_name || !revoke.iter().any(|t| t.eq_ignore_ascii_case(title)));
     }
     let d = s.doc()?;
     let sh = d.wb.sheet(sheet).ok_or(EngineError::NoDocument)?;

@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "packet": "OM09",
+  "reviewed": "2026-11-03",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "status": "IMPLEMENTED_NATIVE_PROFILE",
+  "scope": "Native worksheet/workbook/range protection and Allow Edit Ranges only. Existing encrypted-file reader remains reachable through Workbooks.Open Password. No new protection algorithm, encryption writer, protected-view graph, IRM/user ACL service, certificate store or native named-style inclusion mode.",
+  "required_obligations": [
+    {
+      "id": "native_permissions_and_ranges",
+      "native_evidence": "crates/model/src/features/print.rs; engine::cmd::review; engine::cmd::locked_cell_error; xlsx::sheet_read; xlsx::sheet_write",
+      "profile": "Live typed Protection/AllowEditRanges/AllowEditRange nodes over native state. One-based/default/title lookup, bounded enumeration, same-workbook/receiver-sheet Range Add, read-only Range, Title rename, ChangePassword, Delete and session Unprotect all use existing commands. Native lifetime tokens survive COW/undo/rename and never persist to files or affect content equality. Definition edits revoke prior matching native grants, preventing password-change/delete-recreate bypass. Names use a 255-byte trimmed nonempty input profile; passwords are bounded to 1024 bytes and never retained as text in handles or journals. Up to 8192 children and 64 areas; AllowEdit checks at most 65536 cells using the same native policy as edits, returning False if any is blocked. AllowEdit is content editability, not permission to format/insert/delete. Import securityDescriptor bytes remain opaque and are not presented as ACL enforcement. Deleting an owner sheet revokes its grants; undo restores definitions but never resurrects revoked authentication.",
+      "source_ids": [
+        "AllowEditRange.ChangePassword",
+        "AllowEditRange.Delete",
+        "AllowEditRange.Range",
+        "AllowEditRange.Title",
+        "AllowEditRange.Unprotect",
+        "AllowEditRanges.Add",
+        "AllowEditRanges.Count",
+        "AllowEditRanges.Item",
+        "Protection.AllowDeletingColumns",
+        "Protection.AllowDeletingRows",
+        "Protection.AllowEditRanges",
+        "Protection.AllowFiltering",
+        "Protection.AllowFormattingCells",
+        "Protection.AllowFormattingColumns",
+        "Protection.AllowFormattingRows",
+        "Protection.AllowInsertingColumns",
+        "Protection.AllowInsertingHyperlinks",
+        "Protection.AllowInsertingRows",
+        "Protection.AllowSorting",
+        "Protection.AllowUsingPivotTables",
+        "Range.AllowEdit",
+        "Worksheet.EnableSelection",
+        "Worksheet.ProtectDrawingObjects",
+        "Worksheet.ProtectScenarios",
+        "Worksheet.Protection",
+        "Worksheet.ProtectionMode"
+      ],
+      "test_ids": [
+        "crates/vba/tests/protection.rs::typed_permissions_and_selection_preserve_native_password_and_rights",
+        "crates/vba/tests/protection.rs::edit_ranges_use_native_authentication_and_locked_cell_policy",
+        "crates/vba/tests/protection.rs::edit_range_identity_and_grants_do_not_rebind_after_password_change_or_recreation",
+        "crates/vba/tests/protection.rs::edit_ranges_target_inactive_sheets_and_follow_sheet_reordering",
+        "crates/vba/tests/protection.rs::unsupported_permissions_and_protected_edits_refuse_before_effects",
+        "crates/vba/tests/protection.rs::sheet_and_range_protection_hashes_roundtrip_but_session_unlocks_do_not",
+        "crates/vba/tests/protection.rs::native_definition_undo_preserves_identity_and_revokes_prior_unlocks",
+        "crates/vba/tests/protection.rs::permissions_retain_target_consent_and_do_not_claim_irm_or_encryption_state",
+        "crates/vba/tests/protection.rs::deleting_an_edit_range_owner_revokes_its_session_grants"
+      ]
+    },
+    {
+      "id": "ordinary_high_protection_retained",
+      "native_evidence": "crates/vba/src/protection_api.rs; crates/vba/src/lifecycle.rs; crates/vba/src/format_api.rs",
+      "profile": "Existing High protection paths stay live. Worksheet Protect/Unprotect require method invocation; unsupported independent Contents/DrawingObjects/Scenarios and UI-only/insert-hyperlinks/pivot-table permissions still refuse before effects. Permission getters expose native stored flags; unsupported grant flags and ProtectionMode are False. ProtectDrawingObjects/ProtectScenarios reflect the existing worksheet guard, not independent switches. EnableSelection projects stored protected-sheet flags with an atomic selectionOnly native command parameter that preserves the password and all other rights; setting while unprotected refuses because native has no dormant selection preference. Native locked-only selection has no XlEnableSelection value and refuses the getter. Failed authentication keeps protection and grants unchanged. XLSX persists hashes/options/ranges but never session unlocks. Workbook structure protection and document trust remain separate from file encryption or IRM.",
+      "source_ids": [
+        "Worksheet.Protect",
+        "Worksheet.Unprotect",
+        "Worksheet.ProtectContents",
+        "Workbook.Protect",
+        "Workbook.Unprotect",
+        "Workbook.ProtectStructure",
+        "Range.Locked"
+      ],
+      "test_ids": [
+        "crates/vba/tests/protection.rs::typed_permissions_and_selection_preserve_native_password_and_rights",
+        "crates/vba/tests/protection.rs::permissions_retain_target_consent_and_do_not_claim_irm_or_encryption_state",
+        "crates/vba/tests/protection.rs::sheet_and_range_protection_hashes_roundtrip_but_session_unlocks_do_not",
+        "crates/vba/tests/workbooks.rs::workbook_structure_protection_uses_native_passwords_and_blocks_lifecycle",
+        "crates/vba/tests/identity_values.rs::live_formats_value_tags_mixed_reads_protection_and_undo"
+      ]
+    }
+  ]
+}

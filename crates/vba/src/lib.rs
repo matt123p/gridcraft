@@ -30,6 +30,7 @@ pub use lifecycle_events::{LifecycleEvent, LifecycleEventBatch};
 mod named_style_api;
 mod objects;
 mod outline_api;
+mod permission_api;
 mod protection_api;
 mod ranges;
 mod references;
@@ -1018,6 +1019,7 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
     .chain(format_api::descriptors())
     .chain(named_style_api::descriptors())
     .chain(protection_api::descriptors())
+    .chain(permission_api::descriptors())
     .chain(conditional_api::descriptors())
     .chain(condition_details::descriptors())
     .chain(data_api::descriptors())

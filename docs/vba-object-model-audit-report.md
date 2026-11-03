@@ -8,14 +8,14 @@ Selected High native-profile acceptance and exact exclusions: [evidence ledger](
 
 OM13 native local pivot/table-slicer acceptance and persistence limits: [evidence ledger](vba-object-model-om13-acceptance.json).
 
-OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). These are native profiles, not whole-reference compatibility claims.
+OM08 native window, saved-view and watch-list acceptance with ownership/service limits: [evidence ledger](vba-object-model-om08-acceptance.json). OM09 native protection/Allow Edit Ranges acceptance and permission/encryption exclusions: [evidence ledger](vba-object-model-om09-acceptance.json). These are native profiles, not whole-reference compatibility claims.
 
 ## State counts
 
 - `LEGACY_REVIEW`: 283
-- `MISSING`: 3515
-- `OUT_OF_SCOPE_GRIDCRAFT`: 546
-- `PARTIAL`: 1636
+- `MISSING`: 3426
+- `OUT_OF_SCOPE_GRIDCRAFT`: 606
+- `PARTIAL`: 1665
 - `PLATFORM_SERVICE_NEEDED`: 16
 
 ## Unresolved audit rows
@@ -96,24 +96,24 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Adjustments.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Adjustments` | `MISSING` | `NOT_APPLICABLE` |
 | `Adjustments.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRange.ChangePassword` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRange.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRange` | `MISSING` | `NOT_APPLICABLE` |
-| `AllowEditRange.Range` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRange.Title` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRange.Unprotect` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRange.Users` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRanges.Add` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRanges.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRanges.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `AllowEditRanges` | `MISSING` | `NOT_APPLICABLE` |
+| `AllowEditRange.ChangePassword` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRange.Delete` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRange` | `PARTIAL` | `NOT_APPLICABLE` |
+| `AllowEditRange.Range` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRange.Title` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRange.Unprotect` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRange.Users` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRanges.Add` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRanges.Count` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRanges.Item` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `AllowEditRanges` | `PARTIAL` | `NOT_APPLICABLE` |
 | `Application` | `PARTIAL` | `NOT_APPLICABLE` |
 | `Application.ActivateMicrosoftApp` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ActiveCell` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ActiveChart` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.ActiveEncryptionSession` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.ActiveEncryptionSession` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ActivePrinter` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.ActiveProtectedViewWindow` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.ActiveProtectedViewWindow` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ActiveSheet` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ActiveWindow` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ActiveWorkbook` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -302,7 +302,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.ProtectedViewWindowDeactivate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ProtectedViewWindowOpen` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.ProtectedViewWindowResize` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.ProtectedViewWindows` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.ProtectedViewWindows` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `application.quickanalysis` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Quit` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Range` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -776,13 +776,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Chart.PrintedCommentPages` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.PrintOut` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.PrintPreview` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.Protect` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.ProtectContents` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.ProtectData` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.ProtectDrawingObjects` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.ProtectFormatting` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.ProtectionMode` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.ProtectSelection` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.Protect` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.ProtectContents` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.ProtectData` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.ProtectDrawingObjects` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.ProtectFormatting` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.ProtectionMode` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.ProtectSelection` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.Refresh` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.Resize` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.RightAngleAxes` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -808,7 +808,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Chart.ShowValueFieldButtons` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.SideWall` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.Tab` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Chart.Unprotect` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Chart.Unprotect` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.Visible` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Chart.Walls` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartArea` | `MISSING` | `NOT_APPLICABLE` |
@@ -922,7 +922,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `ChartObject.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObject.Placement` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObject.PrintObject` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ChartObject.ProtectChartObject` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ChartObject.ProtectChartObject` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObject.RoundedCorners` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObject.Select` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObject.SendToBack` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -950,7 +950,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `ChartObjects.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObjects.Placement` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObjects.PrintObject` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ChartObjects.ProtectChartObject` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ChartObjects.ProtectChartObject` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObjects.Select` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObjects.ShapeRange` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ChartObjects.Top` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3271,41 +3271,41 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `PresetGradientType` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `PresetTexture` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `PresetTextured` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Activate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Caption` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Close` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Edit` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.EnableResize` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Height` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Left` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow` | `MISSING` | `NOT_APPLICABLE` |
-| `ProtectedViewWindow.SourceName` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.SourcePath` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Top` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Visible` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Width` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.WindowState` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindow.Workbook` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindows.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindows.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindows.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindows.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindows` | `MISSING` | `NOT_APPLICABLE` |
-| `ProtectedViewWindows.Open` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ProtectedViewWindows.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowDeletingColumns` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowDeletingRows` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowEditRanges` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowFiltering` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowFormattingCells` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowFormattingColumns` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowFormattingRows` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowInsertingColumns` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowInsertingHyperlinks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowInsertingRows` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowSorting` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection.AllowUsingPivotTables` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Protection` | `MISSING` | `NOT_APPLICABLE` |
+| `ProtectedViewWindow.Activate` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Caption` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Close` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Edit` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.EnableResize` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Height` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Left` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `ProtectedViewWindow.SourceName` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.SourcePath` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Top` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Visible` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Width` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.WindowState` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindow.Workbook` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindows.Application` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindows.Count` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindows.Creator` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindows.Item` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindows` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `ProtectedViewWindows.Open` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ProtectedViewWindows.Parent` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowDeletingColumns` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowDeletingRows` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowEditRanges` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowFiltering` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowFormattingCells` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowFormattingColumns` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowFormattingRows` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowInsertingColumns` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowInsertingHyperlinks` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowInsertingRows` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowSorting` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection.AllowUsingPivotTables` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Protection` | `PARTIAL` | `NOT_APPLICABLE` |
 | `PublishObject.Application` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `PublishObject.AutoRepublish` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `PublishObject.Creator` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3432,7 +3432,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Range.AddressLocal` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AdvancedFilter` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.AllocateChanges` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Range.AllowEdit` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Range.AllowEdit` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.Application` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ApplyNames` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Range.ApplyOutlineStyles` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4324,7 +4324,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Style.IncludeFont` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Style.IncludeNumber` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Style.IncludePatterns` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Style.IncludeProtection` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Style.IncludeProtection` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Style.IndentLevel` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Style.Interior` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Style.Locked` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4682,15 +4682,15 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `UsedObjects.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `UsedObjects` | `MISSING` | `NOT_APPLICABLE` |
 | `UsedObjects.Parent` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccess.AllowEdit` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccess.Delete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccess` | `MISSING` | `NOT_APPLICABLE` |
-| `UserAccess.Name` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccessList.Add` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccessList.Count` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccessList.DeleteAll` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccessList.Item` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `UserAccessList` | `MISSING` | `NOT_APPLICABLE` |
+| `UserAccess.AllowEdit` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccess.Delete` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccess` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
+| `UserAccess.Name` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccessList.Add` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccessList.Count` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccessList.DeleteAll` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccessList.Item` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `UserAccessList` | `OUT_OF_SCOPE_GRIDCRAFT` | `NOT_APPLICABLE` |
 | `UserPicture` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `UserTextured` | `LEGACY_REVIEW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Validation.Add` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4946,7 +4946,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.DoNotPromptForConvert` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.EnableAutoRecover` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.EnableConnections` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.EncryptionProvider` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.EncryptionProvider` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.EndReview` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.EnvelopeVisible` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Excel4IntlMacroSheets` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4963,7 +4963,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.FullNameURLEncoded` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.GetWorkflowTasks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.GetWorkflowTemplates` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.HasPassword` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.HasPassword` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.HasVBProject` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.HighlightChangesOnScreen` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.HighlightChangesOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -4990,13 +4990,13 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.Open` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.OpenLinks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Parent` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.Password` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.PasswordEncryptionAlgorithm` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.PasswordEncryptionFileProperties` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.PasswordEncryptionKeyLength` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.PasswordEncryptionProvider` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.Password` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.PasswordEncryptionAlgorithm` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.PasswordEncryptionFileProperties` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.PasswordEncryptionKeyLength` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.PasswordEncryptionProvider` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Path` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.Permission` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.Permission` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.PersonalViewListSettings` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.PersonalViewPrintSettings` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.PivotCaches` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5008,9 +5008,9 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.PrintOut` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.PrintPreview` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Protect` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.ProtectSharing` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.ProtectSharing` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.ProtectStructure` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.ProtectWindows` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.ProtectWindows` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.PublishObjects` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `workbook.publishtodocs` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.PurgeChangeHistoryNow` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5045,7 +5045,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.ServerPolicy` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.ServerViewableItems` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.SetLinkOnData` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.SetPasswordEncryptionOptions` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.SetPasswordEncryptionOptions` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.SharedWorkspace` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.SheetActivate` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `workbook.sheetbeforedelete` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5068,7 +5068,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.ShowConflictHistory` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.ShowPivotChartActiveFields` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.ShowPivotTableFieldList` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.Signatures` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.Signatures` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.SlicerCaches` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.SmartDocument` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Styles` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5079,7 +5079,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.Theme` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.ToggleFormsDesign` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Unprotect` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.UnprotectSharing` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.UnprotectSharing` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.UpdateFromFile` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.UpdateLink` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.UpdateLinks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5096,7 +5096,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Workbook.WindowResize` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Windows` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.Worksheets` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Workbook.WritePassword` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Workbook.WritePassword` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.WriteReserved` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.WriteReservedBy` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Workbook.XmlImport` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5182,7 +5182,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Worksheet.EnableFormatConditionsCalculation` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.EnableOutlining` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.EnablePivotTable` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.EnableSelection` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.EnableSelection` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Evaluate` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ExportAsFixedFormat` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.FilterMode` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -5218,10 +5218,10 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Worksheet.PrintPreview` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Protect` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ProtectContents` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.ProtectDrawingObjects` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.Protection` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.ProtectionMode` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Worksheet.ProtectScenarios` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.ProtectDrawingObjects` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.Protection` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.ProtectionMode` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Worksheet.ProtectScenarios` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.QueryTables` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.Range` | `PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Worksheet.ResetAllPageBreaks` | `MISSING` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |

@@ -19,6 +19,9 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
             types: [
+                "Protection",
+                "AllowEditRanges",
+                "AllowEditRange",
                 "Watches",
                 "Watch",
                 "Windows",

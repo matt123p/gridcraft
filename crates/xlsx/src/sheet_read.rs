@@ -328,7 +328,13 @@ fn read_protected_ranges(e: &El, sheet: &mut Sheet) {
         }
         let password = read_password(p, "");
         let title = p.attr("name").unwrap_or("").to_string();
-        sheet.edit_ranges.push(EditRange { title, ranges, password, security_descriptor: p.attr("securityDescriptor").map(str::to_string) });
+        sheet.edit_ranges.push(EditRange {
+            identity: Default::default(),
+            title,
+            ranges,
+            password,
+            security_descriptor: p.attr("securityDescriptor").map(str::to_string),
+        });
     }
 }
 

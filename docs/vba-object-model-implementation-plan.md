@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13 and OM08 native profiles completed; remaining eligible OM09 work is next. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08 and OM09 native profiles completed; eligible OM10 printing/export work is next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -350,7 +350,7 @@ specific needed receiver/command contract, not completion of every listed packet
 | OM12 | 1,220 | Medium | Existing basic charts/drawings; needs OM04 object ownership and relevant OM05 formatting; OM08 only for genuinely window-dependent members. |
 | OM13 | 838 | Medium | Existing local pivots; relevant OM04/OM06 and table/formula contracts where used; provider/model behavior excluded. |
 | OM08 | 163 | Medium | Native window/selection/lifecycle, saved-view and watch-list profile completed; independent panes/views and geometry services remain explicit native gaps. See completion record below. |
-| OM09 | 96 | Medium default; ordinary protection members High | Existing protection/permission projections; relevant OM04 receivers. Mutation protection enforcement applies throughout. |
+| OM09 | 96 | Medium default; ordinary protection members High | Native protection permissions, selection rights and Allow Edit Ranges completed; IRM/ACL/protected-view/encryption-writer gaps remain explicit. Mutation protection enforcement applies throughout. |
 | OM10 | 133 | Medium | Existing page setup/print/export; relevant OM04/OM05 state, OM08 only for view-dependent calls, actual export/print service. |
 | OM19 | 101 | Medium | Existing local notes/links/metadata; relevant OM04/OM05 receivers and event hooks if the operation needs them. |
 | OM15 | 115 | Medium | Existing interactions/controls; actual host-service continuation and relevant OM03/OM08/OM11 contracts only. |
@@ -1495,3 +1495,62 @@ Final validation (2026-11-03):
 The final close regression verifies that a BeforeClose callback creating a sibling
 window cannot accidentally close the shared workbook. No UI layout, vendor assets,
 workflow or tiny-vba dependency revision changed.
+
+
+## OM09 native permission profile completion (2026-11-03)
+
+Status: **OM09 complete for the existing native profile**. Medium continues with
+eligible OM10 printing/export, then OM19 and OM15. The
+[OM09 acceptance ledger](vba-object-model-om09-acceptance.json) links **33** required
+source contracts to executable tests and retains ordinary High protection evidence.
+
+Worksheet.Protection exposes the native stored formatting/insertion/deletion/sort/
+filter flags. AllowInsertingHyperlinks and AllowUsingPivotTables remain False;
+requests to grant them or UI-only/independent object/content/scenario protection
+still refuse before effects. ProtectionMode is False; drawing/scenario status
+reflects the existing worksheet guard. EnableSelection maps native flags only on
+an already protected sheet. Its native selectionOnly command parameter preserves
+the password and every other right, and refuses mixed password/permission changes.
+The native locked-only combination has no Excel enum and refuses the getter;
+there is no dormant preference to set while the sheet is unprotected.
+
+Typed AllowEditRanges and AllowEditRange provide one-based/default/title lookup,
+bounded enumeration, Add from a receiver-owned Range, Title, read-only Range,
+ChangePassword, Unprotect and Delete. All mutations use native commands and
+preserve native protected-sheet restrictions. Nonserialized definition lifetimes
+survive COW/undo and rename; deleted/recreated definitions cannot rebind old VBA
+handles. Definition changes and owner-sheet deletion revoke matching session
+unlocks; undo never resurrects revoked authentication. Passwords are hashed by
+the existing engine and are absent from handles/journals. New titles are nonempty,
+trimmed and at most 255 UTF-8 bytes; password inputs are bounded to 1,024 bytes.
+
+Range.AllowEdit uses the same native content-edit policy as actual writes,
+including unlocked cells and authenticated/password-free edit ranges. Every cell
+must be allowed; reads are bounded to 65,536 cells. It does not grant formatting
+or structure-edit rights. Protection options, edit ranges and password hashes
+round-trip through native XLSX; session unlocks do not. Collections are bounded to
+8,192 entries and lightweight range views to 64 areas.
+
+Native securityDescriptor bytes remain opaque round-trip metadata: there is no
+user/principal resolver or ACL enforcement to project as Users/UserAccessList.
+Code-execution consent is not IRM or ProtectedView. No ProtectedViewWindow graph,
+independent chart protection, named-style protection-inclusion flag, signatures,
+write reservation/sharing or retained workbook encryption-settings model exists.
+The existing encrypted-file reader remains reachable through Workbooks.Open's
+Password argument. Workbook.Password/HasPassword and encryption-provider setters
+are not fabricated; no encryption writer is added by OM09.
+
+Final validation (2026-11-03):
+
+- Font-enabled `cargo xtask ci`: **all 10 stages passed**, including **216**
+  native VBA tests and the workspace engine/model/XLSX/UI suites.
+- Full Node 22 / wasm-bindgen VBA suite: **208 tests passed**, including all
+  **9** OM09 regressions, with no separate browser permission implementation.
+- Strict adapter and audit-enabled xtask Clippy passed; **30** xtask tests passed.
+- Pinned audit regeneration and no-write verification passed for all **5,996**
+  source pages, preserving prior High/OM12/OM13/OM08 evidence and **33** required
+  OM09 source contracts.
+
+OM08 was committed separately as `bc8751f4` before this packet began. OM09 adds
+native-state plumbing and lifetime/authentication checks; it adds no vendor assets,
+workflow changes, encryption algorithm/writer or tiny-vba dependency revision.

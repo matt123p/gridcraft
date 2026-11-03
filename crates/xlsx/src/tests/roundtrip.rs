@@ -196,14 +196,22 @@ fn sample() -> Workbook {
         ..Default::default()
     });
     s.edit_ranges = vec![
-        EditRange { title: "Open & <free>".into(), ranges: vec![rr("A1:B2"), rr("D4")], password: None, security_descriptor: None },
         EditRange {
+            identity: Default::default(),
+            title: "Open & <free>".into(),
+            ranges: vec![rr("A1:B2"), rr("D4")],
+            password: None,
+            security_descriptor: None,
+        },
+        EditRange {
+            identity: Default::default(),
             title: "Old".into(),
             ranges: vec![rr("C1:C9")],
             password: Some(PasswordHash::Legacy(0x83AF)),
             security_descriptor: Some("O:WDG:WDD:(A;;CC;;;WD)".into()),
         },
         EditRange {
+            identity: Default::default(),
             title: "New".into(),
             ranges: vec![rr("E1")],
             password: Some(PasswordHash::new_sha512("pw", b"0123456789abcdef")),

@@ -23,6 +23,9 @@ impl Bridge {
             if !matches!(member.as_str(), "protect" | "unprotect") {
                 return Err(failure(438, "unsupported protection status"));
             }
+            if call.kind != super::InvokeKind::Call {
+                return Err(failure(438, "protection mutations require a method call"));
+            }
             let unprotect = member == "unprotect";
             let args = arguments(
                 call,
