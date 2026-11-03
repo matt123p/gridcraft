@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 live nominal metadata export and bounded profile graph validation) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 High-extension evidence and coverage validation) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -55,7 +55,12 @@ OM20 exports nominal metadata from the live ReferenceSet rather than a second
 registry. The optional offline audit checks typed reachability from Application,
 reviewed dynamic factories, enum dependencies and collection/default contracts.
 Source-kind and legacy namespace keys keep same-name methods/events distinct;
-static graph witnesses supplement the owning runtime evidence. See the
+static graph witnesses supplement the owning runtime evidence.
+The High-extension review adds a separate explicit source-path ledger. The
+offline audit rejects uncovered/duplicate pages and missing native evidence
+anchors, checks the ordered projection queue, and attaches capability decisions
+without changing priorities or runtime result states. Evidence-location checks
+do not prove complete Excel behavior or the continuing absence of a capability. See the
 [bounded profile sign-off](vba-object-model-profile-report.md).
 The resolver shares the bridge's existing object store with bounded read queries;
 no document borrow or store lock survives a query/host call. tiny-vba owns only
@@ -235,6 +240,7 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Checked High-extension capability ledger and generated queue; runtime acceptance independent |
 | 2026-11-03 | minor | OM20 live reference metadata, source-kind reconciliation and bounded graph sign-off |
 | 2026-11-03 | minor | OM15 owned interaction boundary and native column-completion sharing |
 | 2026-11-03 | minor | OM10 native print projections and owned printer/download/picker/preview continuations wired to real UI services |

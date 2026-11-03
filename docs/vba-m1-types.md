@@ -1,5 +1,11 @@
 # M1.1 — Registered Excel nominal types
 
+> Historical M1.1 milestone snapshot. Its type counts, test totals, dependency
+> pin and next-stage notes describe that delivery. See the current
+> [OM20 profile](vba-object-model-profile-report.md) and
+> [High-extension review](vba-object-model-high-extension-review.md) for today’s
+> accepted scope and next projection queue.
+
 Updated 2026-10-28. Branch: `feat/m1-host-types`. This report follows tiny-vba's
 new remaining-plan numbering. It does not claim a complete Excel object library
 or universal unchanged-workbook compatibility.

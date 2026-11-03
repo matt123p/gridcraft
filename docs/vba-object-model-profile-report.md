@@ -19,6 +19,8 @@ Closes the declared High native profiles and selected Medium ledgers; does not c
 | `SERVICE_REQUIRED` | 20 |
 | `UNSELECTED_MEDIUM` | 1106 |
 
+[High extension capability review](vba-object-model-high-extension-review.md): 885 source pages checked against native backing; 26 direct native candidates, 50 existing generic-dispatch metadata candidates, 444 partial-native rows, 42 host-service reviews and 323 excluded source contracts. This adds no runtime acceptance.
+
 High reference extensions retain High priority and their literal missing/partial catalogue state; they are outside the already accepted native obligations and are not certified or downgraded. A missing adapter does not establish a missing GridCraft feature. Unselected Medium and every Low runtime projection remain outside this sign-off.
 
 ## Provenance and acceptance evidence

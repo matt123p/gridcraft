@@ -1,6 +1,6 @@
 # Roadmap detail
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 bounded native VBA profile signed off; source reconciliation complete) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (OM20 remaining High capability review completed; native projection queue recorded) · **Target:** Microsoft Excel (Microsoft 365)
 
 Forward-looking plan. The one-page summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work
 list is [`gaps.md`](gaps.md); numbers and method are in
@@ -11,8 +11,10 @@ list is [`gaps.md`](gaps.md); numbers and method are in
 OM20 closes the declared High native obligations and selected Medium VBA profiles.
 The [profile sign-off](vba-object-model-profile-report.md) retains all 5,996
 source pages, resolves 673 required source IDs and checks receiver/type reachability.
-Catalogue extensions outside the accepted obligations still require explicit
-capability review; unselected Medium and Low runtime work remain deferred.
+The [remaining High capability review](vba-object-model-high-extension-review.md)
+covers 885 source pages: 26 direct native candidates and 50 generic-dispatch
+metadata candidates lead the queue; partial native and host-service boundaries
+remain explicit. Unselected Medium and Low runtime work remain deferred.
 This bounded acceptance does not change product parity estimates.
 
 Optional VBA follows the accepted
@@ -133,6 +135,7 @@ to check our files, and Windows machines with the reported GPU drivers.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Reviewed all 885 remaining High VBA extension pages; checked native evidence and recorded the projection queue; no runtime/parity acceptance change |
 | 2026-11-03 | minor | OM20 bounded native VBA profile signed off; source provenance and deferred extensions retained; no product parity score change |
 | 2026-11-03 | minor | Selected OM15 native interactions/controls completed; OM20 profile sign-off next; no product parity score change |
 | 2026-11-03 | minor | Selected VBA OM19 native annotations/metadata completed; OM15 next; no product parity score change |

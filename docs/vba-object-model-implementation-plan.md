@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10, OM19 and OM15 selected native profiles completed; OM20 bounded native profile reconciliation and sign-off completed. Deferred Low and unselected catalogue extensions remain visible. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12, OM13, OM08, OM09, OM10, OM19 and OM15 selected native profiles completed; OM20 bounded native profile reconciliation and sign-off completed. Deferred Low and unselected catalogue extensions remain visible; all 885 remaining High extensions now have a separate native-capability review. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -988,6 +988,8 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## Revision history
 
+- 2026-11-03: Completed the 885-page High-extension capability review, checked source coverage/evidence, and prioritized formula metadata, sheet state, tab color and range-formatting candidates without expanding runtime acceptance.
+
 - 2026-11-03: Completed OM20 bounded native profile sign-off, source-kind/legacy reconciliation, live nominal graph checks and generated per-row dispositions; catalogue extensions remain explicit.
 
 - 2026-11-03: Completed selected OM15 native interactions/controls with owned UI continuations, modal lifetime guards, native/WASM evidence and source-ledger reconciliation; OM20 sign-off is next.
@@ -1855,3 +1857,43 @@ Validation (exact commands in the OM20 specification):
 - Optional audit-tool suite: **36** passed; affected-target strict Clippy passed.
 - Offline audit write/check reproduced contracts, constants, reports and graph
   witnesses. Original source inventory and tiny-vba pin remain unchanged.
+
+
+## OM20 remaining High capability review (2026-11-03)
+
+The [checked review ledger](vba-object-model-high-extension-review.json) covers
+all **885** High reference-extension source pages in **71** explicit groups.
+The [generated review report](vba-object-model-high-extension-review.md) records:
+
+- **26** direct native projection candidates.
+- **50** existing generic WorksheetFunction dispatch/metadata candidates, checked
+  against the live calculator registry. WEBSERVICE/FILTERXML are separately
+  excluded because their registrations deliberately return errors.
+- **444** partial native matches: nearby state or effects exist, but a named
+  field, receiver, option, editable lifecycle or service is still missing.
+- **42** host-service reviews requiring a concrete existing host seam.
+- **323** source contracts without matching native capability in the inspected
+  model/dispatch. Product features are not added merely for VBA parity.
+
+All original priorities, source identities, raw result states and **673**
+accepted native obligations remain unchanged. Per-row eligibility now links the
+review result and exact native evidence/boundary. This completes the capability
+triage that OM20 previously left outside scope; it does not complete detailed
+parameter review or runtime implementation for the extension members. Source
+anchors are checked locations, not an automated proof that an exclusion can
+never change.
+
+The next selected planning queue is **high-formula-metadata**, then
+**high-sheet-state**, **high-tab-colors** and **high-range-formatting**. The first
+slice should reconcile 52 missing modern WorksheetFunction descriptors against
+the calculator, add verified signatures for native functions and keep the two
+unavailable XML/network services explicit. Existing generic dispatch alone does
+not prove exact positional/named/optional/array/error behavior; native/WASM
+binding regressions are required before promoting runtime catalogue state.
+
+No runtime or UI behavior changed. Fresh Excel observation: **NOT_RUN**.
+Review validation: all **10** repository CI gates (**3,025** native tests),
+**39** optional audit tests, strict audit Clippy and offline write/check passed.
+The dedicated VBA WASM execution suite was not rerun for this tooling/data-only
+change; the repository WASM compilation gate passed and the previous OM20
+execution evidence remains linked. Exact commands are in the review ledger.

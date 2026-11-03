@@ -324,8 +324,11 @@ Current dispositions are:
 
 The [generated profile](vba-object-model-profile.json) and
 [report](vba-object-model-profile-report.md) use these same fields. High reference
-extensions retain their priority and literal missing/partial state; their native
-capability review is outside the declared obligations, not assumed complete.
+extensions retain their priority and literal missing/partial state. The
+[High extension review](vba-object-model-high-extension-review.md) now records
+885 capability decisions separately: direct native candidates, generic-dispatch
+metadata candidates, partial native matches, host-service reviews and known
+product exclusions. Review does not add accepted runtime obligations.
 
 ### 2. Generate checked-in Rust metadata with Rust tooling
 
@@ -445,6 +448,8 @@ remain preserved; reviewed member routing and exact dispositions appear in the
 [profile sign-off](vba-object-model-profile-report.md).
 
 ## Revision history
+
+- 2026-11-03: Reviewed all 885 High reference-extension pages with native evidence, explicit partial/service/exclusion boundaries and an ordered next projection queue; runtime acceptance unchanged.
 
 - 2026-11-03: OM20 signed off the bounded native obligations and generated per-row dispositions, preserving exact catalogue extensions and immutable source provenance.
 

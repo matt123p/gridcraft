@@ -1,0 +1,2331 @@
+{
+  "schema": 1,
+  "packet": "OM20-HIGH-REVIEW",
+  "reviewed": "2026-11-03",
+  "baseline_commit": "fe57773a",
+  "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
+  "scope": "Capability review of the 885 HIGH_REFERENCE_EXTENSION source pages from OM20; no new runtime contract, priority downgrade or broader compatibility acceptance. Source presence/nearby features are not proof of the full Excel member.",
+  "status_meanings": {
+    "ELIGIBLE_NATIVE": "Existing native behavior supports a bounded projection candidate; implementation, exact binding/lifetime/error tests and any write path are still required.",
+    "NATIVE_SUBSET": "Related native state/effects exist, but a named semantic, editable field, receiver or service boundary is incomplete. Not automatically eligible as a whole member.",
+    "NO_NATIVE_CAPABILITY": "The named source behavior has no matching native product capability in the inspected state/dispatch; do not add it for VBA parity.",
+    "HOST_SERVICE_REVIEW": "Host/UI dependency needs a concrete existing service and headless/browser behavior review before projection.",
+    "GENERIC_DISPATCH": "Existing generic formula-dispatch route is present, but these source members are absent from the explicit metadata list. Verify each registration/signature and runtime binding before promoting catalogue state."
+  },
+  "groups": [
+    {
+      "id": "function-service-placeholders",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "These two registered functions deliberately return #VALUE!; registration is not an implemented XML/network service.",
+      "boundary": "Do not promote descriptor presence to success. Network/XML implementation belongs on the product roadmap.",
+      "evidence": [
+        {
+          "path": "crates/functions/src/info.rs",
+          "anchor": "value_err"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.worksheetfunction.filterxml.md",
+        "api/Excel.worksheetfunction.webservice.md"
+      ]
+    },
+    {
+      "id": "function-generic-metadata",
+      "status": "GENERIC_DISPATCH",
+      "native_backing": "The existing WorksheetFunction dispatcher normalizes underscores to dots and calls the calculator; these source pages lack entries in FUNCTION_MEMBERS.",
+      "boundary": "Candidate metadata/test repair only. Confirm each calculator registration and argument signature, then add native/WASM binding regressions before claiming a supported member; no full option parity is inferred.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/formula_api.rs",
+          "anchor": "pub(crate) fn function_name"
+        },
+        {
+          "path": "crates/vba/src/formula_api.rs",
+          "anchor": "fn worksheet_function"
+        },
+        {
+          "path": "crates/functions/src/ets.rs",
+          "anchor": "\"FORECAST.ETS\""
+        },
+        {
+          "path": "crates/calc/src/eval/call.rs",
+          "anchor": "\"ISFORMULA\""
+        }
+      ],
+      "source_paths": [
+        "api/Excel.worksheetfunction.acot.md",
+        "api/Excel.worksheetfunction.acoth.md",
+        "api/Excel.worksheetfunction.arabic.md",
+        "api/Excel.worksheetfunction.base.md",
+        "api/Excel.worksheetfunction.binom_dist_range.md",
+        "api/Excel.worksheetfunction.bitand.md",
+        "api/Excel.worksheetfunction.bitlshift.md",
+        "api/Excel.worksheetfunction.bitor.md",
+        "api/Excel.worksheetfunction.bitrshift.md",
+        "api/Excel.worksheetfunction.bitxor.md",
+        "api/Excel.worksheetfunction.ceiling_math.md",
+        "api/Excel.worksheetfunction.combina.md",
+        "api/Excel.worksheetfunction.cot.md",
+        "api/Excel.worksheetfunction.coth.md",
+        "api/Excel.worksheetfunction.csc.md",
+        "api/Excel.worksheetfunction.csch.md",
+        "api/Excel.worksheetfunction.days.md",
+        "api/Excel.worksheetfunction.decimal.md",
+        "api/Excel.worksheetfunction.encodeurl.md",
+        "api/Excel.worksheetfunction.floor_math.md",
+        "api/Excel.worksheetfunction.forecast_ets.md",
+        "api/Excel.worksheetfunction.forecast_ets_confint.md",
+        "api/Excel.worksheetfunction.forecast_ets_seasonality.md",
+        "api/Excel.worksheetfunction.forecast_ets_stat.md",
+        "api/Excel.worksheetfunction.forecast_linear.md",
+        "api/Excel.worksheetfunction.gamma.md",
+        "api/Excel.worksheetfunction.gauss.md",
+        "api/Excel.worksheetfunction.ifna.md",
+        "api/Excel.worksheetfunction.imcosh.md",
+        "api/Excel.worksheetfunction.imcot.md",
+        "api/Excel.worksheetfunction.imcsc.md",
+        "api/Excel.worksheetfunction.imcsch.md",
+        "api/Excel.worksheetfunction.imsec.md",
+        "api/Excel.worksheetfunction.imsech.md",
+        "api/Excel.worksheetfunction.imsinh.md",
+        "api/Excel.worksheetfunction.imtan.md",
+        "api/Excel.worksheetfunction.isformula.md",
+        "api/Excel.worksheetfunction.isoweeknum.md",
+        "api/Excel.worksheetfunction.munit.md",
+        "api/Excel.worksheetfunction.numbervalue.md",
+        "api/Excel.worksheetfunction.pduration.md",
+        "api/Excel.worksheetfunction.permutationa.md",
+        "api/Excel.worksheetfunction.phi.md",
+        "api/Excel.worksheetfunction.rri.md",
+        "api/Excel.worksheetfunction.sec.md",
+        "api/Excel.worksheetfunction.sech.md",
+        "api/Excel.worksheetfunction.skew_p.md",
+        "api/Excel.worksheetfunction.unichar.md",
+        "api/Excel.worksheetfunction.unicode.md",
+        "api/Excel.worksheetfunction.xor.md"
+      ]
+    },
+    {
+      "id": "application-formula-bar",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "view.formulaBar already reads/writes Session.prefs.formula_bar without requiring a workbook.",
+      "boundary": "Project the same preference; preserve headless operation and do not create a second VBA setting.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/view.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub struct Prefs"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.DisplayFormulaBar.md"
+      ]
+    },
+    {
+      "id": "application-unit-conversions",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "The print/page-setup boundary already uses points at 72 points per inch. Pure scalar unit conversion needs no new product service.",
+      "boundary": "Validate finite numeric inputs and VBA coercion/overflow. Reuse the existing point/inch convention.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/page_setup_api.rs",
+          "anchor": "* 72.0"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.CentimetersToPoints.md",
+        "api/Excel.Application.InchesToPoints.md"
+      ]
+    },
+    {
+      "id": "application-custom-lists",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Workbook.custom_lists is consumed by native fill.",
+      "boundary": "Storage is workbook-scoped, unlike Excel application-wide custom lists. Define scope, built-in list numbering and mutation ownership before selecting a projection.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/engine/src/fill.rs",
+          "anchor": "custom_lists"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.AddCustomList.md",
+        "api/Excel.Application.CustomListCount.md",
+        "api/Excel.Application.DeleteCustomList.md",
+        "api/Excel.Application.GetCustomListContents.md",
+        "api/Excel.Application.GetCustomListNum.md"
+      ]
+    },
+    {
+      "id": "application-calculation-context",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "The calculator, reference formatter and worksheet UDF provider exist.",
+      "boundary": "No automatic equivalence for busy-state enums, save policies, build versions, caller context or volatility registration. Select exact existing read contexts; do not add compatibility-only global flags.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/vba/src/worksheet.rs",
+          "anchor": "impl"
+        },
+        {
+          "path": "crates/vba/src/formula_api.rs",
+          "anchor": "pub(crate) fn formula_api"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.CalculateBeforeSave.md",
+        "api/Excel.Application.CalculationState.md",
+        "api/Excel.Application.CalculationVersion.md",
+        "api/Excel.Application.Caller.md",
+        "api/Excel.Application.ConvertFormula.md",
+        "api/Excel.Application.Ready.md",
+        "api/Excel.Application.ThisCell.md",
+        "api/Excel.Application.Volatile.md"
+      ]
+    },
+    {
+      "id": "application-native-commands",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Session owns undo/redo and native commands.",
+      "boundary": "Excel custom undo/repeat procedure registration and macro-group interaction are not provided by ordinary engine history. Only bounded native-history behavior is a candidate.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub undo:"
+        },
+        {
+          "path": "crates/vba/src/lib.rs",
+          "anchor": "ensure_group"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.OnRepeat.md",
+        "api/Excel.Application.OnUndo.md",
+        "api/Excel.Application.Repeat.md",
+        "api/Excel.Application.Undo.md"
+      ]
+    },
+    {
+      "id": "application-native-window-context",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native charts, documents, windows and close continuations exist.",
+      "boundary": "Chart sheets, Application aliases, application-wide visibility/quit and unsaved-document orchestration need exact receiver/host contracts. Existing worksheet chart ownership is not an Excel Charts collection.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/vba/src/lifecycle.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/vba/src/window_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.ActiveChart.md",
+        "api/Excel.Application.Caption.md",
+        "api/Excel.Application.Charts.md",
+        "api/Excel.Application.NewWorkbook(property).md",
+        "api/Excel.Application.Quit.md",
+        "api/Excel.Application.UserControl.md",
+        "api/Excel.Application.Value.md",
+        "api/Excel.Application.Visible.md"
+      ]
+    },
+    {
+      "id": "application-ui-services",
+      "status": "HOST_SERVICE_REVIEW",
+      "native_backing": "The desktop UI owns rendering, formula completion, window geometry and user preferences; these are not all Session host services.",
+      "boundary": "Inspect the specific UI capability and add an owned host-neutral query/continuation only when it already exists. Geometry, recent-file state and UI-only preferences must not be fabricated headlessly.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub struct Prefs"
+        },
+        {
+          "path": "crates/ui-egui/src/lib.rs",
+          "anchor": "pub struct SheetApp"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.DisplayCommentIndicator.md",
+        "api/Excel.Application.DisplayFormulaAutoComplete.md",
+        "api/Excel.Application.DisplayFullScreen.md",
+        "api/Excel.Application.DisplayFunctionToolTips.md",
+        "api/Excel.Application.DisplayNoteIndicator.md",
+        "api/Excel.Application.DisplayRecentFiles.md",
+        "api/Excel.Application.EnableAutoComplete.md",
+        "api/Excel.Application.FormulaBarHeight.md",
+        "api/Excel.Application.Height.md",
+        "api/Excel.Application.Help.md",
+        "api/Excel.Application.Left.md",
+        "api/Excel.Application.RecentFiles.md",
+        "api/Excel.Application.ShowStartupDialog.md",
+        "api/Excel.Application.ShowToolTips.md",
+        "api/Excel.Application.Top.md",
+        "api/Excel.Application.UsableHeight.md",
+        "api/Excel.Application.UsableWidth.md",
+        "api/Excel.Application.Width.md"
+      ]
+    },
+    {
+      "id": "application-proofing-and-flashfill",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "GridCraft has a basic spelling query and bounded example-based Flash Fill.",
+      "boundary": "Excel dictionary options, AutoCorrect graph and automatic Flash Fill modes are broader than those commands; only matched subsets may be projected.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/spelling.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/engine/src/cmd/edit/fill.rs",
+          "anchor": "pub(super) fn flash_fill"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.AutoCorrect.md",
+        "api/Excel.Application.CheckSpelling.md",
+        "api/Excel.application.flashfill.md",
+        "api/Excel.application.flashfillmode.md",
+        "api/Excel.Application.SpellingOptions.md"
+      ]
+    },
+    {
+      "id": "application-locale-and-preferences",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "The host has preferences, localized display and default workbook/style state.",
+      "boundary": "Read actual GridCraft defaults where available. Excel process-wide locale, navigation and new-workbook setters are not established by having a display formatter or per-workbook Normal style.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub struct Prefs"
+        },
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Font"
+        },
+        {
+          "path": "crates/ui-egui/src/formula_locale.rs",
+          "anchor": "pub"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.DecimalSeparator.md",
+        "api/Excel.Application.DefaultFilePath.md",
+        "api/Excel.Application.DefaultSaveFormat.md",
+        "api/Excel.Application.DefaultSheetDirection.md",
+        "api/Excel.Application.International.md",
+        "api/Excel.Application.MoveAfterReturn.md",
+        "api/Excel.Application.MoveAfterReturnDirection.md",
+        "api/Excel.Application.PathSeparator.md",
+        "api/Excel.Application.ReferenceStyle.md",
+        "api/Excel.Application.StandardFont.md",
+        "api/Excel.Application.StandardFontSize.md",
+        "api/Excel.Application.ThousandsSeparator.md",
+        "api/Excel.Application.UseSystemSeparators.md"
+      ]
+    },
+    {
+      "id": "application-scheduler-and-interaction",
+      "status": "HOST_SERVICE_REVIEW",
+      "native_backing": "The IDE can pause and await owned host operations; UI input and scheduling are host-owned.",
+      "boundary": "Existing continuations do not supply an Excel timer scheduler, blocking Wait, SendKeys automation or global input lock. Review service availability before selecting any contract.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/host_ops.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/vba/src/interaction_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.CheckAbort.md",
+        "api/Excel.Application.DoubleClick.md",
+        "api/Excel.Application.EnableCancelKey.md",
+        "api/Excel.Application.Interactive.md",
+        "api/Excel.Application.OnTime.md",
+        "api/Excel.Application.SendKeys.md",
+        "api/Excel.Application.Wait.md"
+      ]
+    },
+    {
+      "id": "application-office-process-and-options",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Inspected native Application dispatch, Session preferences and workbook state provide no matching Office process/settings/provider object for these remaining source contracts.",
+      "boundary": "No Office installation paths/build identity, COM/DDE/cluster/add-in graph, SmartArt/Speech, recovery scheduler, search-format object or miscellaneous Excel-only option is synthesized. This group is an exclusion of the named source contracts, not of similar GridCraft UI features.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/application.rs",
+          "anchor": "pub(crate) fn application_state"
+        },
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub struct Prefs"
+        },
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.AddIns.md",
+        "api/Excel.Application.AddIns2.md",
+        "api/Excel.Application.AlertBeforeOverwriting.md",
+        "api/Excel.Application.AltStartupPath.md",
+        "api/Excel.Application.AlwaysUseClearType.md",
+        "api/Excel.Application.ArbitraryXMLSupportAvailable.md",
+        "api/Excel.Application.AskToUpdateLinks.md",
+        "api/Excel.Application.Assistance.md",
+        "api/Excel.Application.AutoFormatAsYouTypeReplaceHyperlinks.md",
+        "api/Excel.Application.AutomationSecurity.md",
+        "api/Excel.Application.AutoPercentEntry.md",
+        "api/Excel.Application.AutoRecover.md",
+        "api/Excel.Application.Build.md",
+        "api/Excel.Application.CalculationInterruptKey.md",
+        "api/Excel.Application.CanPlaySounds.md",
+        "api/Excel.Application.CanRecordSounds.md",
+        "api/Excel.Application.CellDragAndDrop.md",
+        "api/Excel.Application.ClipboardFormats.md",
+        "api/Excel.Application.ClusterConnector.md",
+        "api/Excel.Application.CommandBars.md",
+        "api/Excel.Application.CommandUnderlines.md",
+        "api/Excel.Application.ConstrainNumeric.md",
+        "api/Excel.Application.ControlCharacters.md",
+        "api/Excel.Application.DataEntryMode.md",
+        "api/Excel.Application.DisplayClipboardWindow.md",
+        "api/Excel.Application.DisplayDocumentActionTaskPane.md",
+        "api/Excel.Application.DisplayDocumentInformationPanel.md",
+        "api/Excel.Application.DisplayExcel4Menus.md",
+        "api/Excel.Application.DisplayXMLSourcePane.md",
+        "api/Excel.Application.EditDirectlyInCell.md",
+        "api/Excel.application.enablecheckfileextensions.md",
+        "api/Excel.Application.EnableLargeOperationAlert.md",
+        "api/Excel.application.enablemacroanimations.md",
+        "api/Excel.Application.EnableSound.md",
+        "api/Excel.Application.ErrorCheckingOptions.md",
+        "api/Excel.Application.Excel4IntlMacroSheets.md",
+        "api/Excel.Application.Excel4MacroSheets.md",
+        "api/Excel.Application.ExtendList.md",
+        "api/Excel.Application.FeatureInstall.md",
+        "api/Excel.Application.FileConverters.md",
+        "api/Excel.Application.FileExportConverters.md",
+        "api/Excel.Application.FileValidation.md",
+        "api/Excel.Application.FileValidationPivot.md",
+        "api/Excel.Application.FindFormat.md",
+        "api/Excel.Application.GenerateGetPivotData.md",
+        "api/Excel.Application.GenerateTableRefs.md",
+        "api/Excel.Application.GetPhonetic.md",
+        "api/Excel.Application.HighQualityModeForGraphics.md",
+        "api/Excel.Application.Hinstance.md",
+        "api/Excel.Application.HinstancePtr.md",
+        "api/Excel.Application.Hwnd.md",
+        "api/Excel.Application.IgnoreRemoteRequests.md",
+        "api/Excel.Application.IsSandboxed.md",
+        "api/Excel.Application.LanguageSettings.md",
+        "api/Excel.Application.LargeOperationCellThousandCount.md",
+        "api/Excel.Application.LibraryPath.md",
+        "api/Excel.Application.MacroOptions.md",
+        "api/Excel.Application.MapPaperSize.md",
+        "api/Excel.Application.MathCoprocessorAvailable.md",
+        "api/Excel.Application.MeasurementUnit.md",
+        "api/Excel.application.mergeinstances.md",
+        "api/Excel.Application.MouseAvailable.md",
+        "api/Excel.Application.MultiThreadedCalculation.md",
+        "api/Excel.Application.NetworkTemplatesPath.md",
+        "api/Excel.Application.NextLetter.md",
+        "api/Excel.Application.ODBCErrors.md",
+        "api/Excel.Application.ODBCTimeout.md",
+        "api/Excel.Application.OnWindow.md",
+        "api/Excel.Application.OrganizationName.md",
+        "api/Excel.Application.Path.md",
+        "api/Excel.Application.ProductCode.md",
+        "api/Excel.Application.PromptForSummaryInfo.md",
+        "api/Excel.application.quickanalysis.md",
+        "api/Excel.Application.RecordMacro.md",
+        "api/Excel.Application.RecordRelative.md",
+        "api/Excel.Application.RegisteredFunctions.md",
+        "api/Excel.Application.ReplaceFormat.md",
+        "api/Excel.Application.SaveWorkspace.md",
+        "api/Excel.Application.SensitivityLabelPolicy.md",
+        "api/Excel.Application.ShowChartTipNames.md",
+        "api/Excel.Application.ShowChartTipValues.md",
+        "api/Excel.Application.ShowDevTools.md",
+        "api/Excel.Application.ShowMenuFloaties.md",
+        "api/Excel.application.showquickanalysis.md",
+        "api/Excel.Application.SmartArtColors.md",
+        "api/Excel.Application.SmartArtLayouts.md",
+        "api/Excel.Application.SmartArtQuickStyles.md",
+        "api/Excel.Application.Speech.md",
+        "api/Excel.Application.StartupPath.md",
+        "api/Excel.Application.TemplatesPath.md",
+        "api/Excel.Application.TransitionMenuKey.md",
+        "api/Excel.Application.TransitionMenuKeyAction.md",
+        "api/Excel.Application.TransitionNavigKeys.md",
+        "api/Excel.Application.UseClusterConnector.md",
+        "api/Excel.Application.UsedObjects.md",
+        "api/Excel.Application.UserLibraryPath.md",
+        "api/Excel.Application.WarnOnFunctionNameConflict.md"
+      ]
+    },
+    {
+      "id": "workbook-file-format",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "DocState.content_kind and native FileKind/path detection retain actual file format provenance.",
+      "boundary": "Map only known formats and define unsaved-document behavior; do not claim that every readable format is writable.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub content_kind:"
+        },
+        {
+          "path": "crates/engine/src/io.rs",
+          "anchor": "pub enum FileKind"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbook.FileFormat.md"
+      ]
+    },
+    {
+      "id": "workbook-native-state-subsets",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Workbook date system, calculation settings, show_objects, theme, sheet charts/pivots and the native forecast command exist.",
+      "boundary": "Some fields are retained metadata, not editable services; table-style selection is not an arbitrary TableStyles editor. Verify exact command behavior, chart-sheet exclusion, aggregate ownership and persisted settings before adding members.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/engine/src/cmd/forecast.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/engine/src/cmd/view.rs",
+          "anchor": "pub fn specs()"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbook.ActiveChart.md",
+        "api/Excel.Workbook.Charts.md",
+        "api/Excel.workbook.createforecastsheet.md",
+        "api/Excel.Workbook.Date1904.md",
+        "api/Excel.Workbook.DefaultPivotTableStyle.md",
+        "api/Excel.Workbook.DefaultSlicerStyle.md",
+        "api/Excel.Workbook.DefaultTableStyle.md",
+        "api/Excel.Workbook.DisplayDrawingObjects.md",
+        "api/Excel.workbook.pivottables.md",
+        "api/Excel.Workbook.PrecisionAsDisplayed.md",
+        "api/Excel.Workbook.TableStyles.md",
+        "api/Excel.Workbook.Theme.md"
+      ]
+    },
+    {
+      "id": "workbook-file-and-inspection-subsets",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native file paths, document properties, annotations, trust/protection and open/save exist.",
+      "boundary": "A protected or untrusted workbook is not an Excel read-only/write-reservation flag. No import/export fidelity, property stripping, write reservation or custom-property writer is inferred from those nearby services.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub struct DocState"
+        },
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/vba/src/lifecycle.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/vba/src/annotation_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbook.ConvertComments.md",
+        "api/Excel.Workbook.CreateBackup.md",
+        "api/Excel.Workbook.CustomDocumentProperties.md",
+        "api/Excel.Workbook.FollowHyperlink.md",
+        "api/Excel.Workbook.ForceFullCalculation.md",
+        "api/Excel.Workbook.FullNameURLEncoded.md",
+        "api/Excel.Workbook.ReadOnly.md",
+        "api/Excel.Workbook.ReadOnlyRecommended.md",
+        "api/Excel.Workbook.RemoveDocumentInformation.md",
+        "api/Excel.Workbook.RemovePersonalInformation.md",
+        "api/Excel.Workbook.UpdateFromFile.md",
+        "api/Excel.Workbook.WriteReserved.md",
+        "api/Excel.Workbook.WriteReservedBy.md"
+      ]
+    },
+    {
+      "id": "workbook-office-provider-settings",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "The native Workbook/DocState do not contain the named Office sharing, DDE, workflow, data-model/XML provider, compatibility-mode or application option graphs.",
+      "boundary": "Opaque package preservation and local pivots do not establish those services. Keep the named source contracts outside the native delivery queue.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "pub struct DocState"
+        },
+        {
+          "path": "crates/model/src/preserved.rs",
+          "anchor": "pub struct"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbook.AcceptAllChanges.md",
+        "api/Excel.Workbook.AccuracyVersion.md",
+        "api/Excel.Workbook.ActiveSlicer.md",
+        "api/Excel.Workbook.AddToFavorites.md",
+        "api/Excel.Workbook.ApplyTheme.md",
+        "api/Excel.Workbook.AutoUpdateFrequency.md",
+        "api/Excel.Workbook.AutoUpdateSaveChanges.md",
+        "api/Excel.Workbook.BreakLink.md",
+        "api/Excel.Workbook.CalculationVersion.md",
+        "api/Excel.Workbook.CanCheckIn.md",
+        "api/Excel.workbook.casesensitive.md",
+        "api/Excel.Workbook.ChangeFileAccess.md",
+        "api/Excel.Workbook.ChangeHistoryDuration.md",
+        "api/Excel.Workbook.ChangeLink.md",
+        "api/Excel.Workbook.CheckCompatibility.md",
+        "api/Excel.Workbook.CheckIn.md",
+        "api/Excel.Workbook.CheckInWithVersion.md",
+        "api/Excel.Workbook.Colors.md",
+        "api/Excel.Workbook.CommandBars.md",
+        "api/Excel.Workbook.ConflictResolution.md",
+        "api/Excel.Workbook.Connections.md",
+        "api/Excel.Workbook.ConnectionsDisabled.md",
+        "api/Excel.Workbook.Container.md",
+        "api/Excel.Workbook.ContentTypeProperties.md",
+        "api/Excel.workbook.defaulttimelinestyle.md",
+        "api/Excel.Workbook.DeleteNumberFormat.md",
+        "api/Excel.Workbook.DisplayInkComments.md",
+        "api/Excel.Workbook.DocumentInspectors.md",
+        "api/Excel.Workbook.DocumentLibraryVersions.md",
+        "api/Excel.Workbook.DoNotPromptForConvert.md",
+        "api/Excel.Workbook.EnableAutoRecover.md",
+        "api/Excel.Workbook.EnableConnections.md",
+        "api/Excel.Workbook.EnvelopeVisible.md",
+        "api/Excel.Workbook.Excel4IntlMacroSheets.md",
+        "api/Excel.Workbook.Excel4MacroSheets.md",
+        "api/Excel.Workbook.Excel8CompatibilityMode.md",
+        "api/Excel.Workbook.ExclusiveAccess.md",
+        "api/Excel.Workbook.Final.md",
+        "api/Excel.Workbook.GetWorkflowTasks.md",
+        "api/Excel.Workbook.GetWorkflowTemplates.md",
+        "api/Excel.Workbook.HighlightChangesOnScreen.md",
+        "api/Excel.Workbook.HighlightChangesOptions.md",
+        "api/Excel.Workbook.InactiveListBorderVisible.md",
+        "api/Excel.Workbook.IsAddin.md",
+        "api/Excel.Workbook.IsInplace.md",
+        "api/Excel.Workbook.KeepChangeHistory.md",
+        "api/Excel.Workbook.LinkInfo.md",
+        "api/Excel.Workbook.ListChangesOnNewSheet.md",
+        "api/Excel.Workbook.MergeWorkbook.md",
+        "api/Excel.workbook.model.md",
+        "api/Excel.Workbook.MultiUserEditing.md",
+        "api/Excel.Workbook.PersonalViewListSettings.md",
+        "api/Excel.Workbook.Post.md",
+        "api/Excel.Workbook.PurgeChangeHistoryNow.md",
+        "api/Excel.workbook.queries.md",
+        "api/Excel.Workbook.RejectAllChanges.md",
+        "api/Excel.Workbook.ReloadAs.md",
+        "api/Excel.Workbook.RemoveUser.md",
+        "api/Excel.Workbook.Reply.md",
+        "api/Excel.Workbook.ReplyAll.md",
+        "api/Excel.Workbook.ReplyWithChanges.md",
+        "api/Excel.Workbook.Research.md",
+        "api/Excel.Workbook.ResetColors.md",
+        "api/Excel.Workbook.RevisionNumber.md",
+        "api/Excel.Workbook.RunAutoMacros.md",
+        "api/Excel.Workbook.SaveAsXMLData.md",
+        "api/Excel.Workbook.SaveLinkValues.md",
+        "api/Excel.Workbook.SensitivityLabel.md",
+        "api/Excel.Workbook.SetLinkOnData.md",
+        "api/Excel.Workbook.ShowConflictHistory.md",
+        "api/Excel.Workbook.ShowPivotChartActiveFields.md",
+        "api/Excel.Workbook.ShowPivotTableFieldList.md",
+        "api/Excel.Workbook.TemplateRemoveExtData.md",
+        "api/Excel.Workbook.ToggleFormsDesign.md",
+        "api/Excel.Workbook.UpdateLinks.md",
+        "api/Excel.Workbook.UpdateRemoteReferences.md",
+        "api/Excel.Workbook.UserStatus.md",
+        "api/Excel.workbook.usewildcards.md",
+        "api/Excel.Workbook.XmlImport.md",
+        "api/Excel.Workbook.XmlImportXml.md",
+        "api/Excel.Workbook.XmlMaps.md",
+        "api/Excel.Workbook.XmlNamespaces.md"
+      ]
+    },
+    {
+      "id": "worksheet-neighbours-and-kind",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Workbook.sheets has ordered identities; Sheet stores its default row height in 96-DPI pixels and represents an ordinary worksheet.",
+      "boundary": "No activation during neighbour reads; boundary returns Nothing. Convert height to points and report only supported worksheet kinds.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/vba/src/types.rs",
+          "anchor": "impl"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Worksheet.Next.md",
+        "api/Excel.Worksheet.Previous.md",
+        "api/Excel.Worksheet.StandardHeight.md",
+        "api/Excel.Worksheet.Type.md"
+      ]
+    },
+    {
+      "id": "worksheet-tab",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Sheet.tab_color is rendered by the sheet tabs and edited through sheet.tabColor.",
+      "boundary": "A new Tab handle must capture sheet identity, reject stale/deleted/recreated sheets and share native protection/undo. Palette ColorIndex remains outside this candidate.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/engine/src/cmd/sheet/tabs.rs",
+          "anchor": "pub(super) fn tab_color"
+        },
+        {
+          "path": "crates/ui-egui/src/tabs.rs",
+          "anchor": "tab_color"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Worksheet.Tab.md"
+      ]
+    },
+    {
+      "id": "worksheet-native-subsets",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native calculation, widths, error queries, page-break preview, spelling, save, pivots and protection permissions exist.",
+      "boundary": "Calculate Sheet currently uses the same calc_now implementation as full calculation; range/sheet-selective semantics are not proven. Error queries do not supply persistent tracer/circle overlays, and UI-only-protection flags need the existing permission model.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/engine/src/cmd/print.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/vba/src/permission_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Worksheet.Calculate(method).md",
+        "api/Excel.Worksheet.CheckSpelling.md",
+        "api/Excel.Worksheet.CircleInvalid.md",
+        "api/Excel.Worksheet.CircularReference.md",
+        "api/Excel.Worksheet.ClearArrows.md",
+        "api/Excel.Worksheet.ClearCircles.md",
+        "api/Excel.Worksheet.DisplayPageBreaks.md",
+        "api/Excel.Worksheet.EnableAutoFilter.md",
+        "api/Excel.Worksheet.EnableOutlining.md",
+        "api/Excel.Worksheet.EnablePivotTable.md",
+        "api/Excel.Worksheet.PivotTableWizard.md",
+        "api/Excel.Worksheet.SaveAs.md",
+        "api/Excel.Worksheet.StandardWidth.md"
+      ]
+    },
+    {
+      "id": "worksheet-consolidation-history",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "data.consolidate computes native output.",
+      "boundary": "The command does not retain an Excel current-consolidation source/options record. Existing consolidation effects alone do not make these historical queries implementable.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/whatif/consolidate.rs",
+          "anchor": "pub(super) fn consolidate"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Worksheet.ConsolidationFunction.md",
+        "api/Excel.Worksheet.ConsolidationOptions.md",
+        "api/Excel.Worksheet.ConsolidationSources.md"
+      ]
+    },
+    {
+      "id": "worksheet-extra-options",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Sheet stores no per-sheet calculation/CF-enable toggles, Office custom properties, legacy Lotus parsing mode, background picture or XML mapping/query service.",
+      "boundary": "Local conditional formatting and static images do not establish those exact source contracts.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Worksheet.CustomProperties.md",
+        "api/Excel.Worksheet.EnableCalculation.md",
+        "api/Excel.Worksheet.EnableFormatConditionsCalculation.md",
+        "api/Excel.Worksheet.SetBackgroundPicture.md",
+        "api/Excel.Worksheet.ShowDataForm.md",
+        "api/Excel.Worksheet.TransitionExpEval.md",
+        "api/Excel.Worksheet.TransitionFormEntry.md",
+        "api/Excel.Worksheet.XmlDataQuery.md",
+        "api/Excel.Worksheet.XmlMapQuery.md"
+      ]
+    },
+    {
+      "id": "formula-display",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Sheet.show_formulas is persisted native state and formulas.showFormulas already changes it.",
+      "boundary": "Use actual sheet-backed window views; independent Excel window state is unavailable. Preserve existing OM08 context/lifetime rules.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/vba/src/window_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Window.DisplayFormulas.md",
+        "api/Excel.WorksheetView.DisplayFormulas.md"
+      ]
+    },
+    {
+      "id": "sheet-collection-operations",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native sheet add/copy/move/delete/select/visibility and page-break services already exist.",
+      "boundary": "Collection fan-out needs index-list/default, atomicity, last-visible-sheet, protection, cross-workbook and grouped-selection contracts. Add2 is not a second sheet-kind implementation.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/sheet.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/vba/src/lifecycle.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.sheets.add2.md",
+        "api/Excel.Sheets.Copy.md",
+        "api/Excel.Sheets.Delete.md",
+        "api/Excel.Sheets.FillAcrossSheets.md",
+        "api/Excel.Sheets.HPageBreaks.md",
+        "api/Excel.Sheets.Move.md",
+        "api/Excel.Sheets.Select.md",
+        "api/Excel.Sheets.Visible.md",
+        "api/Excel.Sheets.VPageBreaks.md",
+        "api/Excel.worksheets.add2.md",
+        "api/Excel.Worksheets.Copy.md",
+        "api/Excel.Worksheets.Delete.md",
+        "api/Excel.Worksheets.FillAcrossSheets.md",
+        "api/Excel.Worksheets.HPageBreaks.md",
+        "api/Excel.Worksheets.Move.md",
+        "api/Excel.Worksheets.Select.md",
+        "api/Excel.Worksheets.Visible.md",
+        "api/Excel.Worksheets.VPageBreaks.md"
+      ]
+    },
+    {
+      "id": "workbooks-provider-services",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Native file open does not provide checkout, database import or XML-map import services.",
+      "boundary": "Existing CSV/XLSX readers do not establish these source contracts.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/lifecycle.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/engine/src/io.rs",
+          "anchor": "pub fn open_bytes_with"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbooks.CanCheckOut.md",
+        "api/Excel.Workbooks.CheckOut.md",
+        "api/Excel.Workbooks.OpenDatabase.md",
+        "api/Excel.Workbooks.OpenXML.md"
+      ]
+    },
+    {
+      "id": "workbooks-file-services",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Existing close and file host continuations support native documents and ordinary import/export.",
+      "boundary": "All-workbook Close must preserve per-document consent/cancel/undo behavior. OpenText requires actual text-import options; database/XML checkout services are not supplied by file open.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/lifecycle.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/engine/src/io.rs",
+          "anchor": "pub fn open_bytes_with"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbooks.Close.md",
+        "api/Excel.Workbooks.OpenText.md"
+      ]
+    },
+    {
+      "id": "tab-rgb-and-theme",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Native tab colors use the shared RGB/theme/tint Color representation and sheet.tabColor.",
+      "boundary": "Add an identity-bearing receiver first; preserve native validation, reset/no-color behavior and existing command protection/undo. No palette-index API is implied.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub enum Color"
+        },
+        {
+          "path": "crates/engine/src/cmd/sheet/tabs.rs",
+          "anchor": "pub(super) fn tab_color"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Tab.Application.md",
+        "api/Excel.Tab.Color.md",
+        "api/Excel.Tab.md",
+        "api/Excel.Tab.Parent.md",
+        "api/Excel.Tab.ThemeColor.md",
+        "api/Excel.Tab.TintAndShade.md"
+      ]
+    },
+    {
+      "id": "tab-palette",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "GridCraft tab colors support RGB/theme/tint/automatic, not an editable legacy indexed color palette.",
+      "boundary": "Do not invent Excel palette mappings.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub enum Color"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Tab.ColorIndex.md"
+      ]
+    },
+    {
+      "id": "border-theme",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Native Color::Theme stores theme slot and tint; border style patches use native commands.",
+      "boundary": "Extend existing border handles and mixed-value semantics without introducing a palette.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub enum Color"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Border.ThemeColor.md",
+        "api/Excel.Border.TintAndShade.md",
+        "api/Excel.Borders.ThemeColor.md",
+        "api/Excel.Borders.TintAndShade.md"
+      ]
+    },
+    {
+      "id": "border-legacy-values",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "RGB/theme colors and border collections exist.",
+      "boundary": "ColorIndex and Borders.Value require legacy palette/default-enumeration semantics not established by Color::Theme; retain as contract-limited candidates.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Style"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Border.ColorIndex.md",
+        "api/Excel.Borders.ColorIndex.md",
+        "api/Excel.Borders.Value.md",
+        "api/Excel.FormatColor.ColorIndex.md"
+      ]
+    },
+    {
+      "id": "native-style-properties",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native named styles carry full Style values and existing adapter handles support cell font/fill/alignment patches.",
+      "boundary": "New style-child handles must edit the named style, not selected cells; built-in immutability, name identity, localization and stale children need contract tests.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Style"
+        },
+        {
+          "path": "crates/vba/src/named_style_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Style.Borders.md",
+        "api/Excel.Style.Font.md",
+        "api/Excel.Style.HorizontalAlignment.md",
+        "api/Excel.Style.IndentLevel.md",
+        "api/Excel.Style.Interior.md",
+        "api/Excel.Style.MergeCells.md",
+        "api/Excel.Style.NumberFormatLocal.md",
+        "api/Excel.Style.Orientation.md",
+        "api/Excel.Style.ShrinkToFit.md",
+        "api/Excel.Style.VerticalAlignment.md",
+        "api/Excel.Style.WrapText.md"
+      ]
+    },
+    {
+      "id": "style-management-and-flags",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Workbook.cell_styles supports native named styles.",
+      "boundary": "Include* flags, AddIndent/ReadingOrder and cross-workbook merge/delete remapping are not all fields of Style. Do not claim whole Style/Styles behavior from the existing catalog.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Style"
+        },
+        {
+          "path": "crates/vba/src/named_style_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Style.AddIndent.md",
+        "api/Excel.Style.Delete.md",
+        "api/Excel.Style.IncludeAlignment.md",
+        "api/Excel.Style.IncludeBorder.md",
+        "api/Excel.Style.IncludeFont.md",
+        "api/Excel.Style.IncludeNumber.md",
+        "api/Excel.Style.IncludePatterns.md",
+        "api/Excel.Style.ReadingOrder.md",
+        "api/Excel.Styles.Merge.md"
+      ]
+    },
+    {
+      "id": "font-style-and-theme",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native Font has bold/italic flags and theme body-font linkage.",
+      "boundary": "Composite FontStyle names and full major/minor/none ThemeFont setters need exact mapping and existing-format command support; arbitrary names are not inferred.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Font"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Font.FontStyle.md",
+        "api/Excel.Font.ThemeFont.md"
+      ]
+    },
+    {
+      "id": "font-background",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Native Font has no Excel chart/font background mode.",
+      "boundary": "Do not substitute fill color for Font.Background.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Font"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Font.Background.md"
+      ]
+    },
+    {
+      "id": "cellformat-search-state",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "The native find/replace engine has no persistent Application.FindFormat/ReplaceFormat CellFormat criteria object.",
+      "boundary": "Normal cell formatting support is not a search-format state service.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/edit/find.rs",
+          "anchor": "pub(super)"
+        },
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Style"
+        },
+        {
+          "path": "crates/vba/src/search.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.CellFormat.AddIndent.md",
+        "api/Excel.CellFormat.Application.md",
+        "api/Excel.CellFormat.Borders.md",
+        "api/Excel.CellFormat.Clear.md",
+        "api/Excel.CellFormat.Font.md",
+        "api/Excel.CellFormat.HorizontalAlignment.md",
+        "api/Excel.CellFormat.IndentLevel.md",
+        "api/Excel.CellFormat.Interior.md",
+        "api/Excel.CellFormat.Locked.md",
+        "api/Excel.CellFormat.md",
+        "api/Excel.CellFormat.MergeCells.md",
+        "api/Excel.CellFormat.NumberFormat.md",
+        "api/Excel.CellFormat.NumberFormatLocal.md",
+        "api/Excel.CellFormat.Orientation.md",
+        "api/Excel.CellFormat.Parent.md",
+        "api/Excel.CellFormat.ShrinkToFit.md",
+        "api/Excel.CellFormat.VerticalAlignment.md",
+        "api/Excel.CellFormat.WrapText.md"
+      ]
+    },
+    {
+      "id": "effective-display-format",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "The renderer/calculator compute native conditional formats and display strings.",
+      "boundary": "Read-only effective style is related native backing; mixed-cell values, conditional-style precedence, UDF restrictions and child handle lifetimes need a bounded contract. It must not become a writable style proxy.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/display.rs",
+          "anchor": "pub"
+        },
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct CondFormat"
+        },
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Style"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.DisplayFormat.AddIndent.md",
+        "api/Excel.DisplayFormat.Application.md",
+        "api/Excel.DisplayFormat.Borders.md",
+        "api/Excel.DisplayFormat.Characters.md",
+        "api/Excel.DisplayFormat.Font.md",
+        "api/Excel.DisplayFormat.HorizontalAlignment.md",
+        "api/Excel.DisplayFormat.IndentLevel.md",
+        "api/Excel.DisplayFormat.Interior.md",
+        "api/Excel.DisplayFormat.Locked.md",
+        "api/Excel.DisplayFormat.md",
+        "api/Excel.DisplayFormat.MergeCells.md",
+        "api/Excel.DisplayFormat.NumberFormat.md",
+        "api/Excel.DisplayFormat.NumberFormatLocal.md",
+        "api/Excel.DisplayFormat.Orientation.md",
+        "api/Excel.DisplayFormat.Parent.md",
+        "api/Excel.DisplayFormat.ReadingOrder.md",
+        "api/Excel.DisplayFormat.ShrinkToFit.md",
+        "api/Excel.DisplayFormat.Style.md",
+        "api/Excel.DisplayFormat.VerticalAlignment.md",
+        "api/Excel.DisplayFormat.WrapText.md"
+      ]
+    },
+    {
+      "id": "conditional-borders-and-text",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native CF rules hold boxed differential styles and text/time-period rules.",
+      "boundary": "Select only existing rule kinds; new style children must write the owning rule and preserve identity/undo. Do not map unrelated rule kinds to Text/DateOperator.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct CondFormat"
+        },
+        {
+          "path": "crates/vba/src/conditional_api.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/vba/src/condition_details.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.AboveAverage.Borders.md",
+        "api/Excel.FormatCondition.Borders.md",
+        "api/Excel.FormatCondition.DateOperator.md",
+        "api/Excel.FormatCondition.Text.md",
+        "api/Excel.FormatCondition.TextOperator.md",
+        "api/Excel.Top10.Borders.md",
+        "api/Excel.UniqueValues.Borders.md"
+      ]
+    },
+    {
+      "id": "conditional-extra-rule-options",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native CondKind supports specific cell-based color scales, icons, data bars and top/average/unique rules.",
+      "boundary": "PTCondition/ScopeType/CalcFor pivot scope, arbitrary Formula, data-bar axis/border/negative colors and icon percentiles are not all stored. Select individual native fields; do not create settings to mimic Excel.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct CondFormat"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.AboveAverage.CalcFor.md",
+        "api/Excel.AboveAverage.PTCondition.md",
+        "api/Excel.AboveAverage.ScopeType.md",
+        "api/Excel.ColorScale.Formula.md",
+        "api/Excel.ColorScale.PTCondition.md",
+        "api/Excel.ColorScale.ScopeType.md",
+        "api/Excel.Databar.AxisColor.md",
+        "api/Excel.Databar.AxisPosition.md",
+        "api/Excel.Databar.BarBorder.md",
+        "api/Excel.Databar.BarFillType.md",
+        "api/Excel.Databar.Direction.md",
+        "api/Excel.Databar.Formula.md",
+        "api/Excel.Databar.NegativeBarFormat.md",
+        "api/Excel.Databar.PercentMax.md",
+        "api/Excel.Databar.PercentMin.md",
+        "api/Excel.Databar.PTCondition.md",
+        "api/Excel.Databar.ScopeType.md",
+        "api/Excel.FormatCondition.PTCondition.md",
+        "api/Excel.FormatCondition.ScopeType.md",
+        "api/Excel.IconSetCondition.Formula.md",
+        "api/Excel.IconSetCondition.PercentileValues.md",
+        "api/Excel.IconSetCondition.PTCondition.md",
+        "api/Excel.IconSetCondition.ScopeType.md",
+        "api/Excel.Top10.CalcFor.md",
+        "api/Excel.Top10.PTCondition.md",
+        "api/Excel.Top10.ScopeType.md",
+        "api/Excel.UniqueValues.PTCondition.md",
+        "api/Excel.UniqueValues.ScopeType.md"
+      ]
+    },
+    {
+      "id": "conditional-new-detail-objects",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native CF stores data-bar colors and icon-set names/thresholds and renders them.",
+      "boundary": "Separate border/negative-bar objects, custom icon assignment and icon-object identity are absent. Existing colors/icons only justify a subset review, not a complete nominal graph.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct CondFormat"
+        },
+        {
+          "path": "crates/vba/src/condition_details.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.DataBarBorder.Application.md",
+        "api/Excel.DataBarBorder.Color.md",
+        "api/Excel.DataBarBorder.md",
+        "api/Excel.DataBarBorder.Parent.md",
+        "api/Excel.DataBarBorder.Type.md",
+        "api/Excel.Icon.Application.md",
+        "api/Excel.Icon.Index.md",
+        "api/Excel.Icon.md",
+        "api/Excel.Icon.Parent.md",
+        "api/Excel.IconCriterion.Icon.md",
+        "api/Excel.IconSet.Item.md",
+        "api/Excel.NegativeBarFormat.Application.md",
+        "api/Excel.NegativeBarFormat.BorderColor.md",
+        "api/Excel.NegativeBarFormat.BorderColorType.md",
+        "api/Excel.NegativeBarFormat.Color.md",
+        "api/Excel.NegativeBarFormat.ColorType.md",
+        "api/Excel.NegativeBarFormat.md",
+        "api/Excel.NegativeBarFormat.Parent.md"
+      ]
+    },
+    {
+      "id": "interior-gradients-and-special-options",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native fill styles preserve solid/patterned color and known file style information.",
+      "boundary": "The cell Fill API is not an editable gradient-stop collection or chart inversion service. Verify retained versus editable fields before projecting any gradient or pattern-theme option.",
+      "evidence": [
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Style"
+        },
+        {
+          "path": "crates/model/src/style.rs",
+          "anchor": "pub struct Fill"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.ColorStop.Application.md",
+        "api/Excel.ColorStop.Color.md",
+        "api/Excel.ColorStop.Delete.md",
+        "api/Excel.ColorStop.md",
+        "api/Excel.ColorStop.Parent.md",
+        "api/Excel.ColorStop.Position.md",
+        "api/Excel.ColorStop.ThemeColor.md",
+        "api/Excel.ColorStop.TintAndShade.md",
+        "api/Excel.ColorStops.Add.md",
+        "api/Excel.ColorStops.Application.md",
+        "api/Excel.ColorStops.Clear.md",
+        "api/Excel.ColorStops.Count.md",
+        "api/Excel.ColorStops.Item.md",
+        "api/Excel.ColorStops.md",
+        "api/Excel.ColorStops.Parent.md",
+        "api/Excel.Interior.Gradient.md",
+        "api/Excel.Interior.InvertIfNegative.md",
+        "api/Excel.Interior.PatternThemeColor.md",
+        "api/Excel.Interior.PatternTintAndShade.md",
+        "api/Excel.LinearGradient.Application.md",
+        "api/Excel.LinearGradient.ColorStops.md",
+        "api/Excel.LinearGradient.Degree.md",
+        "api/Excel.LinearGradient.md",
+        "api/Excel.LinearGradient.Parent.md",
+        "api/Excel.RectangularGradient.Application.md",
+        "api/Excel.RectangularGradient.ColorStops.md",
+        "api/Excel.RectangularGradient.md",
+        "api/Excel.RectangularGradient.Parent.md",
+        "api/Excel.RectangularGradient.RectangleBottom.md",
+        "api/Excel.RectangularGradient.RectangleLeft.md",
+        "api/Excel.RectangularGradient.RectangleRight.md",
+        "api/Excel.RectangularGradient.RectangleTop.md"
+      ]
+    },
+    {
+      "id": "characters-and-rich-text",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native cell/text storage and existing Characters handles expose bounded text operations.",
+      "boundary": "Insertion and phonetic characters need exact run/UTF-16 indexing and rich-text preservation; whole-text replacement is not proof of per-run mutation.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Characters.Caption.md",
+        "api/Excel.Characters.Insert.md",
+        "api/Excel.Characters.PhoneticCharacters.md"
+      ]
+    },
+    {
+      "id": "phonetic-preservation",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Workbook.phonetics retains PhoneticString/PhoneticRun/PhoneticProps for XLSX round trips.",
+      "boundary": "This is shared-string preservation, not a per-cell editable phonetic graph, Japanese reading generator or visibility/font command service. Read subsets need aliasing and identity review; do not infer setters.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct PhoneticString"
+        },
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct PhoneticProps"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Phonetic.Alignment.md",
+        "api/Excel.Phonetic.Application.md",
+        "api/Excel.Phonetic.CharacterType.md",
+        "api/Excel.Phonetic.Font.md",
+        "api/Excel.Phonetic.md",
+        "api/Excel.Phonetic.Parent.md",
+        "api/Excel.Phonetic.Text.md",
+        "api/Excel.Phonetic.Visible.md",
+        "api/Excel.Phonetics.Add.md",
+        "api/Excel.Phonetics.Alignment.md",
+        "api/Excel.Phonetics.Application.md",
+        "api/Excel.Phonetics.CharacterType.md",
+        "api/Excel.Phonetics.Count.md",
+        "api/Excel.Phonetics.Delete.md",
+        "api/Excel.Phonetics.Font.md",
+        "api/Excel.Phonetics.Item.md",
+        "api/Excel.Phonetics.Length.md",
+        "api/Excel.Phonetics.md",
+        "api/Excel.Phonetics.Parent.md",
+        "api/Excel.Phonetics.Start.md",
+        "api/Excel.Phonetics.Text.md",
+        "api/Excel.Phonetics.Visible.md"
+      ]
+    },
+    {
+      "id": "table-and-column-native-subsets",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native Table fields, columns, selection and autofilter are already projected.",
+      "boundary": "Some descriptive/dropdown settings are not retained. Inspect individual stored fields; reserve ownership and never infer a new insert row or accessibility option from a nearby Range.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Table"
+        },
+        {
+          "path": "crates/vba/src/table_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.ListObject.Active.md",
+        "api/Excel.ListObject.AlternativeText.md",
+        "api/Excel.ListObject.Comment.md",
+        "api/Excel.ListObject.InsertRowRange.md",
+        "api/Excel.listobject.showautofilterdropdown.md",
+        "api/Excel.listobject.slicers.md",
+        "api/Excel.ListObject.Summary.md"
+      ]
+    },
+    {
+      "id": "table-provider-services",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Local tables have no SharePoint ListDataFormat, XPath/XML/provider refresh, TableObject result-import lifecycle or publish service.",
+      "boundary": "A local ListObject/table slicer is not those external provider contracts. Ordinary table operations remain supported independently.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Table"
+        },
+        {
+          "path": "crates/vba/src/table_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.ListColumn.XPath.md",
+        "api/Excel.ListDataFormat.AllowFillIn.md",
+        "api/Excel.ListDataFormat.Application.md",
+        "api/Excel.ListDataFormat.Choices.md",
+        "api/Excel.ListDataFormat.DecimalPlaces.md",
+        "api/Excel.ListDataFormat.DefaultValue.md",
+        "api/Excel.ListDataFormat.IsPercent.md",
+        "api/Excel.ListDataFormat.lcid.md",
+        "api/Excel.ListDataFormat.MaxCharacters.md",
+        "api/Excel.ListDataFormat.MaxNumber.md",
+        "api/Excel.ListDataFormat.md",
+        "api/Excel.ListDataFormat.MinNumber.md",
+        "api/Excel.ListDataFormat.Parent.md",
+        "api/Excel.ListDataFormat.ReadOnly.md",
+        "api/Excel.ListDataFormat.Required.md",
+        "api/Excel.ListDataFormat.Type.md",
+        "api/Excel.ListObject.ExportToVisio.md",
+        "api/Excel.ListObject.Publish.md",
+        "api/Excel.ListObject.QueryTable.md",
+        "api/Excel.ListObject.Refresh.md",
+        "api/Excel.listobject.tableobject.md",
+        "api/Excel.ListObject.Unlink.md",
+        "api/Excel.ListObject.XmlMap.md",
+        "api/Excel.tableobject.adjustcolumnwidth.md",
+        "api/Excel.tableobject.application.md",
+        "api/Excel.tableobject.delete.md",
+        "api/Excel.tableobject.destination.md",
+        "api/Excel.tableobject.enableediting.md",
+        "api/Excel.tableobject.enablerefresh.md",
+        "api/Excel.tableobject.fetchedrowoverflow.md",
+        "api/Excel.tableobject.listobject.md",
+        "api/Excel.tableobject.md",
+        "api/Excel.tableobject.parent.md",
+        "api/Excel.tableobject.preservecolumninfo.md",
+        "api/Excel.tableobject.preserveformatting.md",
+        "api/Excel.tableobject.refresh.md",
+        "api/Excel.tableobject.refreshstyle.md",
+        "api/Excel.tableobject.resultrange.md",
+        "api/Excel.tableobject.rownumbers.md",
+        "api/Excel.tableobject.workbookconnection.md"
+      ]
+    },
+    {
+      "id": "editable-table-style-catalogue",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native tables retain style selection and render built-in style patterns.",
+      "boundary": "No arbitrary editable TableStyleElements catalog, duplicated custom table-style graph or Office style availability flags follow from built-in style rendering. Stored style selection may support a smaller read-only subset.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Table"
+        },
+        {
+          "path": "crates/engine/src/cmd/insert/table.rs",
+          "anchor": "pub"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.TableStyle.Application.md",
+        "api/Excel.TableStyle.BuiltIn.md",
+        "api/Excel.TableStyle.Delete.md",
+        "api/Excel.TableStyle.Duplicate.md",
+        "api/Excel.TableStyle.md",
+        "api/Excel.TableStyle.Name.md",
+        "api/Excel.TableStyle.NameLocal.md",
+        "api/Excel.TableStyle.Parent.md",
+        "api/Excel.TableStyle.ShowAsAvailablePivotTableStyle.md",
+        "api/Excel.TableStyle.ShowAsAvailableSlicerStyle.md",
+        "api/Excel.TableStyle.ShowAsAvailableTableStyle.md",
+        "api/Excel.tablestyle.showasavailabletimelinestyle.md",
+        "api/Excel.TableStyle.TableStyleElements.md",
+        "api/Excel.TableStyleElement.Application.md",
+        "api/Excel.TableStyleElement.Borders.md",
+        "api/Excel.TableStyleElement.Clear.md",
+        "api/Excel.TableStyleElement.Font.md",
+        "api/Excel.TableStyleElement.HasFormat.md",
+        "api/Excel.TableStyleElement.Interior.md",
+        "api/Excel.TableStyleElement.md",
+        "api/Excel.TableStyleElement.Parent.md",
+        "api/Excel.TableStyleElement.StripeSize.md",
+        "api/Excel.TableStyleElements.Application.md",
+        "api/Excel.TableStyleElements.Count.md",
+        "api/Excel.TableStyleElements.Item.md",
+        "api/Excel.TableStyleElements.md",
+        "api/Excel.TableStyleElements.Parent.md",
+        "api/Excel.TableStyles.Add.md",
+        "api/Excel.TableStyles.Application.md",
+        "api/Excel.TableStyles.Count.md",
+        "api/Excel.TableStyles.Item.md",
+        "api/Excel.TableStyles.md",
+        "api/Excel.TableStyles.Parent.md"
+      ]
+    },
+    {
+      "id": "range-native-selection-and-names",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native create-from-selection, paste-name list, Go To Special comparisons and defined names exist.",
+      "boundary": "Exact range anchoring, names/default aliases, sparse area results, omitted compare cell, protection and no-partial-write validation must be specified before delivery.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/engine/src/cmd/edit/go_to.rs",
+          "anchor": "pub(super)"
+        },
+        {
+          "path": "crates/vba/src/formula_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.ColumnDifferences.md",
+        "api/Excel.Range.CreateNames.md",
+        "api/Excel.Range.ListNames.md",
+        "api/Excel.Range.Name.md",
+        "api/Excel.Range.RowDifferences.md"
+      ]
+    },
+    {
+      "id": "range-text-and-indent",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "cell.get exposes formatted display text; native indent commands update alignment.",
+      "boundary": "Text needs Excel multi-cell mixed/Null rules and a declared width/rendering boundary. InsertIndent must use the existing command limits and protection, with captured-sheet context.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/inspect.rs",
+          "anchor": "fn cell_get"
+        },
+        {
+          "path": "crates/engine/src/cmd/format.rs",
+          "anchor": "fn indent"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.InsertIndent.md",
+        "api/Excel.Range.Text.md"
+      ]
+    },
+    {
+      "id": "range-position-and-default-size",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Sheet rows/columns/default sizes provide geometry and existing sizing commands.",
+      "boundary": "Pixel/point and Excel column-character units, hidden lines, multi-area anchors and default-reset behavior need explicit contracts; no desktop screen geometry is implied.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/engine/src/cmd/format/sizes.rs",
+          "anchor": "pub(super)"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.Left.md",
+        "api/Excel.Range.Top.md",
+        "api/Excel.Range.UseStandardHeight.md",
+        "api/Excel.Range.UseStandardWidth.md"
+      ]
+    },
+    {
+      "id": "range-tracing-and-calc",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native calc dirty tracking and precedent/dependent queries exist.",
+      "boundary": "Current Calculate Sheet uses workbook calc; ordered selective range recalculation and persistent navigation/arrow overlays are not provided merely by trace queries. Same-sheet reference subsets need proof.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/calc/src/recalc.rs",
+          "anchor": "pub"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.Calculate.md",
+        "api/Excel.Range.CalculateRowMajorOrder.md",
+        "api/Excel.Range.Dependents.md",
+        "api/Excel.Range.DirectDependents.md",
+        "api/Excel.Range.DirectPrecedents.md",
+        "api/Excel.Range.Dirty.md",
+        "api/Excel.Range.NavigateArrow.md",
+        "api/Excel.Range.Precedents.md",
+        "api/Excel.Range.ShowDependents.md",
+        "api/Excel.Range.ShowErrors.md",
+        "api/Excel.Range.ShowPrecedents.md"
+      ]
+    },
+    {
+      "id": "range-outline-and-editing-subsets",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native outline/subtotal/sort/text tools, table membership, formulas and range editing exist.",
+      "boundary": "Exact historical flags, Lotus-specific sort/parse, subtotal removal identity, automatic outline inference, prefix/array provenance and macro receiver semantics are not established by nearby commands. Pick matched subsets only.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/data.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/engine/src/cmd/data/grouping.rs",
+          "anchor": "pub(super) fn subtotal"
+        },
+        {
+          "path": "crates/vba/src/data_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.AddIndent.md",
+        "api/Excel.Range.ApplyNames.md",
+        "api/Excel.Range.ApplyOutlineStyles.md",
+        "api/Excel.Range.AutoOutline.md",
+        "api/Excel.Range.ClearOutline.md",
+        "api/Excel.Range.Justify.md",
+        "api/Excel.Range.ListHeaderRows.md",
+        "api/Excel.Range.LocationInTable.md",
+        "api/Excel.Range.Parse.md",
+        "api/Excel.Range.PrefixCharacter.md",
+        "api/Excel.Range.ReadingOrder.md",
+        "api/Excel.Range.RemoveSubtotal.md",
+        "api/Excel.Range.Run.md",
+        "api/Excel.Range.SavedAsArray.md",
+        "api/Excel.Range.SortSpecial.md",
+        "api/Excel.Range.Summary.md"
+      ]
+    },
+    {
+      "id": "range-border-around",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Native home.borders accepts edge presets, style and RGB/theme color; existing border handles use those commands.",
+      "boundary": "Respect mutually exclusive Excel options, multi-area budgets, captured receiver, protection and one undo group; no ColorIndex palette is added.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/format.rs",
+          "anchor": "fn borders"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.BorderAround.md"
+      ]
+    },
+    {
+      "id": "range-phonetic-and-display",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Text handles, effective rendering, error queries and phonetic preservation exist independently.",
+      "boundary": "No automatic reading generator, per-cell ignored-error graph or editable phonetic runs follows. Refer to the corresponding child-family reviews before creating a receiver.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct CondFormat"
+        },
+        {
+          "path": "crates/vba/src/format_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.Characters.md",
+        "api/Excel.Range.DisplayFormat.md",
+        "api/Excel.Range.Errors.md",
+        "api/Excel.Range.Phonetic.md",
+        "api/Excel.Range.Phonetics.md",
+        "api/Excel.Range.SetPhonetic.md"
+      ]
+    },
+    {
+      "id": "flashfill-command",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "edit.flashFill/data.flashFill already perform bounded example-based transformation.",
+      "boundary": "Project only that existing algorithm and command limits; do not claim Excel inference parity or invent automatic-mode settings.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/edit/fill.rs",
+          "anchor": "pub(super) fn flash_fill"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.range.flashfill.md"
+      ]
+    },
+    {
+      "id": "range-sparkline-root",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Sheet.sparklines holds existing rendered and persisted sparklines.",
+      "boundary": "There is no explicit group identity/configuration record. A native-compatible collection subset needs a stable grouping/lifetime contract, not grouping by guessed adjacency.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Sparkline"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Range.SparklineGroups.md"
+      ]
+    },
+    {
+      "id": "sparkline-basic-native-subset",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native Sparkline stores cell/source/kind/color/markers and insert.sparkline creates entries; renderer and PDF reuse them.",
+      "boundary": "Basic reads/type/source/color/delete may be candidates, but group identity, axes, points, date ranges, grouping, weights and blank-data policy are not all stored. Review member-by-member before a bounded graph is selected.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Sparkline"
+        },
+        {
+          "path": "crates/engine/src/cmd/insert/objects.rs",
+          "anchor": "Sparkline"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.SparkColor.Application.md",
+        "api/Excel.SparkColor.Color.md",
+        "api/Excel.SparkColor.md",
+        "api/Excel.SparkColor.Parent.md",
+        "api/Excel.SparkColor.Visible.md",
+        "api/Excel.SparklineGroup.Application.md",
+        "api/Excel.SparklineGroup.Axes.md",
+        "api/Excel.SparklineGroup.Count.md",
+        "api/Excel.SparklineGroup.DateRange.md",
+        "api/Excel.SparklineGroup.Delete.md",
+        "api/Excel.sparklinegroup.displayblanksas.md",
+        "api/Excel.SparklineGroup.Item.md",
+        "api/Excel.SparklineGroup.LineWeight.md",
+        "api/Excel.SparklineGroup.Location.md",
+        "api/Excel.SparklineGroup.md",
+        "api/Excel.SparklineGroup.Modify.md",
+        "api/Excel.SparklineGroup.ModifyDateRange.md",
+        "api/Excel.SparklineGroup.ModifyLocation.md",
+        "api/Excel.SparklineGroup.ModifySourceData.md",
+        "api/Excel.SparklineGroup.Parent.md",
+        "api/Excel.sparklinegroup.plotby.md",
+        "api/Excel.sparklinegroup.points.md",
+        "api/Excel.SparklineGroup.SeriesColor.md",
+        "api/Excel.SparklineGroup.SourceData.md",
+        "api/Excel.SparklineGroup.Type.md",
+        "api/Excel.SparklineGroups.Add.md",
+        "api/Excel.SparklineGroups.Application.md",
+        "api/Excel.SparklineGroups.Clear.md",
+        "api/Excel.SparklineGroups.ClearGroups.md",
+        "api/Excel.SparklineGroups.Count.md",
+        "api/Excel.SparklineGroups.Group.md",
+        "api/Excel.SparklineGroups.Item.md",
+        "api/Excel.SparklineGroups.md",
+        "api/Excel.SparklineGroups.Parent.md",
+        "api/Excel.SparklineGroups.Ungroup.md"
+      ]
+    },
+    {
+      "id": "error-checking-objects",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native formula/error values and errorChecking query exist.",
+      "boundary": "A cell value error is not Excel background error-checking categories or persistent Ignore flags. No complete Error/Errors object is currently justified.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/cmd/formulas.rs",
+          "anchor": "pub fn specs()"
+        },
+        {
+          "path": "crates/model/src/cell.rs",
+          "anchor": "pub struct Cell"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Error.Application.md",
+        "api/Excel.Error.Ignore.md",
+        "api/Excel.Error.md",
+        "api/Excel.Error.Parent.md",
+        "api/Excel.Error.Value.md",
+        "api/Excel.Errors.Application.md",
+        "api/Excel.Errors.Item.md",
+        "api/Excel.Errors.md",
+        "api/Excel.Errors.Parent.md"
+      ]
+    },
+    {
+      "id": "sort-filter-extension",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native AutoFilter/FilterCriterion/Sort state and existing VBA sort/filter graphs exist.",
+      "boundary": "Range/read-only Rng, key priority and criteria count can use existing state only after exact index/order contracts; custom icon/value sort services and ModifyKey must honor current supported sort kinds.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/data_api.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/engine/src/cmd/data/sort.rs",
+          "anchor": "pub(super)"
+        },
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub enum FilterCriterion"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.AutoFilter.Sort.md",
+        "api/Excel.Filter.Count.md",
+        "api/Excel.Sort.Rng.md",
+        "api/Excel.SortField.ModifyKey.md",
+        "api/Excel.SortField.Priority.md",
+        "api/Excel.SortField.SetIcon.md",
+        "api/Excel.SortField.SortOnValue.md"
+      ]
+    },
+    {
+      "id": "outline-automatic-styles",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Native outline has levels/visibility/summary placement but no automatic outline-style application preference.",
+      "boundary": "Do not map AutomaticStyles to show_outline_symbols or summary direction.",
+      "evidence": [
+        {
+          "path": "crates/model/src/sheet.rs",
+          "anchor": "pub struct Sheet"
+        },
+        {
+          "path": "crates/engine/src/cmd/data/grouping.rs",
+          "anchor": "pub(super) fn outline_settings"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Outline.AutomaticStyles.md"
+      ]
+    },
+    {
+      "id": "scenario-extra-state",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native scenario storage and selected Scenario projection exist.",
+      "boundary": "Scenario.Locked protection metadata and cross-workbook merge/deduplication are not equivalent to applying an existing scenario; inspect storage before adding flags or merge behavior.",
+      "evidence": [
+        {
+          "path": "crates/vba/src/scenario_api.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/engine/src/cmd/whatif/scenarios.rs",
+          "anchor": "pub(super)"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Scenario.Locked.md",
+        "api/Excel.Scenarios.Merge.md"
+      ]
+    },
+    {
+      "id": "defined-name-extra-metadata",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native DefinedName carries identity, name, scope, formula, comment and hidden state.",
+      "boundary": "Index can be derived with a documented ordering; category/macro shortcuts and workbook parameter flags are not stored. No compatibility-only metadata is added.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct DefinedName"
+        },
+        {
+          "path": "crates/vba/src/formula_api.rs",
+          "anchor": "fn name_api"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Name.Category.md",
+        "api/Excel.Name.CategoryLocal.md",
+        "api/Excel.Name.Index.md",
+        "api/Excel.Name.MacroType.md",
+        "api/Excel.Name.ShortcutKey.md",
+        "api/Excel.Name.ValidWorkbookParameter.md",
+        "api/Excel.Name.WorkbookParameter.md"
+      ]
+    },
+    {
+      "id": "chart-series-local-formulas",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Native chart/series/title settings and formula evaluation exist.",
+      "boundary": "Series source formulas and literal title text do not establish worksheet-linked title/DataLabel formulas or arbitrary Chart.Evaluate context; locale/R1C1 translation and handle ownership need separate review.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Series"
+        },
+        {
+          "path": "crates/vba/src/chart_parts_api.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/vba/src/series_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.AxisTitle.Formula.md",
+        "api/Excel.AxisTitle.FormulaLocal.md",
+        "api/Excel.AxisTitle.FormulaR1C1.md",
+        "api/Excel.AxisTitle.FormulaR1C1Local.md",
+        "api/Excel.Chart.Evaluate.md",
+        "api/Excel.ChartTitle.Formula.md",
+        "api/Excel.ChartTitle.FormulaLocal.md",
+        "api/Excel.ChartTitle.FormulaR1C1.md",
+        "api/Excel.ChartTitle.FormulaR1C1Local.md",
+        "api/Excel.DataLabel.Formula.md",
+        "api/Excel.DataLabel.FormulaLocal.md",
+        "api/Excel.DataLabel.FormulaR1C1.md",
+        "api/Excel.DataLabel.FormulaR1C1Local.md",
+        "api/Excel.DisplayUnitLabel.Formula.md",
+        "api/Excel.DisplayUnitLabel.FormulaLocal.md",
+        "api/Excel.DisplayUnitLabel.FormulaR1C1.md",
+        "api/Excel.DisplayUnitLabel.FormulaR1C1Local.md",
+        "api/Excel.Series.FormulaLocal.md",
+        "api/Excel.Series.FormulaR1C1.md",
+        "api/Excel.Series.FormulaR1C1Local.md"
+      ]
+    },
+    {
+      "id": "provider-formula-graphs",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Local pivots and the formula engine do not supply OLAP calculated-member, data-model measure or Get & Transform query objects.",
+      "boundary": "A formula string is not a provider/model execution service.",
+      "evidence": [
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        },
+        {
+          "path": "crates/vba/src/pivot_fields_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.CalculatedMember.Formula.md",
+        "api/Excel.modelmeasure.formula.md",
+        "api/Excel.workbookquery.formula.md"
+      ]
+    },
+    {
+      "id": "pivot-formula-and-model-extra",
+      "status": "NATIVE_SUBSET",
+      "native_backing": "Local pivot calculated fields have formula/source records and native calculation.",
+      "boundary": "OLAP calculated members/items, model measures, queries, PivotFormulas export/listing and standard-language conversion are broader graphs and are not inferred from calculated fields. Provider/model contracts stay excluded; inspect local formula subsets first.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features/pivot.rs",
+          "anchor": "pub struct"
+        },
+        {
+          "path": "crates/vba/src/pivot_fields_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.PivotField.StandardFormula.md",
+        "api/Excel.PivotFormula.Application.md",
+        "api/Excel.PivotFormula.Delete.md",
+        "api/Excel.PivotFormula.Formula.md",
+        "api/Excel.PivotFormula.Index.md",
+        "api/Excel.PivotFormula.md",
+        "api/Excel.PivotFormula.Parent.md",
+        "api/Excel.PivotFormula.StandardFormula.md",
+        "api/Excel.PivotFormula.Value.md",
+        "api/Excel.PivotFormulas.Add.md",
+        "api/Excel.PivotFormulas.Application.md",
+        "api/Excel.PivotFormulas.Count.md",
+        "api/Excel.PivotFormulas.Item.md",
+        "api/Excel.PivotFormulas.md",
+        "api/Excel.PivotFormulas.Parent.md",
+        "api/Excel.PivotItem.Formula.md",
+        "api/Excel.PivotItem.StandardFormula.md",
+        "api/Excel.PivotTable.ConvertToFormulas.md",
+        "api/Excel.PivotTable.ListFormulas.md",
+        "api/Excel.PivotTable.PivotFormulas.md"
+      ]
+    },
+    {
+      "id": "office-recovery-and-export-converters",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Native format import/export is a fixed FileKind service; workbook recovery scheduling and plugin converter catalogs are not those services.",
+      "boundary": "Do not generate fake converter entries or recovery settings from ordinary file save.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/io.rs",
+          "anchor": "pub enum FileKind"
+        },
+        {
+          "path": "crates/model/src/workbook.rs",
+          "anchor": "pub struct Workbook"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.AutoRecover.Application.md",
+        "api/Excel.AutoRecover.Enabled.md",
+        "api/Excel.AutoRecover.md",
+        "api/Excel.AutoRecover.Parent.md",
+        "api/Excel.AutoRecover.Path.md",
+        "api/Excel.AutoRecover.Time.md",
+        "api/Excel.FileExportConverter.Application.md",
+        "api/Excel.FileExportConverter.Description.md",
+        "api/Excel.FileExportConverter.Extensions.md",
+        "api/Excel.FileExportConverter.FileFormat.md",
+        "api/Excel.FileExportConverter.md",
+        "api/Excel.FileExportConverter.Parent.md",
+        "api/Excel.FileExportConverters.Application.md",
+        "api/Excel.FileExportConverters.Count.md",
+        "api/Excel.FileExportConverters.Item.md",
+        "api/Excel.FileExportConverters.md",
+        "api/Excel.FileExportConverters.Parent.md"
+      ]
+    },
+    {
+      "id": "recent-file-host-graph",
+      "status": "HOST_SERVICE_REVIEW",
+      "native_backing": "Recent-document presentation belongs to the desktop host, outside the workbook graph.",
+      "boundary": "Verify actual recent-list persistence/ownership, filesystem consent, browser availability and callback cancellation before selecting a host service. No per-bridge synthetic list.",
+      "evidence": [
+        {
+          "path": "crates/ui-egui/src/lib.rs",
+          "anchor": "pub recent: Vec<String>"
+        },
+        {
+          "path": "crates/ui-egui/src/backstage.rs",
+          "anchor": "pub struct RecentFiles"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.RecentFile.Application.md",
+        "api/Excel.RecentFile.Delete.md",
+        "api/Excel.RecentFile.Index.md",
+        "api/Excel.RecentFile.md",
+        "api/Excel.RecentFile.Name.md",
+        "api/Excel.RecentFile.Open.md",
+        "api/Excel.RecentFile.Parent.md",
+        "api/Excel.RecentFile.Path.md",
+        "api/Excel.RecentFiles.Add.md",
+        "api/Excel.RecentFiles.Application.md",
+        "api/Excel.RecentFiles.Count.md",
+        "api/Excel.RecentFiles.Item.md",
+        "api/Excel.RecentFiles.Maximum.md",
+        "api/Excel.RecentFiles.md",
+        "api/Excel.RecentFiles.Parent.md"
+      ]
+    },
+    {
+      "id": "office-drawing-and-control-graphs",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Native ShapeFormat and object collections do not provide the named Office forms-control, WordArt, linked OLE or used-object memory-accounting graphs.",
+      "boundary": "Cell checkboxes, plain text shapes and static images retain their existing projections independently.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct ShapeFormat"
+        },
+        {
+          "path": "crates/vba/src/drawing_api.rs",
+          "anchor": "impl Bridge"
+        },
+        {
+          "path": "crates/vba/src/interaction_api.rs",
+          "anchor": "impl Bridge"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.ControlFormat.AddItem.md",
+        "api/Excel.ControlFormat.Application.md",
+        "api/Excel.ControlFormat.DropDownLines.md",
+        "api/Excel.ControlFormat.Enabled.md",
+        "api/Excel.ControlFormat.LargeChange.md",
+        "api/Excel.ControlFormat.LinkedCell.md",
+        "api/Excel.ControlFormat.List.md",
+        "api/Excel.ControlFormat.ListCount.md",
+        "api/Excel.ControlFormat.ListFillRange.md",
+        "api/Excel.ControlFormat.ListIndex.md",
+        "api/Excel.ControlFormat.LockedText.md",
+        "api/Excel.ControlFormat.Max.md",
+        "api/Excel.ControlFormat.md",
+        "api/Excel.ControlFormat.Min.md",
+        "api/Excel.ControlFormat.MultiSelect.md",
+        "api/Excel.ControlFormat.Parent.md",
+        "api/Excel.ControlFormat.RemoveAllItems.md",
+        "api/Excel.ControlFormat.RemoveItem.md",
+        "api/Excel.ControlFormat.SmallChange.md",
+        "api/Excel.ControlFormat.Value.md",
+        "api/Excel.LinkFormat.Application.md",
+        "api/Excel.LinkFormat.AutoUpdate.md",
+        "api/Excel.LinkFormat.Locked.md",
+        "api/Excel.LinkFormat.md",
+        "api/Excel.LinkFormat.Parent.md",
+        "api/Excel.LinkFormat.Update.md",
+        "api/Excel.TextEffectFormat.Alignment.md",
+        "api/Excel.TextEffectFormat.Application.md",
+        "api/Excel.TextEffectFormat.FontBold.md",
+        "api/Excel.TextEffectFormat.FontItalic.md",
+        "api/Excel.TextEffectFormat.FontName.md",
+        "api/Excel.TextEffectFormat.FontSize.md",
+        "api/Excel.TextEffectFormat.KernedPairs.md",
+        "api/Excel.TextEffectFormat.md",
+        "api/Excel.TextEffectFormat.NormalizedHeight.md",
+        "api/Excel.TextEffectFormat.Parent.md",
+        "api/Excel.TextEffectFormat.PresetShape.md",
+        "api/Excel.TextEffectFormat.PresetTextEffect.md",
+        "api/Excel.TextEffectFormat.RotatedChars.md",
+        "api/Excel.TextEffectFormat.Text.md",
+        "api/Excel.TextEffectFormat.ToggleVerticalText.md",
+        "api/Excel.TextEffectFormat.Tracking.md",
+        "api/Excel.UsedObjects.Application.md",
+        "api/Excel.UsedObjects.Count.md",
+        "api/Excel.UsedObjects.Item.md",
+        "api/Excel.UsedObjects.md",
+        "api/Excel.UsedObjects.Parent.md"
+      ]
+    },
+    {
+      "id": "validation-ime-mode",
+      "status": "NO_NATIVE_CAPABILITY",
+      "native_backing": "Native validation stores rules/messages but has no input-method mode state or host IME-control service.",
+      "boundary": "Do not substitute list validation or text entry for IMEMode.",
+      "evidence": [
+        {
+          "path": "crates/model/src/features.rs",
+          "anchor": "pub struct Validation"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Validation.IMEMode.md"
+      ]
+    },
+    {
+      "id": "application-author-preference",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Session.prefs.user_name actually supplies authors for new workbooks, notes and comment replies.",
+      "boundary": "Project the real preference for subsequent operations; do not rewrite existing authors or emulate an Office account identity.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "wb.props.author = self.prefs.user_name.clone();"
+        },
+        {
+          "path": "crates/engine/src/cmd/insert/links.rs",
+          "anchor": "s.prefs.user_name.clone()"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.UserName.md"
+      ]
+    },
+    {
+      "id": "application-new-sheet-count",
+      "status": "ELIGIBLE_NATIVE",
+      "native_backing": "Session.new_workbook uses prefs.sheets_in_new_workbook with native 1..255 bounds.",
+      "boundary": "Preserve native limits and affect newly created workbooks only; do not mutate existing sheet collections.",
+      "evidence": [
+        {
+          "path": "crates/engine/src/lib.rs",
+          "anchor": "self.new_workbook_with_sheets(self.prefs.sheets_in_new_workbook.clamp(1, 255))"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.SheetsInNewWorkbook.md"
+      ]
+    },
+    {
+      "id": "application-native-animation-preference",
+      "status": "HOST_SERVICE_REVIEW",
+      "native_backing": "UiState.animations is a persisted preference used by native selection rendering.",
+      "boundary": "Requires an owned UI preference seam and headless/browser policy; it is not an Excel macro-animation scheduler.",
+      "evidence": [
+        {
+          "path": "crates/ui-egui/src/lib.rs",
+          "anchor": "pub animations: bool"
+        },
+        {
+          "path": "crates/ui-egui/src/grid/show.rs",
+          "anchor": "app.ui.animations"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Application.EnableAnimations.md"
+      ]
+    },
+    {
+      "id": "workbook-autosave-host-preference",
+      "status": "HOST_SERVICE_REVIEW",
+      "native_backing": "The UI implements real AutoSave for dirty saved .xlsx workbooks, controlled by UiState.autosave.",
+      "boundary": "Native preference is host-wide rather than per-workbook/cloud AutoSave. Review ownership and file consent before exposing a bounded contract; do not confuse it with AutoRecover.",
+      "evidence": [
+        {
+          "path": "crates/ui-egui/src/app/files.rs",
+          "anchor": "pub(super) fn autosave"
+        },
+        {
+          "path": "crates/ui-egui/src/app/files.rs",
+          "anchor": "pub fn toggle_autosave"
+        }
+      ],
+      "source_paths": [
+        "api/Excel.Workbook.AutoSaveOn.md"
+      ]
+    }
+  ],
+  "next_queue": [
+    {
+      "id": "high-formula-metadata",
+      "groups": [
+        "function-generic-metadata",
+        "function-service-placeholders"
+      ],
+      "goal": "Reconcile all 52 missing modern WorksheetFunction descriptors against the live calculator: expose verified native signatures, retain WEBSERVICE/FILTERXML as service gaps, and add representative native/WASM positional/named/optional/array/error regressions.",
+      "order": 1
+    },
+    {
+      "id": "high-sheet-state",
+      "groups": [
+        "worksheet-neighbours-and-kind",
+        "application-formula-bar",
+        "formula-display"
+      ],
+      "goal": "Project captured-sheet Next/Previous/Type/StandardHeight and native formula-display preferences with no activation, stale-object and cross-document tests. Respect the existing shared sheet-backed view boundary.",
+      "order": 2
+    },
+    {
+      "id": "high-tab-colors",
+      "groups": [
+        "worksheet-tab",
+        "tab-rgb-and-theme",
+        "tab-palette"
+      ],
+      "goal": "Add identity-bearing Tab receivers and native RGB/theme/tint color edits through sheet.tabColor; preserve protection, undo and XLSX round trips. Do not add a palette.",
+      "order": 3
+    },
+    {
+      "id": "high-range-formatting",
+      "groups": [
+        "range-text-and-indent",
+        "range-border-around",
+        "border-theme"
+      ],
+      "goal": "Select bounded range text/indent/border and theme/tint extensions after mixed-cell and option-combination review.",
+      "order": 4
+    }
+  ],
+  "evidence_boundary": {
+    "method": "Pinned public source extraction plus direct native/model/adapter source inspection. Evidence anchors are checked against the current checkout; exclusions are snapshot review judgments, not an automated proof of absence.",
+    "fresh_excel_observation": "NOT_RUN",
+    "new_runtime_implementation": "NONE",
+    "counts": "Source pages, not engineering estimates or Excel compatibility percentages."
+  },
+  "maintenance": "When an extension is delivered, update this remaining-review ledger with the owning runtime acceptance ledger and regenerate/check the audit together. Retain the immutable source inventory and source-path provenance.",
+  "validation": {
+    "repository_ci": {
+      "command": "CRAFT_FONTS_DIR=/tmp/gridcraft-acceptance-fonts CRAFT_FONTS_REQUIRED=1 cargo xtask ci",
+      "result": "PASS: all 10 steps",
+      "native_tests_passed": 3025
+    },
+    "audit_tests": {
+      "command": "cargo test -p xtask --features vba-audit",
+      "result": "PASS",
+      "tests_passed": 39
+    },
+    "strict_lint": {
+      "command": "cargo clippy -p xtask --features vba-audit --all-targets -- -D warnings",
+      "result": "PASS"
+    },
+    "offline_audit": {
+      "command": "cargo run -p xtask --features vba-audit -- vba-audit --write; cargo run -p xtask --features vba-audit -- vba-audit",
+      "result": "PASS: all 5996 rows reproduced; all 885 High extension rows reviewed"
+    },
+    "runtime_evidence_independence": "PASS: IDs, source paths, priorities, dispositions, literal runtime result states, implementation symbols and required-obligation flags preserved across all 5996 source rows.",
+    "fresh_excel_observation": "NOT_RUN",
+    "dedicated_wasm_vba_rerun": "NOT_RUN: no runtime code changed; prior OM20 242-test WASM evidence remains historical. Repository wasm compilation gate passed."
+  }
+}

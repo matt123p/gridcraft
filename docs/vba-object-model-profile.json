@@ -48,6 +48,67 @@
     "catalogue_completeness": "All source pages are retained and classified for namespace, kind, family, priority and profile disposition; outside-profile capability review is explicitly not claimed as completed runtime work.",
     "fresh_excel_observation": "NOT_RUN; sign-off uses pinned public documentation and native/WASM synthetic regression evidence, not a fresh Excel oracle."
   },
+  "high_extension_capability_review": {
+    "evidence_boundary": {
+      "counts": "Source pages, not engineering estimates or Excel compatibility percentages.",
+      "fresh_excel_observation": "NOT_RUN",
+      "method": "Pinned public source extraction plus direct native/model/adapter source inspection. Evidence anchors are checked against the current checkout; exclusions are snapshot review judgments, not an automated proof of absence.",
+      "new_runtime_implementation": "NONE"
+    },
+    "groups": 71,
+    "ledger": "docs/vba-object-model-high-extension-review.json",
+    "next_queue": [
+      {
+        "goal": "Reconcile all 52 missing modern WorksheetFunction descriptors against the live calculator: expose verified native signatures, retain WEBSERVICE/FILTERXML as service gaps, and add representative native/WASM positional/named/optional/array/error regressions.",
+        "groups": [
+          "function-generic-metadata",
+          "function-service-placeholders"
+        ],
+        "id": "high-formula-metadata",
+        "order": 1
+      },
+      {
+        "goal": "Project captured-sheet Next/Previous/Type/StandardHeight and native formula-display preferences with no activation, stale-object and cross-document tests. Respect the existing shared sheet-backed view boundary.",
+        "groups": [
+          "worksheet-neighbours-and-kind",
+          "application-formula-bar",
+          "formula-display"
+        ],
+        "id": "high-sheet-state",
+        "order": 2
+      },
+      {
+        "goal": "Add identity-bearing Tab receivers and native RGB/theme/tint color edits through sheet.tabColor; preserve protection, undo and XLSX round trips. Do not add a palette.",
+        "groups": [
+          "worksheet-tab",
+          "tab-rgb-and-theme",
+          "tab-palette"
+        ],
+        "id": "high-tab-colors",
+        "order": 3
+      },
+      {
+        "goal": "Select bounded range text/indent/border and theme/tint extensions after mixed-cell and option-combination review.",
+        "groups": [
+          "range-text-and-indent",
+          "range-border-around",
+          "border-theme"
+        ],
+        "id": "high-range-formatting",
+        "order": 4
+      }
+    ],
+    "report": "docs/vba-object-model-high-extension-review.md",
+    "reviewed": "2026-11-03",
+    "source_pages": 885,
+    "status_counts": {
+      "ELIGIBLE_NATIVE": 26,
+      "GENERIC_DISPATCH": 50,
+      "HOST_SERVICE_REVIEW": 42,
+      "NATIVE_SUBSET": 444,
+      "NO_NATIVE_CAPABILITY": 323
+    }
+  },
   "legacy_graph_pages": 283,
   "priority_counts": {
     "HIGH": 2008,

@@ -469,6 +469,9 @@ pub(super) fn report(profile: &Value) -> Result<String, String> {
     for (k, v) in profile["disposition_counts"].as_object().ok_or("dispositions missing")? {
         out.push_str(&format!("| `{k}` | {v} |\n"));
     }
+    if let Some(review) = profile.get("high_extension_capability_review") {
+        out.push_str(&format!("\n[High extension capability review](vba-object-model-high-extension-review.md): {} source pages checked against native backing; {} direct native candidates, {} existing generic-dispatch metadata candidates, {} partial-native rows, {} host-service reviews and {} excluded source contracts. This adds no runtime acceptance.\n", review["source_pages"],review["status_counts"]["ELIGIBLE_NATIVE"],review["status_counts"]["GENERIC_DISPATCH"],review["status_counts"]["NATIVE_SUBSET"],review["status_counts"]["HOST_SERVICE_REVIEW"],review["status_counts"]["NO_NATIVE_CAPABILITY"]));
+    }
     out.push_str("\nHigh reference extensions retain High priority and their literal missing/partial catalogue state; they are outside the already accepted native obligations and are not certified or downgraded. A missing adapter does not establish a missing GridCraft feature. Unselected Medium and every Low runtime projection remain outside this sign-off.\n\n## Provenance and acceptance evidence\n\n");
     for path in strings(&profile["accepted_ledgers"])? {
         let name = path.strip_prefix("docs/").unwrap_or(&path);

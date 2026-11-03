@@ -289,7 +289,8 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     if !unsupported_claims.is_empty() {
         return Err(format!("implemented-subset inventory claims lack an adapter dispatch/event symbol: {unsupported_claims:?}"));
     }
-    let profile = super::vba_profile::reconcile(root, &mut contracts, &descriptors)?;
+    let mut profile = super::vba_profile::reconcile(root, &mut contracts, &descriptors)?;
+    super::vba_extensions::reconcile(root, &mut contracts, &mut profile, write)?;
     super::vba_profile::emit(root, &profile, write)?;
     let contract_file = root.join("docs/vba-object-model-contracts.json");
     let enum_file = root.join("crates/vba/src/vba_enum_data.rs");

@@ -17,6 +17,9 @@ The [profile report](vba-object-model-profile-report.md) preserves all source
 rows, independent priority/disposition and exact outside-profile extensions.
 Reachable object declarations and implemented members remain **PARTIAL**; this
 does not certify all options, events or members of their Excel families.
+The [remaining High capability review](vba-object-model-high-extension-review.md)
+now classifies all 885 extension pages separately from accepted runtime scope;
+related native state alone does not establish the full member contract.
 
 Nominal type acceptance is recorded in [the M1.1 report](vba-m1-types.md).
 Unchanged Excel workbook source is measured as compatibility evidence, not the
