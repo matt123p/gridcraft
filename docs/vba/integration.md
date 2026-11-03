@@ -6,6 +6,10 @@ commands, calculation, persistence and UI services. The entry guide is
 [VBA in GridCraft](../vba.md); the feature contract is split into
 [supported](supported.md) and [unsupported](unsupported.md) references.
 
+For a first read, follow [startup and execution](#startup-and-execution), then
+[the design decisions](#design-decisions-and-trade-offs). The later sections
+explain individual boundaries and link to the code that implements them.
+
 ## Components and dependencies
 
 ```mermaid
@@ -40,6 +44,157 @@ Cargo.lock pin an immutable Git revision. There is no local-path dependency or
 copied interpreter. The manifests are the authority for the active pin; changes
 to the shared language runtime belong in that dependency.
 
+### How the tiny-vba crates fit together
+
+The dependency boundary is a Rust API within the application. Execution does
+not require Office, a COM server, an external interpreter process or source-file
+synchronization between the editor and the workbook.
+
+| tiny-vba crate | Role in this integration |
+|---|---|
+| `vba-syntax`, `vba-compiler`, `vba-ir`, `vba-diagnostics` | Parse/compile source and report diagnostics; verified executable metadata carries generic language/type requirements |
+| `vba-values`, `vba-runtime` | Typed VBA values, arrays, coercion, intrinsic functions and explicitly configured runtime services |
+| `vba-foreign` | Native object handles, typed host arguments/calls/results/errors and reference/type-resolution contracts |
+| `vba-vm` | Execute compiled code within budgets, suspend host calls and resume/cancel them through the host protocol |
+| `vba-project` | Decode supported source and module metadata from an imported binary VBA project, subject to decoder limits |
+| `vba-ide` | Own project/editor execution state, debugger actions, host configuration and callback scheduling |
+| `vba-ui-egui` | Render the shared editor, debugger and form UI inside GridCraft's shell |
+
+The [adapter manifest](../../crates/vba/Cargo.toml) pins the compiler/runtime
+crates; the [UI manifest](../../crates/ui-egui/Cargo.toml) pins the shared editor
+to the same tiny-vba revision. Keeping them together avoids mismatched value,
+IR, host and UI contracts. The workspace [egui patches](../../Cargo.toml) select
+a compatible egui family for GridCraft and tiny-vba widgets, so the
+shared editor participates in the same UI context, theme and font handling.
+
+The desktop [application features](../../apps/gridcraft/Cargo.toml) forward
+`vba` and `vba-window` to the UI crate. The
+[browser feature](../../apps/gridcraft-web/Cargo.toml) enables the same adapter
+and shared editor while excluding native-window presentation. The adapter is
+usable without that UI; its tests drive the real engine through the same bridge.
+
+### Host configuration
+
+[`Bridge::configure_document`](../../crates/vba/src/lib.rs) configures an Ide for
+its code-owner workbook. It installs:
+
+- Imported host globals, root handles and supported member metadata for binding
+  and completion.
+- Excel/Office reference libraries, enums and constants from
+  [`types::references`](../../crates/vba/src/types.rs).
+- A read-only type resolver over the existing bridge object store; tiny-vba
+  validates nominal identity without owning a second workbook-object registry.
+- Document-module code-name mappings and implicit-member context. Display names
+  alone cannot identify `ThisWorkbook` or a worksheet code module.
+- Execution limits and the configured binary string-comparison/runtime context.
+
+These declarations are metadata. Looking up a member for completion or resolving
+an `As Worksheet` declaration does not call the engine. Actual access goes through
+the host at runtime, where liveness, permissions and the supported operation are
+checked again. Excel type names and member semantics remain in GridCraft;
+tiny-vba owns the reusable rules for binding, identity and invocation.
+
+## Startup and execution
+
+The [shell's editor state](../../crates/ui-egui/src/vba.rs) retains an `Ide`,
+`Bridge` and shared `EditorUi`. Their responsibilities stay separate throughout
+an invocation:
+
+1. **Open source.** `vba.open` creates a bridge bound to the workbook. Normally it
+   prefers applied GridCraft source, then imported binary-project source, then a
+   blank standard module. Explicit source/project arguments select the requested
+   input. Importing only decodes/adds source; it never runs it.
+2. **Configure and compile.** The bridge supplies the host/type/document metadata.
+   tiny-vba parses and compiles the project and reports diagnostics. The shared
+   editor can inspect source and completion without workbook side effects.
+3. **Start explicitly.** Run/step actions pass through `Bridge::dispatch`, which
+   checks the document and consent and opens the appropriate native undo group.
+4. **Advance in bounded slices.** Parent shell logic calls `Bridge::tick` (or the
+   lifecycle-specific tick while collecting save/close callbacks). tiny-vba owns
+   the instruction pointer, stack, variables, breakpoints and runtime state.
+5. **Invoke native behavior.** A host member produces a typed `HostCall` containing
+   an opaque target, invocation kind, member name and named/positional arguments.
+   `WorkbookHost::invoke` validates the handle/owner, scopes the native document
+   target, and dispatches to the appropriate adapter family and engine operation.
+6. **Return, wait or fail.** A synchronous call returns `Reply::Complete` with a
+   typed result, or `Reply::Error` with a VBA error. An asynchronous operation
+   returns `Reply::Wait(token)`. Later `Host::resume` checks the request and owner
+   again; `Host::cancel` invalidates it. The VM retains the suspended caller.
+7. **Finish.** Completion/error/Reset finalizes successful writes under the undo
+   policy and cancels work that can no longer run. A debugger pause retains the
+   live invocation and its cumulative budgets for continuation.
+
+For example, `ThisWorkbook.Worksheets(1).Range("A1").Value2 = 42` obtains real
+workbook/sheet/range handles, then writes through the native content command.
+The interpreter does not keep a separate spreadsheet and later synchronize it.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Shell as GridCraft shell
+    participant IDE as tiny-vba IDE and VM
+    participant Bridge as GridCraft bridge
+    participant Engine as Native engine
+    User->>Shell: Run selected procedure with consent
+    Shell->>Bridge: dispatch action
+    Bridge->>IDE: start or continue
+    Shell->>Bridge: bounded logic tick
+    Bridge->>IDE: execute slice with WorkbookHost
+    IDE->>Bridge: typed member call
+    Bridge->>Engine: validate and execute native command
+    Engine-->>Bridge: native result
+    Bridge-->>IDE: completion or VBA error
+    IDE-->>Shell: running, paused, waiting or completed
+```
+
+## Design decisions and trade-offs
+
+These choices explain the current architecture and the problems it was designed
+to address. They are continuing constraints rather than milestone checklists.
+
+| Decision | Reason and consequence |
+|---|---|
+| Keep the interpreter/editor in tiny-vba | Language fixes and reusable debugger/form behavior can serve other applications. Each application supplies its own object model; spreadsheet semantics do not become language-runtime dependencies |
+| Project existing native capabilities | The VBA layer adds bindings and diagnostics around GridCraft behavior. It does not create missing product features or compatibility-only settings just to accept an Excel member name |
+| Reuse commands through typed native APIs | Macro writes must obey the same protection, recalculation, history and recording rules as UI/control edits. Typed content APIs preserve literal text, formulas and errors without a parallel mutation implementation |
+| Preserve VBA types until the worksheet boundary | Date, Currency, Null, Missing, CVErr and object identities matter during execution. Flattening everything to strings or JSON early would lose distinctions needed for binding and errors |
+| Share one object store and use stable identity | Numeric sheet indexes and active selection can change while a macro is paused. Captured handles keep their owner; deleted/recreated objects cannot inherit another object's authority or callbacks |
+| Resolve active roots on access | `ThisWorkbook` is the code owner, while `ActiveWorkbook`/`ActiveSheet` are application context. Capturing all roots when the editor opens would make unchanged source target stale state |
+| Treat completion/type inspection as read-only | Editor code aids must work without running arbitrary getters, opening dialogs or modifying cells. The metadata path and runtime invocation path serve different purposes |
+| Queue events and prepare mutation callbacks | Reentrant callbacks can observe incomplete effects; late allocation failure can lose required notifications. Supported VBA mutations reserve the entire callback batch before committing |
+| Park owned requests across waits | Dialogs, I/O and cancellable callbacks cannot retain mutable workbook borrows across UI frames. Tokens and owned snapshots allow Reset, trust revocation and stale-source checks without replaying an operation |
+| Keep import inert and consent scoped | A workbook/source file is data until explicitly authorized. Executing a macro in one document must not implicitly trust another document or bypass permission checks on a resumed request |
+| Keep source storage separate from binary-project rewriting | Plain-source editing and package preservation are different capabilities. The existing hidden-name store supplies undoable source persistence without claiming an Excel project writer |
+| Use a generic read-only calculator provider | Worksheet UDFs need calculator dependencies, references and spills, but must not mutate a workbook during recalculation or pull VBA into the engine's dependency graph |
+| Render one editor with one execution driver | Embedded and separate-window modes share project/debug state. A second rendering path must not advance another VM or duplicate native effects |
+| Pin shared dependencies and retain exact evidence | A repeatable compiler/runtime/UI contract is more useful than tracking a moving dependency branch. Source contracts, tests and receiver reachability expose limitations without turning member counts into a compatibility claim |
+
+### How the integration reached this shape
+
+The initial adapter connected a small object set and shared editor to existing
+commands. Extending real workbook workflows exposed boundaries that a name-only
+member catalogue could not express: typed literals needed a native content API;
+registered classes needed shared nominal validation; collections needed proper
+default access and enumeration. Those generic language mechanisms stayed in
+tiny-vba while Excel receivers and native effects stayed here.
+
+Supporting paused code, multiple documents and document modules made stable
+identity and live context essential. Source attached to a sheet must still target
+that sheet after activation elsewhere; a saved Range must not become a replacement
+sheet after deletion or undo. The same ownership rule now governs callbacks,
+worksheet functions and child objects.
+
+Save/close cancellation and real native dialogs then required explicit suspended
+operations rather than synchronous stand-ins. Event delivery was hardened to
+resolve handlers in the owning project and reserve complete mutation batches.
+The larger chart/table/pivot/print/interaction families extend that shared bridge
+instead of introducing separate stores or per-feature execution loops.
+
+The result is a bounded native adapter with explicit feature and service limits.
+The retained [reference data](reference/README.md) records current signatures,
+capability exclusions and implementation evidence; it is not a promise that every
+member of an Excel class is implemented.
+
 ## Native commands and undo
 
 VBA property assignments and methods call native engine commands or typed APIs
@@ -56,6 +211,10 @@ A macro/event batch holds a spanning undo group through pause, step and resume.
 Completion, failure or Reset finishes successful writes as a grouped undo entry.
 A later failure does not automatically roll back earlier successful operations.
 Supported bounded writes validate their own input and permissions before effects.
+
+VBA execution and [GridCraft's declarative macros](../macros.md) share commands
+but have separate execution/error policies. Reusing the engine does not replace
+VBA's partial-effect behavior with the declarative macro runner's rollback policy.
 
 The bridge restores the visible document/window after scoped calls on an
 inactive captured owner. Application-wide operations preflight participating
@@ -86,6 +245,21 @@ numbers, strings, Boolean values and cell errors. Value/Value2 conversion handle
 Date/Currency distinctions and workbook date systems. Arrays cross the boundary
 between row-major worksheet/calculator storage and VBA's column-major arrays.
 Bounds, shape, exact numeric representation and payload size are checked.
+
+## Language intrinsics and worksheet-function calls
+
+VBA intrinsics such as `StrComp`, `CInt` and `Left` execute in tiny-vba and follow
+its value/coercion rules. `Application.WorksheetFunction` is a GridCraft object
+whose methods call the native formula calculator. Similar names across these
+APIs do not imply identical signatures, return types or error behavior; the
+adapter does not implement VBA intrinsics by translating them into cell formulas.
+
+GridCraft explicitly configures binary string comparison and an invariant,
+Gregorian, UTF-16 runtime context. It does not implicitly grant tiny-vba access to
+the host's environment, filesystem, clock, COM or regional formatting services.
+A recognized shared-runtime intrinsic can therefore be unavailable in this host.
+The [unsupported reference](unsupported.md#runtime-functions-that-need-a-service)
+distinguishes those missing services from missing worksheet functions.
 
 ## Trust and execution lifecycle
 
@@ -163,6 +337,11 @@ native shapes (`on_action`/`shape.setMacro`) and persist with DrawingML metadata
 This keeps assignment identity with the shape through rename, deletion, undo and
 package ID remapping.
 
+The binary decoder supplies module source and kind/code-name metadata. Document
+modules must match actual workbook/sheet code names before they receive a host
+context. Decoder acceptance is distinct from permission to execute and from
+support for every object the imported source might use.
+
 An imported Excel `vbaProject.bin` is retained as opaque package data. Editing
 plain source does not rewrite that binary. Class/form projects and binary form
 resources have separate storage limitations; export unsupported project content
@@ -205,6 +384,22 @@ route. Programmatic calls return errors instead of opening implicit dialogs.
 | `vba.return` | Return to the workbook while retaining project/debug state |
 | `vba.close` | `{discard?}`; close, refusing unapproved dirty-source loss |
 
+## Where the behavior is verified
+
+| Boundary | Executable evidence |
+|---|---|
+| Shared nominal validation/defaults | [Nominal types](../../crates/vba/tests/nominal.rs) and [collection/default access](../../crates/vba/tests/collections.rs) |
+| Captured owners and live active roots | [Object/value identity](../../crates/vba/tests/identity_values.rs) and [document-module context](../../crates/vba/tests/context_resolution.rs) |
+| Callback ownership and no late mutation-event failure | [Event tests](../../crates/vba/tests/events.rs), including inactive/foreign workbooks, prepared cut batches and handle-capacity refusal |
+| Waiting/cancellation and single delivery | [Continuations](../../crates/vba/tests/continuations.rs), plus [printing](../../crates/vba/tests/printing.rs) and [interaction](../../crates/vba/tests/interactions.rs) |
+| Read-only calculation and source lifetime | [Worksheet functions](../../crates/vba/tests/worksheet.rs) and [source/project import](../../crates/vba/tests/project.rs) |
+| Shell integration | [UI workflows](../../crates/ui-egui/tests/vba.rs), [native editor windows](../../crates/ui-egui/tests/vba_windows.rs) and [native save/close lifecycle](../../crates/ui-egui/tests/vba_lifecycle.rs) |
+
+These tests use authored inputs and native GridCraft state. Shared portable paths
+also have WASM execution coverage; host-specific transport/UI behavior needs its
+own checks. Neither a passing source decoder nor a static reachable type proves
+that an arbitrary Excel workbook runs unchanged.
+
 ## Keeping reference data current
 
 The [reference directory](reference/README.md) holds source provenance and
@@ -217,6 +412,13 @@ the supported reference. It does not fetch documentation during ordinary builds.
 cargo run -p xtask --features vba-audit -- vba-audit --write
 cargo run -p xtask --features vba-audit -- vba-audit
 ```
+
+When updating tiny-vba, update adapter and shared-editor pins together and
+refresh Cargo.lock. Verify the generic protocol/type/value changes in tiny-vba,
+then run the GridCraft adapter, optional UI/window and browser/WASM checks against
+that exact revision. Ordinary engine behavior should remain independently usable
+with VBA disabled. A new Excel member also needs a reachable receiver, native
+backing and option/error/lifetime evidence before it enters the supported index.
 
 The exporter expects the pinned public documentation archive at
 `target/vba-docs-audit/reference.zip` and verifies its checksum before use. Ordinary
