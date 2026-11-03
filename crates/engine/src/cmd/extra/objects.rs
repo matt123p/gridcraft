@@ -1,23 +1,24 @@
 use super::chart::format_series;
 use super::{
-    Anchor, CellRef, Color, EngineError, Json, Result, Session, Shape, Sheet, anchor_mode_name, bad, bool_param, edit, json, str_param, u32_param,
+    Anchor, CellRef, EngineError, Json, Result, Session, Shape, Sheet, anchor_mode_name, bad, bool_param, edit, json, str_param, target_sheet,
+    u32_param,
 };
 
 pub(super) fn shape_fill(s: &mut Session, p: &Json) -> Result<Json> {
     if str_param(p, "kind") == Some("shape") {
-        let color = str_param(p, "color").and_then(Color::from_hex).unwrap_or_default();
+        let color = super::super::format::color_param(p.get("color")).ok_or_else(|| bad("shape color", "invalid color"))?;
         return with_shape(s, p, |sh| sh.fill = color);
     }
     format_series(s, p)
 }
 
 pub(super) fn shape_outline(s: &mut Session, p: &Json) -> Result<Json> {
-    let color = str_param(p, "color").and_then(Color::from_hex).unwrap_or_default();
+    let color = super::super::format::color_param(p.get("color")).ok_or_else(|| bad("shape color", "invalid color"))?;
     with_shape(s, p, |sh| sh.line = color)
 }
 
 fn with_shape(s: &mut Session, p: &Json, f: impl FnOnce(&mut Shape)) -> Result<Json> {
-    let si = s.doc()?.wb.active_sheet();
+    let si = target_sheet(s, p)?;
     let id = u32_param(p, "id");
     edit(s, |cx| {
         let shapes = &mut cx.sheet_mut(si)?.shapes;
@@ -35,7 +36,7 @@ pub(super) fn arrange(s: &mut Session, p: &Json, forward: bool) -> Result<Json> 
     let id = u32_param(p, "id").ok_or_else(|| bad("arrange", "missing `id`"))?;
     let kind = str_param(p, "kind").unwrap_or("shape").to_string();
     let extreme = bool_param(p, "toFront").or(bool_param(p, "toBack")).unwrap_or(false);
-    let si = s.doc()?.wb.active_sheet();
+    let si = target_sheet(s, p)?;
     fn reorder<T>(v: &mut Vec<T>, i: usize, forward: bool, extreme: bool) {
         if i >= v.len() {
             return;
@@ -101,7 +102,7 @@ pub(super) fn align(s: &mut Session, p: &Json) -> Result<Json> {
     let ids: Vec<u32> =
         p.get("ids").and_then(Json::as_array).map(|a| a.iter().filter_map(|v| v.as_u64().map(|x| x as u32)).collect()).unwrap_or_default();
     let how = str_param(p, "align").unwrap_or("left").to_string();
-    let si = s.doc()?.wb.active_sheet();
+    let si = target_sheet(s, p)?;
     edit(s, |cx| {
         let sheet = cx.sheet_mut(si)?;
         let geo: Vec<(u32, f64, f64, f32, f32)> = {

@@ -2128,9 +2128,11 @@ name = "gridcraft-vba"
 version = "0.14.2"
 dependencies = [
  "cfb",
+ "gridcraft-chart",
  "gridcraft-engine",
  "gridcraft-model",
  "gridcraft-xlsx",
+ "image",
  "serde",
  "serde_json",
  "vba-compiler",

@@ -1,6 +1,6 @@
 # Excel VBA object-model audit and Luna implementation plan
 
-Reviewed 2026-11-03. Status: selected High native profiles delivered; selected Medium work remains. Scope is the
+Reviewed 2026-11-03. Status: selected High native profiles delivered; Medium OM12 native chart/drawing profile completed; OM13 next. Scope is the
 **third surface only: Excel's VBA object
 model**, including its properties, methods, events, collections and enums.
 This is a documentation-led audit, not an audit of a particular workbook.
@@ -989,6 +989,8 @@ All commands used Rust 1.99.1. Evidence logs are local under
 
 ## Revision history
 
+- 2026-11-03: Started Medium OM12 with embedded chart graph/settings, native identity and routing, source-contract test evidence and native/WASM validation.
+
 - 2026-11-03: Delivered remaining OM03/OM04 continuations and selected OM11 persistence events; reconciled High native-profile evidence and exact exclusions.
 
 - 2026-11-03: Delivered native-profile OM07 → OM05 → OM06 → OM18 projections, interleaved ordinary sheet protection, and recorded exact limits and regression evidence. This does not close remaining High invocation/continuation work.
@@ -1258,3 +1260,118 @@ Final closure validation (published pin `8f4bebc3650cd51054fa6786f83a1ac73e07aea
 - All 13 tiny-vba lockfile packages use the published immutable Git revision;
   no local path patch is part of this checkout. Fresh Office oracle comparisons,
   general Medium delivery and Low runtime implementation were not performed.
+
+## Medium kickoff — OM12 embedded chart slice (2026-11-03)
+
+Historical kickoff status (superseded by the completion record below): **first OM12 native chart slice implemented; Medium remains in progress**.
+The order remains OM12 → OM13 → selected OM08/OM09/OM10/OM19/OM15. This slice
+projects existing embedded charts; it does not mark the 1,220-page OM12 family,
+all drawings or the selected Medium stage complete.
+
+| Surface | Native-backed contract |
+|---|---|
+| Worksheet.ChartObjects / ChartObjects | Live Count, one-based/default Item, case-insensitive native generated names, For Each, Parent and Application. Existing charts are resolved by document/sheet/object identity, not collection ordinal. |
+| ChartObject | Chart/Parent/Application, generated read-only Name, Delete, point-based Left/Top/Width/Height, TopLeftCell and Placement. Geometry uses native grid measurement and chart.set; dimensions are limited to the native 20..10,000 point bounds. |
+| Chart | ChartType for represented native families, ChartStyle 1..16, PlotBy, SetSourceData with a same-workbook rectangular Range and optional xlRows/xlColumns, HasTitle/ChartTitle and HasLegend/Legend. Source rebinding reuses chart.selectData and preserves the explicit chart owner on inactive sheets. |
+| ChartTitle / Legend | Title Text/Caption/Delete and Legend.Position; live Parent/Application. Missing title/legend access refuses; mutations retain native drawing protection and grouped undo. Native empty title text means no visible title; setting HasLegend=True preserves an existing position. |
+
+Implementation lives in private `crates/vba/src/chart_api.rs`, using the shared
+Feature registry, nominal resolver and descriptor catalogue. A process-local
+Chart identity follows the existing table/sheet identity contract: it survives
+COW and undo, is excluded from serialization/content equality, and distinguishes
+a replacement chart even when native numeric IDs are reused. VBA property calls
+snapshot only bounded scalar metadata, never the chart's series payloads.
+
+The native chart/anchor commands now accept explicit sheet targeting. Their
+existing default still targets the active chart owner, including when Select Data
+names a different source sheet. This is routing plumbing; no chart calculation,
+renderer, file format or product feature was added. All chart mutations use native
+commands and enforce the current sheet drawing lock before effects.
+
+`ChartObjects.Add` is explicitly OUT_OF_SCOPE_GRIDCRAFT: the existing insert.chart
+command builds a data-backed chart and has no blank-chart creation contract. The
+adapter does not invent dummy cells/series to pretend to create an empty chart.
+Native generated chart names are exposed read-only; arbitrary Excel drawing-name
+storage/rename is not added. Unsupported 3-D/legacy subtype options refuse before
+effects. Series/axes/data-label child graphs, broader Shapes/ShapeRange, text
+frames, pictures, grouping, z-order and export remain subsequent OM12 slices;
+chart-sheet, window-only and provider behavior retain their established scope.
+No new Excel event is inferred by polling chart state. Existing cell-change events
+and native chart recalculation/rendering continue through their owning paths.
+
+Authored acceptance is in `crates/vba/tests/charts.rs`: typed traversal and
+inactive-sheet geometry/settings, enumeration/default/name lookup, native source
+rebinding, single undo groups, numeric-ID reuse during a debugger pause, rejected
+options/protection, deletion/stale children, XLSX round trips and shared renderer
+primitives/data. The six test IDs are linked into generated source contracts and
+validated by vba-audit. These tests are native/WASM contract evidence, not new
+Excel oracle observations.
+
+Next smallest OM12 slice: native SeriesCollection/Series data binding and formatting,
+then the native Shapes graph. Keep OM13 queued behind the selected basic OM12 work.
+
+OM12 kickoff validation:
+
+- Font-enabled `cargo xtask ci`: all 10 stages passed, including **169** native
+  adapter tests and the existing chart/model/XLSX/engine/UI suites.
+- **6** new chart tests passed natively and under Node 22 / wasm-bindgen; the
+  full VBA WASM suite passed **162** tests, including shared chart renderer output.
+- Strict Clippy passed for the adapter and audit-enabled xtask; **28** xtask tests
+  passed. Audit regeneration and non-writing verification retained all **5,996**
+  pinned source pages and link six real test IDs to each of the **35** affected
+  source contracts (34 native projections, one explicit out-of-scope variant).
+- Optional `ui-egui/vba-window` and `gridcraft-web/vba` WASM builds passed.
+  The shared tiny-vba revision remains unchanged. No corpus macro or new Office
+  oracle execution was performed; no asset or workflow was changed.
+
+
+## OM12 native profile completion (2026-11-03)
+
+Status: **OM12 complete for the accepted existing basic chart/drawing profile**.
+Medium remains in progress; **OM13 local pivots is next**. This supersedes the
+kickoff's deferred series/drawing list. It does not certify all 1,220 Excel
+reference pages. The machine-checked [OM12 acceptance ledger](vba-object-model-om12-acceptance.json)
+records required native contracts, bounds, test functions and product exclusions.
+The pinned source catalogue retains PARTIAL rows for unsupported Excel variants.
+
+| Native capability | Delivered projection and boundary |
+|---|---|
+| Embedded charts | ChartObjects live Count/Item/default/enumeration/Delete; ChartObject ownership, generated names, Index, anchor cells, geometry/placement, ShapeRange and native z-order; Chart source/type/style/orientation/title/legend, Delete, Refresh and Location to an existing worksheet. Native chart.move keeps its destination `sheet` distinct from the optional `sourceSheet` owner. |
+| Series | Typed SeriesCollection/Series, same-workbook Range or bounded array bindings, name/values/categories/bubble sizes, native Add with inferred labels, Delete, PlotOrder, ChartType, AxisGroup, Smooth and inclusive boxplot quartiles. Reordering preserves lifetime identity; source replacement invalidates removed elements. Format exposes the native shared series fill/line color. Blank NewSeries, label overrides and writable SERIES formula strings refuse. |
+| Trendlines | Native families, name/automatic name, order/period, Forward2/Backward2, intercept, equation/R-squared, indexed Add/edit/Delete; native line color, 0.25..12 point weight and represented dash styles. Collection budget is 16 per series, matching the renderer. |
+| Axes and chart parts | Primary Cartesian axes plus represented secondary value axes, primary axis titles and value gridlines. Auto scales and ChartArea/PlotArea bounds come from the native renderer layout; manual scales/layout and independent child styling refuse. Native value labels are chart-wide; per-series enable/disable is accepted only for a one-series chart. Label text uses the renderer's source number format. |
+| Shapes and pictures | Live native shapes/images/charts in native paint order, typed Shape wrappers, AddShape for represented presets, AddTextbox, AddLine without unsupported flips, embedded AddPicture through the existing native file service, geometry/placement, native shape OnAction, colors, anchor cells, Delete and native layer-relative z-order. Names remain native generated read-only names. Browser file reads fail explicitly; no picker is opened. |
+| ShapeRange | At most 256 identity-qualified children counted against the shared object budget. Snapshot Item/enumeration/Count, bounding geometry, common-origin translations, same-layer alignment and deletion. All children, bounds and protection are checked before bulk effects. Multi-object collective scaling has no native transform and refuses. |
+| Text and formatting | Textbox Characters slices count UTF-16 code units; invalid surrogate writes refuse. Whole-body native Font/ShapeFormat, paragraph alignment/reading order and Office TextFrame2/TextRange2/Font2 expose stored text fill/outline and vertical anchor. Partial character font runs, margins, autosize, gradients and effects have no native state. |
+| Ownership, persistence and rendering | One document-qualified Feature registry; nonserialized lifetime tokens for charts, series, trendlines, shapes and images survive COW/undo. ShapeRange children follow sheet remapping; parked chart descendants follow native chart transfers, including external command/undo ownership changes. Mutations use native commands with explicit owner sheet and protection preflight, and retain the macro's single undo group. Native/XLSX round trips and shared renderer/raster output are covered. |
+
+No persistent group or connector model exists. `arrange.group` only aligns
+anchors, so VBA Group/Ungroup does not report success. Chart sheets, blank charts,
+chart-only export, object clipboard/duplication, nested chart drawings and
+independent per-point/legend-entry/effect state remain product gaps. Standalone
+sparklines do not supply the missing SparklineGroup/axis/point graph; its Range
+root belongs to OM06 and remains outside that packet's accepted native profile.
+These boundaries are recorded in the ledger, rather than implemented as inert
+objects or dummy data. No chart algorithm, renderer feature, external service,
+workflow or vendor asset was introduced.
+
+Acceptance uses the six chart tests and the drawing/series tests in
+`crates/vba/tests/drawings.rs`, including native file embedding and browser service
+refusal, identity reuse, sheet moves, stale children, protection, source rebinding,
+UTF-16 edits, undo and XLSX/shared raster parity. Office child contracts and enum
+facts are verified against the same pinned archive, separately from the unchanged
+5,996-page Excel inventory.
+
+Final validation (2026-11-03):
+
+- Font-enabled `cargo xtask ci`: all 10 stages passed, including **179** native
+  VBA adapter tests and the workspace chart/model/XLSX/engine/UI suites.
+- Full Node 22 / wasm-bindgen VBA suite: **171** tests passed, including **15**
+  OM12 chart/drawing cases. Native coverage has one additional picture-file test.
+- Strict Clippy passed for the adapter and audit-enabled xtask; **28** xtask tests
+  passed. Audit regeneration and non-writing verification passed for **239**
+  required native source contracts, plus **14** sourced Office child extensions,
+  while retaining all **5,996** pinned Excel pages and the existing High ledger.
+- Optional native `ui-egui/vba-window` and WASM `gridcraft-web/vba` builds passed.
+  The shared tiny-vba revision is unchanged; no new Office oracle execution,
+  vendor asset, workflow change or external service was used.

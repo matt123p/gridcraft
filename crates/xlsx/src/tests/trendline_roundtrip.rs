@@ -11,6 +11,7 @@ use crate::{read_xlsx, write_xlsx};
 fn all_trendlines() -> Vec<Trendline> {
     vec![
         Trendline {
+            identity: Default::default(),
             kind: TrendlineKind::Linear,
             forward: 2.0,
             backward: 0.5,
@@ -18,28 +19,49 @@ fn all_trendlines() -> Vec<Trendline> {
             display_r_squared: true,
             ..Trendline::default()
         },
-        Trendline { kind: TrendlineKind::Exponential, name: Some("Growth & decay".into()), intercept: Some(1.5), ..Trendline::default() },
         Trendline {
+            identity: Default::default(),
+            kind: TrendlineKind::Exponential,
+            name: Some("Growth & decay".into()),
+            intercept: Some(1.5),
+            ..Trendline::default()
+        },
+        Trendline {
+            identity: Default::default(),
             kind: TrendlineKind::Logarithmic,
             color: Some(Color::Rgb(0xC00000)),
             width: Some(2.25),
             dash: Some(LineDash::SysDot),
             ..Trendline::default()
         },
-        Trendline { kind: TrendlineKind::Polynomial(2), ..Trendline::default() },
-        Trendline { kind: TrendlineKind::Polynomial(6), intercept: Some(-3.0), display_equation: true, ..Trendline::default() },
-        Trendline { kind: TrendlineKind::Power, display_r_squared: true, dash: Some(LineDash::LgDashDot), ..Trendline::default() },
-        Trendline { kind: TrendlineKind::MovingAverage(4), ..Trendline::default() },
+        Trendline { identity: Default::default(), kind: TrendlineKind::Polynomial(2), ..Trendline::default() },
+        Trendline {
+            identity: Default::default(),
+            kind: TrendlineKind::Polynomial(6),
+            intercept: Some(-3.0),
+            display_equation: true,
+            ..Trendline::default()
+        },
+        Trendline {
+            identity: Default::default(),
+            kind: TrendlineKind::Power,
+            display_r_squared: true,
+            dash: Some(LineDash::LgDashDot),
+            ..Trendline::default()
+        },
+        Trendline { identity: Default::default(), kind: TrendlineKind::MovingAverage(4), ..Trendline::default() },
     ]
 }
 
 fn chart(id: u32, kind: ChartKind, trendlines: Vec<Trendline>) -> Chart {
     Chart {
+        identity: Default::default(),
         id,
         kind,
         anchor: Anchor { cell: CellRef::new(id * 16, 3), width: 480.0, height: 300.0, ..Anchor::default() },
         title: None,
         series: vec![Series {
+            identity: Default::default(),
             name: Some("Data!$B$1".into()),
             categories: Some("Data!$A$2:$A$6".into()),
             values: "Data!$B$2:$B$6".into(),

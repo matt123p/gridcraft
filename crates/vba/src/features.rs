@@ -12,6 +12,9 @@ pub(crate) struct Feature {
     pub part: i32,
     pub range: Option<ranges::Range>,
     pub identity: Option<SheetIdentity>,
+    pub ancestors: Vec<SheetIdentity>,
+    pub items: Vec<Feature>,
+    pub span: Option<(u32, u32)>,
 }
 impl PartialEq for Feature {
     fn eq(&self, other: &Self) -> bool {
@@ -21,6 +24,10 @@ impl PartialEq for Feature {
             && self.key == other.key
             && self.part == other.part
             && self.range == other.range
+            && self.span == other.span
+            && self.items == other.items
+            && self.ancestors.len() == other.ancestors.len()
+            && self.ancestors.iter().zip(&other.ancestors).all(|(a, b)| a.same(b))
             && match (&self.identity, &other.identity) {
                 (None, None) => true,
                 (Some(a), Some(b)) => a.same(b),
@@ -30,7 +37,7 @@ impl PartialEq for Feature {
 }
 impl Feature {
     pub fn new(kind: &'static str, sheet: Option<usize>) -> Self {
-        Self { kind, sheet, text: None, key: 0, part: 0, range: None, identity: None }
+        Self { kind, sheet, text: None, key: 0, part: 0, range: None, identity: None, ancestors: Vec::new(), items: Vec::new(), span: None }
     }
     pub fn object(self) -> Object {
         Object::Feature(self)
@@ -42,7 +49,64 @@ pub(crate) fn reads(call: &HostCall) -> bool {
 pub(crate) fn absent(value: &Value) -> bool {
     matches!(value, Value::Missing)
 }
+fn chart_lifetime(f: &Feature) -> Option<&SheetIdentity> {
+    f.ancestors.first().or_else(|| {
+        if matches!(
+            f.kind,
+            "Chart"
+                | "ChartObject"
+                | "ChartTitle"
+                | "Legend"
+                | "SeriesCollection"
+                | "Axes"
+                | "Axis"
+                | "AxisTitle"
+                | "Gridlines"
+                | "ChartArea"
+                | "PlotArea"
+        ) || f.text.as_deref() == Some("chart")
+        {
+            f.identity.as_ref()
+        } else {
+            None
+        }
+    })
+}
 impl Bridge {
+    /// Native undo or an external chart.move can transfer the same chart lifetime.
+    /// Repair only the requested chart graph; ordinary cell calls do not scan drawings.
+    pub(crate) fn sync_chart_owner(&self, session: &Session, object: &Object) -> HostResult<()> {
+        let Object::Feature(f) = object else {
+            return Ok(());
+        };
+        let nodes = if f.kind == "ShapeRange" { f.items.iter().collect::<Vec<_>>() } else { vec![f] };
+        let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
+        for node in nodes {
+            let Some(identity) = chart_lifetime(node) else {
+                continue;
+            };
+            let Some(source) = node.sheet else {
+                continue;
+            };
+            if doc.wb.sheet(source).is_some_and(|sh| sh.charts.iter().any(|c| c.identity.same(identity))) {
+                continue;
+            }
+            let target = doc
+                .wb
+                .sheets
+                .iter()
+                .enumerate()
+                .flat_map(|(index, sh)| sh.charts.iter().map(move |c| (index, c)))
+                .take(MAX_OBJECTS)
+                .find(|(_, c)| c.identity.same(identity))
+                .map(|(index, _)| index);
+            if let Some(target) = target {
+                let staged = self.objects.relocate_chart(doc.uid, source, target, identity)?;
+                self.objects.replace(staged)?;
+            }
+        }
+        Ok(())
+    }
     pub(crate) fn feature(&mut self, feature: Feature) -> HostResult<Value> {
         self.intern(feature.object())
     }
@@ -67,6 +131,18 @@ impl Bridge {
         Ok(Value::Array(array))
     }
     pub(crate) fn feature_dispatch(&mut self, session: &mut Session, object: &Object, call: &HostCall) -> Option<HostResult<Value>> {
+        if let Some(result) = self.drawing_api(session, object, call) {
+            return Some(result);
+        }
+        if let Some(result) = self.chart_parts_api(session, object, call) {
+            return Some(result);
+        }
+        if let Some(result) = self.series_api(session, object, call) {
+            return Some(result);
+        }
+        if let Some(result) = self.chart_api(session, object, call) {
+            return Some(result);
+        }
         if let Some(result) = self.protection_api(session, object, call) {
             return Some(result);
         }

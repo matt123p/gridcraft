@@ -180,6 +180,7 @@ pub(super) fn read(obj: &El, anchor: Anchor) -> Option<Shape> {
     let (width, line) = validate_line(sp)?;
     let text = parse_points(path, &anchor, w, h)?;
     Some(Shape {
+        identity: Default::default(),
         id: 0,
         on_action: obj.attr("macro").filter(|s| !s.is_empty()).map(str::to_string),
         kind: ShapeKind::Ink,

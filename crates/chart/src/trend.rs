@@ -265,7 +265,7 @@ pub(crate) fn moving_average(pts: &[(f64, f64)], period: u32) -> Vec<(f64, f64)>
 }
 
 /// Excel's automatic trendline name for the legend, e.g. `Linear (Sales)`.
-pub(crate) fn auto_name(kind: TrendlineKind, series: &str) -> String {
+pub fn auto_name(kind: TrendlineKind, series: &str) -> String {
     let k = match kind {
         TrendlineKind::Linear => "Linear".to_string(),
         TrendlineKind::Exponential => "Expon.".into(),

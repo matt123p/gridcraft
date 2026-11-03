@@ -99,12 +99,12 @@ pub fn specs() -> Vec<CommandSpec> {
             "Chart Properties",
             ["Chart Design"],
             None,
-            "{chart?: id, type?, subtype?, title?, legend?: none|bottom|top|left|right, dataLabels?, gridlines?, quartiles?: exclusive|inclusive, style?, xTitle?, yTitle?, at?, width?, height?, dx?, dy?}",
+            "{sheet?, chart?: id, type?, subtype?, title?, legend?: none|bottom|top|left|right, dataLabels?, gridlines?, quartiles?: exclusive|inclusive, style?, xTitle?, yTitle?, at?, width?, height?, dx?, dy?}",
             has_doc,
             chart_set
         ),
-        cmd!("chart.switchRowColumn", "Switch Row/Column", ["Chart Design", "Data"], None, "{chart?}", has_doc, chart_switch),
-        cmd!("chart.delete", "Delete Chart", [], None, "{chart?}", has_doc, chart_delete),
+        cmd!("chart.switchRowColumn", "Switch Row/Column", ["Chart Design", "Data"], None, "{sheet?, chart?}", has_doc, chart_switch),
+        cmd!("chart.delete", "Delete Chart", [], None, "{sheet?, chart?}", has_doc, chart_delete),
         cmd!(
             "insert.sparkline",
             "Sparklines",
@@ -145,7 +145,15 @@ pub fn specs() -> Vec<CommandSpec> {
             s,
             &with(p, "kind", json!("textBox"))
         )),
-        cmd!("shape.setText", "Edit Text Box", [], None, "{id: textBox id, text: string}", has_doc, shape_set_text),
+        cmd!(
+            "shape.setText",
+            "Edit Text Box",
+            [],
+            None,
+            "{sheet?, id: shape id, text?: string (textBox only), format?: native ShapeFormat patch}",
+            has_doc,
+            shape_set_text
+        ),
         cmd!(
             "shape.setMacro",
             "Assign Shape Macro",
@@ -156,13 +164,21 @@ pub fn specs() -> Vec<CommandSpec> {
             shape_set_macro
         ),
         cmd!("object.delete", "Delete Object", [], None, "{kind: chart|image|shape, id}", has_doc, delete_object),
-        cmd!("object.move", "Move Object", [], None, "{kind: chart|image|shape, id, at?: \"C3\", dx?, dy?, width?, height?}", has_doc, move_object),
+        cmd!(
+            "object.move",
+            "Move Object",
+            [],
+            None,
+            "{sheet?, kind: chart|image|shape, id, at?: \"C3\", dx?, dy?, width?, height?}",
+            has_doc,
+            move_object
+        ),
         cmd!(
             "object.setAnchorMode",
             "Object Properties",
             [],
             None,
-            "{kind: chart|image|shape, id, mode: moveAndSize|moveOnly|absolute}",
+            "{sheet?, kind: chart|image|shape, id, mode: moveAndSize|moveOnly|absolute}",
             has_doc,
             set_anchor_mode
         ),
@@ -653,6 +669,7 @@ pub fn series_from_range(sh: &Sheet, r: RangeRef, by_rows: bool) -> Vec<Series> 
     if !by_rows {
         for c in data.start.col..=data.end.col {
             out.push(Series {
+                identity: Default::default(),
                 name: header_row.then(|| abs1(CellRef::new(r.start.row, c))),
                 categories: label_col.then(|| abs(RangeRef::new(CellRef::new(data.start.row, r.start.col), CellRef::new(data.end.row, r.start.col)))),
                 values: abs(RangeRef::new(CellRef::new(data.start.row, c), CellRef::new(data.end.row, c))),
@@ -668,6 +685,7 @@ pub fn series_from_range(sh: &Sheet, r: RangeRef, by_rows: bool) -> Vec<Series> 
     } else {
         for row in data.start.row..=data.end.row {
             out.push(Series {
+                identity: Default::default(),
                 name: label_col.then(|| abs1(CellRef::new(row, r.start.col))),
                 categories: header_row
                     .then(|| abs(RangeRef::new(CellRef::new(r.start.row, data.start.col), CellRef::new(r.start.row, data.end.col)))),
@@ -824,6 +842,7 @@ pub fn build_chart(s: &Session, p: &Json) -> Result<(usize, Chart)> {
         }
     });
     let chart = Chart {
+        identity: Default::default(),
         id,
         kind,
         anchor: Anchor {
@@ -860,7 +879,7 @@ fn insert_chart(s: &mut Session, p: &Json) -> Result<Json> {
 
 fn find_chart(s: &Session, p: &Json) -> Result<(usize, usize)> {
     let d = s.doc()?;
-    let sheet = d.wb.active_sheet();
+    let sheet = if p.get("sheet").is_some() { target_sheet(s, p)? } else { d.wb.active_sheet() };
     let sh = d.wb.sheet(sheet).ok_or(EngineError::NoDocument)?;
     let idx = match u32_param(p, "chart") {
         Some(id) => sh.charts.iter().position(|c| c.id == id),
@@ -1034,8 +1053,8 @@ fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
     if placement == "cell" {
         let mime = validate_cell_picture(&data)?;
         let d = s.doc()?;
-        let sheet = d.wb.active_sheet();
-        let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
+        let sheet = target_sheet(s, p)?;
+        let sh = d.wb.sheet(sheet).ok_or(EngineError::NoDocument)?;
         let at = match str_param(p, "at") {
             Some(a) => CellRef::parse(a).ok_or_else(|| bad("insert.picture", "invalid cell address"))?,
             None => d.selection.active,
@@ -1061,16 +1080,27 @@ fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
     let (w, h) = crate::io::image_size(&data).unwrap_or((320, 240));
     let d = s.doc()?;
     let id = d.wb.next_object_id();
-    let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
+    let at = cell_param_on(s, p, "at", target_sheet(s, p)?)?.unwrap_or(d.selection.active);
     let scale = (640.0 / w.max(1) as f32).min(1.0);
+    let dimension = |key, original: u32, default: f32| -> Result<f32> {
+        let n = f64_param(p, key).unwrap_or(f64::from(default));
+        let n = if n == -1.0 { f64::from(original) } else { n };
+        if !n.is_finite() || !(0.0..=10000.0).contains(&n) {
+            return Err(bad("insert.picture", "picture dimensions exceed native bounds"));
+        }
+        Ok(n as f32)
+    };
+    let width = dimension("width", w, w as f32 * scale)?;
+    let height = dimension("height", h, h as f32 * scale)?;
     let img = Image {
+        identity: Default::default(),
         id,
         anchor: Anchor {
             cell: at,
-            dx: 0.0,
-            dy: 0.0,
-            width: f64_param(p, "width").map(|v| v as f32).unwrap_or(w as f32 * scale),
-            height: f64_param(p, "height").map(|v| v as f32).unwrap_or(h as f32 * scale),
+            dx: f64_param(p, "dx").unwrap_or(0.0) as f32,
+            dy: f64_param(p, "dy").unwrap_or(0.0) as f32,
+            width,
+            height,
             // Excel inserts pictures as "Move but don't size with cells" (`editAs="oneCell"`).
             mode: anchor_mode_param(p).unwrap_or(gridcraft_model::AnchorMode::MoveOnly),
         },
@@ -1078,7 +1108,7 @@ fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
         mime,
         alt: str_param(p, "alt").unwrap_or("").into(),
     };
-    let sheet = d.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         cx.sheet_mut(sheet)?.images.push(img);
         Ok(json!({"image": id}))
@@ -1124,7 +1154,7 @@ fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
     };
     let d = s.doc()?;
     let id = d.wb.next_object_id();
-    let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
+    let at = cell_param_on(s, p, "at", target_sheet(s, p)?)?.unwrap_or(d.selection.active);
     let fill =
         super::format::color_param(p.get("fill")).unwrap_or(if kind == ShapeKind::TextBox { Color::rgb(255, 255, 255) } else { Color::Theme(4, 0) });
     let line = super::format::color_param(p.get("line")).unwrap_or(if kind == ShapeKind::TextBox {
@@ -1133,13 +1163,14 @@ fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
         Color::Theme(4, -250)
     });
     let shape = Shape {
+        identity: Default::default(),
         on_action: None,
         id,
         kind,
         anchor: Anchor {
             cell: at,
-            dx: 0.0,
-            dy: 0.0,
+            dx: f64_param(p, "dx").unwrap_or(0.0) as f32,
+            dy: f64_param(p, "dy").unwrap_or(0.0) as f32,
             width: f64_param(p, "width").unwrap_or(144.0) as f32,
             height: f64_param(p, "height").unwrap_or(if kind == ShapeKind::Line { 0.0 } else { 96.0 }) as f32,
             mode: anchor_mode_param(p).unwrap_or_default(),
@@ -1149,7 +1180,7 @@ fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
         text: str_param(p, "text").unwrap_or("").into(),
         format: Default::default(),
     };
-    let sheet = d.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         cx.sheet_mut(sheet)?.shapes.push(shape);
         Ok(json!({"shape": id}))
@@ -1160,29 +1191,48 @@ fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
 const SHAPE_TEXT_MAX_CHARS: usize = 32_767;
 
 fn shape_set_text(s: &mut Session, p: &Json) -> Result<Json> {
-    let id =
-        p.get("id").and_then(Json::as_u64).and_then(|id| u32::try_from(id).ok()).ok_or_else(|| bad("shape.setText", "`id` must be a text box id"))?;
-    let text = str_param(p, "text").ok_or_else(|| bad("shape.setText", "`text` must be a string"))?;
-    if text.chars().nth(SHAPE_TEXT_MAX_CHARS).is_some() {
-        return Err(bad("shape.setText", "`text` is longer than 32,767 characters"));
-    }
-    let d = s.doc()?;
-    let sheet = d.wb.active_sheet();
-    let sh = d.wb.active().ok_or_else(|| bad("shape.setText", "no such text box"))?;
-    let shape = sh.shapes.iter().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setText", "no such text box"))?;
-    if shape.kind != ShapeKind::TextBox {
+    let id = u32_param(p, "id").ok_or_else(|| bad("shape.setText", "missing shape id"))?;
+    let sheet = target_sheet(s, p)?;
+    let shape = s.doc()?.wb.sheet(sheet).and_then(|sh| sh.shapes.iter().find(|x| x.id == id)).ok_or_else(|| bad("shape.setText", "no such shape"))?;
+    let text = str_param(p, "text");
+    if text.is_some() && shape.kind != ShapeKind::TextBox {
         return Err(bad("shape.setText", "the shape is not a text box"));
     }
-    // Sheet protection locks drawing objects (there is no "edit objects" allowance yet).
-    if sh.is_protected() {
+    if text.is_some_and(|t| t.chars().nth(SHAPE_TEXT_MAX_CHARS).is_some()) {
+        return Err(bad("shape.setText", "text is longer than 32767 characters"));
+    }
+    let mut format = shape.format.clone();
+    if let Some(patch) = p.get("format") {
+        let fields = patch.as_object().ok_or_else(|| bad("shape.setText", "format must be an object"))?;
+        let mut merged = serde_json::to_value(&format).map_err(|e| bad("shape.setText", e.to_string()))?;
+        for (k, v) in fields {
+            if !["no_line", "font_size", "bold", "italic", "font", "text_color", "text_outline", "align", "anchor", "rtl"].contains(&k.as_str()) {
+                return Err(bad("shape.setText", "unsupported native text format"));
+            }
+            merged[k] = v.clone();
+        }
+        format = serde_json::from_value(merged).map_err(|e| bad("shape.setText", e.to_string()))?;
+        if format.font_size.is_some_and(|v| !v.is_finite() || !(1.0..=4000.0).contains(&v))
+            || format.font.as_ref().is_some_and(|n| n.len() > 256)
+            || format.text_outline.is_some_and(|(_, w)| !w.is_finite() || !(0.0..=100.0).contains(&w))
+        {
+            return Err(bad("shape.setText", "text format bounds"));
+        }
+    } else if text.is_none() {
+        return Err(bad("shape.setText", "text or format required"));
+    }
+    if s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.is_protected()) {
         return Err(EngineError::Other(PROTECTED.into()));
     }
-    if shape.text == text {
+    if text.is_none_or(|t| t == shape.text) && format == shape.format {
         return ok();
     }
     edit(s, |cx| {
-        let shape = cx.sheet_mut(sheet)?.shapes.iter_mut().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setText", "no such text box"))?;
-        shape.text = text.into();
+        let shape = cx.sheet_mut(sheet)?.shapes.iter_mut().find(|x| x.id == id).ok_or_else(|| bad("shape.setText", "shape deleted"))?;
+        if let Some(t) = text {
+            shape.text = t.into();
+        }
+        shape.format = format;
         Ok(Json::Null)
     })
 }
@@ -1200,7 +1250,7 @@ fn shape_set_macro(s: &mut Session, p: &Json) -> Result<Json> {
         }
         _ => return Err(bad("shape.setMacro", "entry must be text up to 256 bytes or null")),
     };
-    let sheet = s.doc()?.sheet_index();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         if sh.is_protected() {
@@ -1218,7 +1268,7 @@ fn shape_set_macro(s: &mut Session, p: &Json) -> Result<Json> {
 fn delete_object(s: &mut Session, p: &Json) -> Result<Json> {
     let id = u32_param(p, "id").ok_or_else(|| bad("object.delete", "missing `id`"))?;
     let kind = str_param(p, "kind").unwrap_or("").to_string();
-    let sheet = s.doc()?.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         match kind.as_str() {
@@ -1234,8 +1284,8 @@ fn delete_object(s: &mut Session, p: &Json) -> Result<Json> {
 fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
     let id = u32_param(p, "id").ok_or_else(|| bad("object.move", "missing `id`"))?;
     let kind = str_param(p, "kind").unwrap_or("").to_string();
-    let sheet = s.doc()?.wb.active_sheet();
-    let at = cell_param(s, p, "at")?;
+    let sheet = target_sheet(s, p)?;
+    let at = cell_param_on(s, p, "at", target_sheet(s, p)?)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         let anchor = match kind.as_str() {
@@ -1275,7 +1325,7 @@ fn set_anchor_mode(s: &mut Session, p: &Json) -> Result<Json> {
         return Err(bad("object.setAnchorMode", "kind must be chart, image or shape"));
     }
     let mode = anchor_mode_param(p).ok_or_else(|| bad("object.setAnchorMode", "mode must be moveAndSize, moveOnly or absolute"))?;
-    let sheet = s.doc()?.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         let anchor = match kind.as_str() {
@@ -1791,6 +1841,7 @@ fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
     let color = super::format::color_param(p.get("color")).unwrap_or(Color::Theme(1, 0));
     let shape = Shape {
+        identity: Default::default(),
         on_action: None,
         id,
         kind: ShapeKind::Icon,

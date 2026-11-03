@@ -25,9 +25,11 @@ use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
 pub use raster::rasterize;
-pub use render::{Swatch, legend_entries, render, supports_trendline};
-pub use resolve::{default_palette, resolve, series_color, series_plot_kind};
+pub use render::{Layout, Swatch, legend_entries, render, render_layout, supports_trendline};
+pub use resolve::{default_palette, resolve, series_color, series_name as resolve_series_name, series_plot_kind};
 pub use sparkline::render_sparkline;
+/// Native automatic legend label for a trendline.
+pub use trend::auto_name as trendline_name;
 
 /// Straight (non-premultiplied) RGBA colour.
 pub type Rgba = [u8; 4];

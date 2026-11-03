@@ -133,6 +133,7 @@ fn read_series(s: &El) -> Series {
         .or_else(|| sp.and_then(|p| p.path(&["ln", "solidFill"])).and_then(dml_color))
         .or_else(|| s.path(&["marker", "spPr", "solidFill"]).and_then(dml_color));
     Series {
+        identity: Default::default(),
         name,
         categories: data_ref(s.child("cat")).or_else(|| data_ref(s.child("xVal"))),
         values: data_ref(s.child("val")).or_else(|| data_ref(s.child("yVal"))).unwrap_or_default(),
@@ -184,6 +185,7 @@ fn read_trendline(t: &El) -> Option<Trendline> {
     };
     let ln = t.path(&["spPr", "ln"]);
     Some(Trendline {
+        identity: Default::default(),
         kind,
         name: t.child("name").map(|n| n.text.clone()),
         forward: Trendline::clamp_forecast(f64_val(t, "forward").unwrap_or(0.0)),
@@ -261,6 +263,7 @@ pub fn read_chart(root: &El) -> Option<Chart> {
         },
     };
     Some(Chart {
+        identity: Default::default(),
         id: 0,
         kind,
         anchor: Default::default(),

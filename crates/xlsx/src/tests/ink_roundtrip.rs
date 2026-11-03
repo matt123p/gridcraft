@@ -65,6 +65,7 @@ fn exported_ink_has_a_visible_unfilled_path_and_correct_stroke() {
     let mut sheet = Sheet::new("Ink");
     for (id, width) in [(1, 3), (2, 12)] {
         sheet.shapes.push(Shape {
+            identity: Default::default(),
             on_action: None,
             id,
             kind: ShapeKind::Ink,

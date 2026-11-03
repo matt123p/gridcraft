@@ -157,7 +157,14 @@ pub fn read_drawing(cx: &mut Ctx<'_>, part: &str, sheet: &mut Sheet) -> Result<(
                     };
                     let alt = obj.path(&["nvPicPr", "cNvPr"]).and_then(|c| c.attr("descr")).unwrap_or("").to_string();
                     let id = cx.next_object_id();
-                    sheet.images.push(Image { id, anchor, data: data.into(), mime: mime_for(&target).to_string(), alt });
+                    sheet.images.push(Image {
+                        identity: Default::default(),
+                        id,
+                        anchor,
+                        data: data.into(),
+                        mime: mime_for(&target).to_string(),
+                        alt,
+                    });
                 }
                 "graphicFrame" => {
                     let Some(gd) = obj.path(&["graphic", "graphicData"]) else { continue };
@@ -190,7 +197,7 @@ pub fn read_drawing(cx: &mut Ctx<'_>, part: &str, sheet: &mut Sheet) -> Result<(
                 "sp" | "cxnSp" => {
                     if let Some(s) = read_shape(obj, anchor) {
                         let id = cx.next_object_id();
-                        sheet.shapes.push(Shape { id, ..s });
+                        sheet.shapes.push(Shape { identity: Default::default(), id, ..s });
                     }
                 }
                 "grpSp" => cx.warn(format!("grouped shapes are not supported and were skipped ({part}, object {n})")),
@@ -230,7 +237,17 @@ fn read_shape(obj: &El, anchor: Anchor) -> Option<Shape> {
         .unwrap_or_default();
     let mut format = read_text_format(obj.child("txBody"));
     format.no_line = ln.is_some_and(|l| l.child("noFill").is_some());
-    Some(Shape { id: 0, on_action: obj.attr("macro").filter(|s| !s.is_empty()).map(str::to_string), kind, anchor, fill, line, text, format })
+    Some(Shape {
+        identity: Default::default(),
+        id: 0,
+        on_action: obj.attr("macro").filter(|s| !s.is_empty()).map(str::to_string),
+        kind,
+        anchor,
+        fill,
+        line,
+        text,
+        format,
+    })
 }
 
 /// A shape's text formatting: vertical anchor (`a:bodyPr anchor`), the first paragraph's

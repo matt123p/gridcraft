@@ -187,7 +187,8 @@ fn is_defined_name(wb: &Workbook, sheet: usize, t: &str) -> bool {
 
 /// A series name: a reference/formula or a defined name (`[0]!Title` in a file) is evaluated,
 /// a quoted or other bare literal is used as is.
-fn series_name(wb: &Workbook, sheet: usize, name: &str) -> String {
+/// Resolve one native series label without materializing its value data.
+pub fn series_name(wb: &Workbook, sheet: usize, name: &str) -> String {
     let t = name.trim();
     if let Some(q) = t.strip_prefix('"').and_then(|q| q.strip_suffix('"')) {
         return q.replace("\"\"", "\"");

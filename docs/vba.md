@@ -519,3 +519,22 @@ Font-enabled retest (2026-11-03): enabling the existing CI-pinned
 `CRAFT_FONTS_REQUIRED=1` resolves both missing-glyph failures. All 903 UI
 integration tests and all ten `cargo xtask ci` stages pass. The implementation
 plan records the exact invocation; no glyph assertions or font policy changed.
+
+## OM12 charts and drawings (2026-11-03)
+
+Existing native charts, series, trendlines, axes/titles/value labels, chart/plot
+areas and worksheet shapes are reachable through typed Excel objects. Shapes
+include native embedded pictures, textboxes and the supported presets. Text uses
+Characters and Office TextFrame2/TextRange2/Font2; fill/line colors and represented
+text formatting write the existing native model through commands. Collections,
+ShapeRange snapshots, placement, geometry, OnAction and native layer z-order
+retain document ownership, protection, grouped undo and lifetime identity.
+
+OM12 is complete for its existing basic native profile. Medium continues with
+OM13. The [completion record](vba-object-model-implementation-plan.md#om12-native-profile-completion-2026-11-03)
+and [acceptance ledger](vba-object-model-om12-acceptance.json) give exact bounds and
+exclusions: blank charts, chart sheets, persistent groups/connectors, object
+clipboard, chart-only export and independent unsupported child/effect state are
+not projected. Explicit native picture paths use the existing file service;
+browser filesystem calls refuse before insertion. No dummy data or inert group
+objects are created to satisfy an Excel-shaped call.

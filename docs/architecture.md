@@ -222,6 +222,8 @@ and machine-readable acceptance ledger define the exact delivered profile.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Complete OM12 native chart/drawing graph, series/trendline/shape identities, Office child types and bounded snapshots |
+| 2026-11-03 | minor | First OM12 embedded chart projection, nonserialized chart identity, explicit native sheet routing and renderer/round-trip evidence |
 | 2026-11-03 | minor | OM03/OM04 suspended host operations, cancellable OM11 native lifecycle events and High evidence reconciliation |
 | 2026-11-03 | minor | Linked priority-based OM delivery: High first, selected Medium next, Low deferred; stable IDs retained |
 | 2026-11-03 | minor | Native-backed High VBA formula, formatting, data and table family modules; live identities, writer previews and matrix-layout conversion |
@@ -249,3 +251,36 @@ External structural/undo epochs invalidate saved coordinates; native VBA structu
 commands still rebase them. Native typed values/formats and style changes share
 command protection/undo/recording. No new layer edge or Office definitions enter
 tiny-vba. See [the contract/evidence](vba-m4-identity-values-and-members.md).
+
+## OM12 embedded chart projection (2026-11-03)
+
+The private optional `vba::chart_api` projects existing chart containers/settings,
+source ranges, titles, legends and geometry through native chart/anchor commands.
+Explicit sheet parameters retain owner identity without switching the active view.
+Chart's nonserialized process-local identity follows the sheet/table COW/undo
+contract and prevents reused numeric IDs from retargeting captured VBA objects.
+The adapter snapshots bounded scalar metadata, not series payloads; the existing
+chart resolver/renderer and XLSX writer remain authoritative. See the
+[Medium kickoff record](vba-object-model-implementation-plan.md#medium-kickoff--om12-embedded-chart-slice-2026-11-03).
+
+
+## OM12 chart and drawing graph completion (2026-11-03)
+
+The optional bridge adds private `series_api`, `chart_parts_api` and `drawing_api`
+modules beside `chart_api`. All nodes use the existing document-qualified Feature
+registry and nominal type resolver. ShapeRange stores bounded flat child handles;
+its child weight is charged against the shared registry budget and sheet remaps
+update both the range and its children. Native series, trendlines, shapes and
+images use the same nonserialized lifetime-token pattern as charts and sheets.
+
+Mutations stay in engine commands, including narrow native-field patches for
+series/trendlines and ShapeFormat. Explicit sheet routing targets inactive owners
+without changing the user's view. `chart.move` separates owner and destination
+parameters. Renderer `render_layout` returns the computed automatic plot/axis
+layout alongside the same primitive output as `render`; the VBA adapter reuses
+that calculation. It does not contain a competing layout or chart algorithm.
+
+The reference set includes fork-owned Office child types and enum facts verified
+from the pinned archive. Shared Office contracts outside the Excel inventory are
+reported separately. The [OM12 native acceptance ledger](vba-object-model-om12-acceptance.json)
+records native capabilities, tests and unsupported product state/services.

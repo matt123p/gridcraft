@@ -457,6 +457,8 @@ pub enum QuartileMethod {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Series {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     /// Formula text for the series name (`Sheet1!$B$1`) or a literal.
     pub name: Option<String>,
     pub categories: Option<String>,
@@ -515,6 +517,8 @@ pub enum LineDash {
 /// A chart trendline (Add Chart Element ▸ Trendline, Format Trendline pane).
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Trendline {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub kind: TrendlineKind,
     /// Custom name shown in the legend; `None` = automatic ("Linear (Sales)").
     pub name: Option<String>,
@@ -548,6 +552,9 @@ impl Trendline {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Chart {
+    /// Process-local object lifetime; survives COW/undo and is excluded from files/equality.
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub id: u32,
     pub kind: ChartKind,
     pub anchor: Anchor,
@@ -570,6 +577,8 @@ pub struct Chart {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Image {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub id: u32,
     pub anchor: Anchor,
     /// Encoded bytes (PNG/JPEG), base64 in JSON. Shared, so a copy of the sheet (an undo step)
@@ -599,6 +608,8 @@ pub enum ShapeKind {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Shape {
+    #[serde(skip)]
+    pub identity: crate::sheet::SheetIdentity,
     pub id: u32,
     /// Macro name assigned to this shape (Excel OnAction / DrawingML macro).
     /// Inert model data: execution and permission belong to the optional application host.

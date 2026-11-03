@@ -6,16 +6,20 @@ mod address;
 mod application;
 mod host_ops;
 pub use host_ops::{LifecyclePrompt, PromptRequest, PromptResponse, PromptServices};
+mod chart_api;
+mod chart_parts_api;
 mod clipboard;
 mod condition_details;
 mod conditional_api;
 mod data_api;
+mod drawing_api;
 mod features;
 mod format_api;
 mod formatting;
 mod formula_api;
 mod lifecycle;
 mod lifecycle_events;
+mod series_api;
 pub use lifecycle_events::{LifecycleEvent, LifecycleEventBatch};
 mod named_style_api;
 mod objects;
@@ -714,6 +718,11 @@ impl Host for WorkbookHost<'_> {
                         Object::Document(_, object) => *object,
                         _ => object,
                     };
+                    self.bridge.sync_chart_owner(session, &object)?;
+                    let object = match self.bridge.objects.get(call.target)? {
+                        Object::Document(_, object) => *object,
+                        object => object,
+                    };
                     if let Some(token) = self.bridge.defer_call(session, &object, &call)? {
                         suspended = Some(token);
                         return Ok(Value::Empty);
@@ -938,6 +947,10 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         availability: if owner == "Application" && name == "Run" { MemberAvailability::Implemented } else { MemberAvailability::OutOfScope },
         implementation_symbol: if owner == "Application" && name == "Run" { "crates/vba/src/host_ops.rs::Bridge::defer_call" } else { "crates/vba/src/objects.rs::Bridge::invoke_object" },
     }))
+    .chain(chart_api::descriptors())
+    .chain(chart_parts_api::descriptors())
+    .chain(series_api::descriptors())
+    .chain(drawing_api::descriptors())
     .chain(formula_api::descriptors())
     .chain(format_api::descriptors())
     .chain(named_style_api::descriptors())
@@ -956,7 +969,7 @@ pub fn catalog() -> Vec<ApiMember> {
     member_descriptors()
         .into_iter()
         .map(|member| ApiMember {
-            library: "Excel".into(),
+            library: if types::OFFICE_TYPES.contains(&member.owner) { "Office" } else { "Excel" }.into(),
             owner: member.owner.into(),
             name: member.name.into(),
             signature: member.signature.into(),

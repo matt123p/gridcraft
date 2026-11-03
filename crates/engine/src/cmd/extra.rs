@@ -39,17 +39,17 @@ pub fn specs() -> Vec<CommandSpec> {
             "Add Chart Element",
             ["Chart Design", "Chart Layouts"],
             None,
-            "{chart?, element: title|legend|dataLabels|gridlines|axisTitles|smooth|trendline, on?: bool, position?: bottom|top|left|right; trendline: series?: index (default all), type?: linear|exponential|linearForecast|movingAverage|logarithmic|power|polynomial, order?: 2..6, period?: 2..255, forward?, backward?, displayEquation?, displayRSquared?}",
+            "{sheet?, chart?, element: title|legend|dataLabels|gridlines|axisTitles|smooth|trendline, on?: bool, position?: bottom|top|left|right; trendline: series?: index (default all), type?: linear|exponential|linearForecast|movingAverage|logarithmic|power|polynomial, order?: 2..6, period?: 2..255, forward?, backward?, displayEquation?, displayRSquared?, name?, intercept?, trendline?: index (edit/delete one)}",
             has_doc,
             add_element
         ),
-        cmd!("chart.quickLayout", "Quick Layout", ["Chart Design", "Chart Layouts"], None, "{chart?, layout: 1..6}", has_doc, quick_layout),
+        cmd!("chart.quickLayout", "Quick Layout", ["Chart Design", "Chart Layouts"], None, "{sheet?, chart?, layout: 1..6}", has_doc, quick_layout),
         cmd!(
             "chart.changeColors",
             "Change Colors",
             ["Chart Design", "Chart Styles"],
             None,
-            "{chart?, palette: colorful|monochrome|accent1..accent6 | colors: [hex…]}",
+            "{sheet?, chart?, palette: colorful|monochrome|accent1..accent6 | colors: [hex…]}",
             has_doc,
             change_colors
         ),
@@ -58,18 +58,18 @@ pub fn specs() -> Vec<CommandSpec> {
             "Select Data…",
             ["Chart Design", "Data"],
             None,
-            "{chart?, range?: \"Sheet1!A1:D7\", byRows?: bool, categories?: \"Sheet1!A2:A7\" (Horizontal (Category) Axis Labels for every series; \"\" clears), removeSeries?: [index…]}",
+            "{sheet?, chart?, range?: \"Sheet1!A1:D7\", byRows?: bool, categories?: \"Sheet1!A2:A7\" (Horizontal (Category) Axis Labels for every series; \"\" clears), removeSeries?: [index…], append?: bool, series?: index, seriesPatch?: {name?, values?, categories?, bubbleSizes?, smooth?, secondary?, type?, subtype?}}",
             has_doc,
             select_data
         ),
-        cmd!("chart.changeType", "Change Chart Type…", ["Chart Design", "Type"], None, "{chart?, type, subtype?}", has_doc, |s, p| s
+        cmd!("chart.changeType", "Change Chart Type…", ["Chart Design", "Type"], None, "{sheet?, chart?, type, subtype?}", has_doc, |s, p| s
             .execute("chart.set", p.clone())),
         cmd!(
             "chart.move",
             "Move Chart…",
             ["Chart Design", "Location"],
             None,
-            "{chart?, sheet?: name (moves to that sheet), at?: \"B2\"}",
+            "{sourceSheet?, chart?, sheet?: name (moves to that sheet), at?: \"B2\"}",
             has_doc,
             move_chart
         ),
@@ -78,7 +78,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Format Selection",
             ["Format", "Current Selection"],
             None,
-            "{chart?, series?: index, color?: hex}",
+            "{sheet?, chart?, series?: index, color?: hex}",
             has_doc,
             format_series
         ),
@@ -87,7 +87,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Shape Fill",
             ["Format", "Shape Styles"],
             None,
-            "{chart? | kind: shape, id?, series?, color: hex}",
+            "{sheet?, chart? | kind: shape, id?, series?, color: hex}",
             has_doc,
             shape_fill
         ),

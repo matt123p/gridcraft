@@ -36,6 +36,7 @@ const ALL_KINDS: [ChartKind; 26] = [
 
 fn chart(kind: ChartKind) -> Chart {
     Chart {
+        identity: Default::default(),
         id: 1,
         kind,
         anchor: Anchor::default(),
@@ -222,6 +223,7 @@ fn resolve_from_workbook() {
     let mut c = chart(ChartKind::ColumnClustered);
     c.series = vec![
         Series {
+            identity: Default::default(),
             name: Some("Sales!$B$1".into()),
             categories: Some("Sales!$A$2:$A$4".into()),
             values: "Sales!$B$2:$B$4".into(),
@@ -234,6 +236,7 @@ fn resolve_from_workbook() {
             trendlines: Vec::new(),
         },
         Series {
+            identity: Default::default(),
             name: None,
             categories: None,
             values: "=Sales!$C$2:$C$4".into(),
@@ -246,6 +249,7 @@ fn resolve_from_workbook() {
             trendlines: Vec::new(),
         },
         Series {
+            identity: Default::default(),
             name: Some("Literal".into()),
             categories: None,
             values: "{1,2,3,4}".into(),
@@ -285,6 +289,7 @@ fn resolve_from_workbook() {
     let mut c = chart(ChartKind::Combo);
     c.series = vec![
         Series {
+            identity: Default::default(),
             name: None,
             categories: None,
             values: "Sales!B2:B4".into(),
@@ -297,6 +302,7 @@ fn resolve_from_workbook() {
             trendlines: Vec::new(),
         },
         Series {
+            identity: Default::default(),
             name: None,
             categories: None,
             values: "Sales!B2:B4".into(),
@@ -314,6 +320,7 @@ fn resolve_from_workbook() {
     assert_eq!(d.series[1].kind, ChartKind::Line);
     let mut c = chart(ChartKind::Bubble);
     c.series = vec![Series {
+        identity: Default::default(),
         name: None,
         categories: Some("Sales!B2:B4".into()),
         values: "Sales!B2:B4".into(),
@@ -332,6 +339,7 @@ fn resolve_from_workbook() {
     // Bad formulas never panic.
     let mut c = chart(ChartKind::Line);
     c.series = vec![Series {
+        identity: Default::default(),
         name: Some("=Nope!A1".into()),
         categories: Some("((".into()),
         values: "Missing!A1:A3".into(),
@@ -368,7 +376,12 @@ fn scatter_with_text_x_values_numbers_the_points() {
     }
     for kind in [ChartKind::Scatter, ChartKind::ScatterLines, ChartKind::Bubble] {
         let mut c = chart(kind);
-        c.series = vec![Series { categories: Some("Sheet1!$A$1:$A$3".into()), values: "Sheet1!$B$1:$B$3".into(), ..Default::default() }];
+        c.series = vec![Series {
+            identity: Default::default(),
+            categories: Some("Sheet1!$A$1:$A$3".into()),
+            values: "Sheet1!$B$1:$B$3".into(),
+            ..Default::default()
+        }];
         let d = resolve(&wb, 0, &c);
         assert_eq!(d.series[0].x, None, "{kind:?}");
         let prims = render(&c, &d, 400.0, 300.0, &ApproxMeasure);
@@ -632,6 +645,7 @@ fn fuzz_random_data_and_sizes() {
                 trendlines: (0..r.next() % 3)
                     .map(|_| TrendlineData {
                         spec: Trendline {
+                            identity: Default::default(),
                             kind: [
                                 TrendlineKind::Linear,
                                 TrendlineKind::Exponential,
@@ -711,7 +725,7 @@ fn close(a: f64, b: f64) -> bool {
 }
 
 fn fit(kind: TrendlineKind, pts: &[(f64, f64)]) -> crate::trend::TrendFit {
-    crate::trend::fit_trendline(&Trendline { kind, ..Trendline::default() }, pts).expect("fits")
+    crate::trend::fit_trendline(&Trendline { identity: Default::default(), kind, ..Trendline::default() }, pts).expect("fits")
 }
 
 #[test]
@@ -736,7 +750,7 @@ fn set_intercept_fits_through_it() {
     let ss_res: f64 = pts.iter().map(|(x, y)| (y - 15.0 / 7.0 * x).powi(2)).sum();
     assert!(close(f.r2.unwrap(), 1.0 - ss_res / 65.0));
     let q = crate::trend::fit_trendline(
-        &Trendline { kind: TrendlineKind::Polynomial(2), intercept: Some(2.0), ..Trendline::default() },
+        &Trendline { identity: Default::default(), kind: TrendlineKind::Polynomial(2), intercept: Some(2.0), ..Trendline::default() },
         &[(1.0, 0.0), (2.0, 0.0), (3.0, 2.0), (4.0, 6.0)],
     )
     .unwrap();
@@ -761,8 +775,11 @@ fn transformed_trendlines_recover_their_curves() {
     let skip = fit(TrendlineKind::Exponential, &[(1.0, 2.0f64.exp()), (2.0, 0.0), (3.0, -4.0), (4.0, 8.0f64.exp())]);
     assert!(close(skip.coef[1], 2.0) && close(skip.coef[0], 0.0), "{:?}", skip.coef);
     assert!(
-        crate::trend::fit_trendline(&Trendline { kind: TrendlineKind::Power, ..Trendline::default() }, &[(-1.0, 1.0), (0.0, 2.0), (3.0, 3.0)])
-            .is_none()
+        crate::trend::fit_trendline(
+            &Trendline { identity: Default::default(), kind: TrendlineKind::Power, ..Trendline::default() },
+            &[(-1.0, 1.0), (0.0, 2.0), (3.0, 3.0)]
+        )
+        .is_none()
     );
 }
 
@@ -793,12 +810,18 @@ fn degenerate_trendlines_fit_nothing() {
     assert!(lin(&[(2.0, 1.0), (2.0, 5.0), (2.0, 3.0)]).is_none(), "all x equal is singular");
     assert!(lin(&[(f64::NAN, 1.0), (1.0, f64::INFINITY), (2.0, 3.0)]).is_none());
     assert!(
-        crate::trend::fit_trendline(&Trendline { kind: TrendlineKind::Polynomial(3), ..Trendline::default() }, &[(1.0, 1.0), (2.0, 4.0), (3.0, 9.0)])
-            .is_none()
+        crate::trend::fit_trendline(
+            &Trendline { identity: Default::default(), kind: TrendlineKind::Polynomial(3), ..Trendline::default() },
+            &[(1.0, 1.0), (2.0, 4.0), (3.0, 9.0)]
+        )
+        .is_none()
     );
     assert!(
-        crate::trend::fit_trendline(&Trendline { kind: TrendlineKind::MovingAverage(2), ..Trendline::default() }, &[(1.0, 1.0), (2.0, 2.0)])
-            .is_none()
+        crate::trend::fit_trendline(
+            &Trendline { identity: Default::default(), kind: TrendlineKind::MovingAverage(2), ..Trendline::default() },
+            &[(1.0, 1.0), (2.0, 2.0)]
+        )
+        .is_none()
     );
     let flat = lin(&[(1.0, 4.0), (2.0, 4.0), (3.0, 4.0)]).unwrap();
     assert_eq!((flat.equation(), flat.r2), ("y = 4".to_string(), None));
@@ -833,8 +856,10 @@ fn line_chart_draws_trendline_forecast_and_labels() {
     let m = ApproxMeasure;
     let tc: Rgba = [1, 2, 3, 255];
     let mut s = series("Sales", &[9.0, 7.0, 5.0, 3.0], [10, 20, 30, 255], ChartKind::Line);
-    s.trendlines =
-        vec![TrendlineData { spec: Trendline { forward: 1.0, display_equation: true, display_r_squared: true, ..Trendline::default() }, color: tc }];
+    s.trendlines = vec![TrendlineData {
+        spec: Trendline { identity: Default::default(), forward: 1.0, display_equation: true, display_r_squared: true, ..Trendline::default() },
+        color: tc,
+    }];
     let d =
         ChartData { category_levels: vec![], palette: vec![], categories: ["a", "b", "c", "d"].map(String::from).to_vec(), series: vec![s.clone()] };
     let mut c = chart(ChartKind::Line);
@@ -873,12 +898,24 @@ fn scatter_trendlines_use_x_values_and_stay_in_the_plot() {
     let colors: [Rgba; 3] = [[1, 0, 0, 255], [2, 0, 0, 255], [3, 0, 0, 255]];
     s.trendlines = vec![
         TrendlineData {
-            spec: Trendline { kind: TrendlineKind::Power, backward: 0.5, display_equation: true, ..Trendline::default() },
+            spec: Trendline {
+                identity: Default::default(),
+                kind: TrendlineKind::Power,
+                backward: 0.5,
+                display_equation: true,
+                ..Trendline::default()
+            },
             color: colors[0],
         },
         // A steep exponential leaves the plot box and is clipped to it.
-        TrendlineData { spec: Trendline { kind: TrendlineKind::Exponential, forward: 30.0, ..Trendline::default() }, color: colors[1] },
-        TrendlineData { spec: Trendline { kind: TrendlineKind::MovingAverage(2), ..Trendline::default() }, color: colors[2] },
+        TrendlineData {
+            spec: Trendline { identity: Default::default(), kind: TrendlineKind::Exponential, forward: 30.0, ..Trendline::default() },
+            color: colors[1],
+        },
+        TrendlineData {
+            spec: Trendline { identity: Default::default(), kind: TrendlineKind::MovingAverage(2), ..Trendline::default() },
+            color: colors[2],
+        },
     ];
     let d = ChartData { category_levels: vec![], palette: vec![], categories: vec![], series: vec![s] };
     let mut c = chart(ChartKind::Scatter);
@@ -967,6 +1004,7 @@ fn union_series_references() {
     }
     let mut c = chart(ChartKind::ColumnClustered);
     c.series = vec![Series {
+        identity: Default::default(),
         name: Some("\"Sum of X\"".into()),
         categories: Some("(Sheet1!$A$1:$A$2,Sheet1!$A$4)".into()),
         values: "(Sheet1!$B$1:$B$2,Sheet1!$B$4)".into(),
@@ -1033,6 +1071,7 @@ fn pie_points_follow_workbook_theme() {
     wb.theme.colors[5] = 0x8AA1B8;
     let mut c = chart(ChartKind::Pie);
     c.series = vec![Series {
+        identity: Default::default(),
         name: None,
         categories: None,
         values: "{5,3}".into(),
@@ -1160,7 +1199,12 @@ fn two_level_categories_resolve_and_draw() {
         }
     }
     let mut c = chart(ChartKind::Line);
-    c.series = vec![Series { categories: Some("Sales!$A$2:$B$7".into()), values: "Sales!$C$2:$C$7".into(), ..Default::default() }];
+    c.series = vec![Series {
+        identity: Default::default(),
+        categories: Some("Sales!$A$2:$B$7".into()),
+        values: "Sales!$C$2:$C$7".into(),
+        ..Default::default()
+    }];
     let d = resolve(&wb, 0, &c);
     assert_eq!(d.categories, months);
     assert_eq!(d.category_levels, vec![years.map(String::from).to_vec()]);
@@ -1217,7 +1261,8 @@ fn a_huge_trendline_forecast_does_not_collapse_the_columns() {
     let tc: Rgba = [1, 2, 3, 255];
     let col: Rgba = [10, 20, 30, 255];
     let mut s = series("Sales", &[1.0, 3.0, 2.0, 5.0, 4.0], col, ChartKind::ColumnClustered);
-    s.trendlines = vec![TrendlineData { spec: Trendline { forward: 1e6, backward: 1e6, ..Trendline::default() }, color: tc }];
+    s.trendlines =
+        vec![TrendlineData { spec: Trendline { identity: Default::default(), forward: 1e6, backward: 1e6, ..Trendline::default() }, color: tc }];
     let d = ChartData { palette: vec![], category_levels: vec![], categories: ["a", "b", "c", "d", "e"].map(String::from).to_vec(), series: vec![s] };
     let mut c = chart(ChartKind::ColumnClustered);
     c.legend = LegendPos::None;

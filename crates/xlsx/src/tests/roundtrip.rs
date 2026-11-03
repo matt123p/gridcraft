@@ -360,6 +360,7 @@ fn sample() -> Workbook {
     });
     let png = b"\x89PNG\r\n\x1a\n0000IHDRfake".to_vec();
     s.images.push(Image {
+        identity: Default::default(),
         id: 10,
         // A non-default anchor mode, to prove it survives an xlsx round-trip.
         anchor: Anchor { cell: at("C10"), dx: 5.0, dy: 4.0, width: 120.0, height: 80.0, mode: AnchorMode::MoveOnly },
@@ -368,6 +369,7 @@ fn sample() -> Workbook {
         alt: "Logo \"x\"".into(),
     });
     s.shapes.push(Shape {
+        identity: Default::default(),
         on_action: None,
         id: 11,
         kind: ShapeKind::Ellipse,
@@ -378,6 +380,7 @@ fn sample() -> Workbook {
         format: Default::default(),
     });
     s.shapes.push(Shape {
+        identity: Default::default(),
         on_action: None,
         id: 12,
         kind: ShapeKind::Arrow,
@@ -388,6 +391,7 @@ fn sample() -> Workbook {
         format: Default::default(),
     });
     s.shapes.push(Shape {
+        identity: Default::default(),
         on_action: None,
         id: 13,
         kind: ShapeKind::TextBox,
@@ -409,11 +413,13 @@ fn sample() -> Workbook {
         },
     });
     let base_chart = Chart {
+        identity: Default::default(),
         id: 20,
         kind: ChartKind::ColumnClustered,
         anchor: Anchor { cell: at("J5"), dx: 0.0, dy: 0.0, width: 480.0, height: 288.0, ..Default::default() },
         title: Some("Sales".into()),
         series: vec![Series {
+            identity: Default::default(),
             name: Some("'Data & Stuff'!$B$1".into()),
             categories: Some("'Data & Stuff'!$A$2:$A$3".into()),
             values: "'Data & Stuff'!$B$2:$B$3".into(),
@@ -459,6 +465,7 @@ fn sample() -> Workbook {
     }
     let mut combo = Chart { kind: ChartKind::Combo, legend: LegendPos::Right, ..base_chart.clone() };
     combo.series.push(Series {
+        identity: Default::default(),
         name: Some("Literal".into()),
         kind: Some(ChartKind::Line),
         secondary: true,

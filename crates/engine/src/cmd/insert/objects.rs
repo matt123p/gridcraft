@@ -67,6 +67,7 @@ pub(super) fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
     let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
     let scale = (640.0 / w.max(1) as f32).min(1.0);
     let img = Image {
+        identity: Default::default(),
         id,
         anchor: Anchor {
             cell: at,
@@ -139,6 +140,7 @@ pub(super) fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
         Color::Theme(4, -250)
     });
     let shape = Shape {
+        identity: Default::default(),
         id,
         kind,
         anchor: Anchor {

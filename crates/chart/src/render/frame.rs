@@ -98,6 +98,9 @@ impl ValAxis<'_> {
 
 /// Draws gridlines, axis labels and the category axis line; returns the plot rectangle.
 pub(super) fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis>, horizontal: bool, grid: bool) -> Bx {
+    ctx.layout.value = Some(y.scale);
+    ctx.layout.secondary = y2.map(|a| a.scale);
+    ctx.layout.category = if let CatAxis::Numeric(scale, _) = &cat { Some(*scale) } else { None };
     let ls = LABEL_SIZE;
     let lh = ls * 1.4;
     let ylabels = y.labels();
@@ -115,6 +118,7 @@ pub(super) fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Opti
             CatAxis::Numeric(..) => 0.0,
         };
         let plot = Bx { x: area.x + left, y: area.y + lh * 0.5, w: area.w - left - right, h: area.h - lh * 1.5 - 4.0 - lh * levels };
+        ctx.layout.plot = plot.ok().then_some([plot.x, plot.y, plot.w, plot.h]);
         if !plot.ok() {
             return plot;
         }
@@ -190,6 +194,7 @@ pub(super) fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Opti
         let levels_w: f32 = level_w.iter().sum();
         let right = ylabels.last().map(|(_, t)| ctx.tw(t, ls) / 2.0).unwrap_or(0.0).min(area.w * 0.2) + 2.0;
         let plot = Bx { x: area.x + lw + levels_w, y: area.y + 2.0, w: area.w - lw - levels_w - right, h: area.h - lh - 6.0 };
+        ctx.layout.plot = plot.ok().then_some([plot.x, plot.y, plot.w, plot.h]);
         if !plot.ok() {
             return plot;
         }

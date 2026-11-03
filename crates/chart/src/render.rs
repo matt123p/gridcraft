@@ -44,7 +44,16 @@ const MAX_MARKERS: usize = 5000;
 /// Data labels are skipped when a series has more points than this.
 const MAX_LABELS: usize = 200;
 
+/// Read-only native layout metadata; identical layout work drives drawing and inspection.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Layout {
+    pub plot: Option<[f32; 4]>,
+    pub category: Option<Scale>,
+    pub value: Option<Scale>,
+    pub secondary: Option<Scale>,
+}
 struct Ctx<'a> {
+    layout: Layout,
     out: Vec<Prim>,
     m: &'a dyn Measure,
 }
@@ -122,11 +131,14 @@ fn sanitize(d: &ChartData) -> ChartData {
 
 /// Lays out and draws a chart into a `w`×`h` box at the origin. Empty for a degenerate box.
 pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) -> Vec<Prim> {
+    render_layout(chart, data, w, h, m).0
+}
+pub fn render_layout(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) -> (Vec<Prim>, Layout) {
     if !(w.is_finite() && h.is_finite()) || w < 1.0 || h < 1.0 || w > 1e7 || h > 1e7 {
-        return vec![];
+        return (vec![], Layout::default());
     }
     let data = sanitize(data);
-    let mut ctx = Ctx { out: Vec::new(), m };
+    let mut ctx = Ctx { out: Vec::new(), m, layout: Layout::default() };
     ctx.out.push(Prim::Rect { x: 0.0, y: 0.0, w, h, fill: Some(WHITE), stroke: Some((GRID, 1.0)), radius: 0.0 });
     let pad = (w.min(h) * 0.04).clamp(2.0, 10.0);
     let mut area = Bx { x: pad, y: pad, w: w - 2.0 * pad, h: h - 2.0 * pad };
@@ -145,10 +157,11 @@ pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) 
     if area.ok() && !data.series.is_empty() {
         draw_kind(&mut ctx, chart, &data, area);
     }
-    finalize(ctx.out, w, h)
+    (finalize(ctx.out, w, h), ctx.layout)
 }
 
 fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
+    ctx.layout.plot = Some([area.x, area.y, area.w, area.h]);
     use ChartKind::*;
     match chart.kind {
         Pie => pie(ctx, chart, data, area, 0.0, false),

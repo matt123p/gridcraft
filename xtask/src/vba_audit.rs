@@ -94,6 +94,10 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         }
     }
     let acceptance = validate_high_acceptance(root, rows)?;
+    let om12_acceptance = validate_om12_acceptance(root, rows, &descriptors)?;
+    for test in OM12_TESTS.iter().chain(OM12_DRAWING_TESTS) {
+        validate_test_reference(root, test)?;
+    }
     let mut contracts = Vec::with_capacity(rows.len());
     let mut enums = Vec::new();
     let mut enum_types = BTreeSet::new();
@@ -108,6 +112,12 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
             contract["test_ids"] = json!(tests);
             contract["high_acceptance"] =
                 json!("IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-high-acceptance.json for exact signatures and exclusions");
+        }
+        if let Some(tests) = row.get("id").and_then(Value::as_str).and_then(|id| om12_acceptance.get(&fold_identifier(id))) {
+            contract["test_ids"] = json!(tests);
+            contract["om12_acceptance"] = json!(
+                "IMPLEMENTED_NATIVE_PROFILE; see vba-object-model-om12-acceptance.json for signatures, bounds and native capability exclusions"
+            );
         }
         if contract.get("enum_type").is_some_and(|ty| !ty.is_null()) {
             if let Some(ty) = contract.get("enum_type").and_then(Value::as_str) {
@@ -133,9 +143,62 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         .iter()
         .filter_map(|row| Some((fold_identifier(row.get("owner")?.as_str()?), fold_identifier(row.get("member")?.as_str()?))))
         .collect::<BTreeSet<_>>();
+    // Shared Office child types are documented in the same pinned archive, outside
+    // the deliberately unchanged 5,996-page Excel inventory.
+    let mut office_contracts = Vec::new();
+    let mut office_keys = BTreeSet::new();
+    for (key, d) in &descriptors {
+        if contract_ids.contains(key) {
+            continue;
+        }
+        let source = format!("api/Office.{}.{}.md", d.owner, d.name);
+        if let Ok(mut entry) = archive.by_name(&format!("VBA-Docs-{COMMIT}/{source}")) {
+            let mut md = String::new();
+            entry.read_to_string(&mut md).map_err(|e| e.to_string())?;
+            if md.is_empty() {
+                return Err(format!("empty Office source: {source}"));
+            }
+            office_keys.insert(key.clone());
+            office_contracts.push(json!({"id":format!("Office.{}.{}",d.owner,d.name),"source_path":source,"signature":d.signature,"implementation_symbol":d.implementation_symbol,"test_ids":OM12_DRAWING_TESTS}));
+        }
+    }
+    let office_types = [
+        "MsoAutoShapeType",
+        "MsoShapeType",
+        "MsoZOrderCmd",
+        "MsoAlignCmd",
+        "MsoTextOrientation",
+        "MsoTriState",
+        "MsoConnectorType",
+        "MsoArrowheadStyle",
+        "MsoThemeColorIndex",
+        "MsoVerticalAnchor",
+        "MsoLineDashStyle",
+        "MsoFillType",
+    ];
+    let mut office_values = Vec::new();
+    for ty in office_types {
+        let mut entry = archive.by_name(&format!("VBA-Docs-{COMMIT}/api/Office.{ty}.md")).map_err(|e| e.to_string())?;
+        let mut md = String::new();
+        entry.read_to_string(&mut md).map_err(|e| e.to_string())?;
+        let vals = enum_values(&md);
+        if vals.is_empty() {
+            return Err(format!("no values for Office.{ty}"));
+        }
+        for v in vals {
+            let n = v["number"].as_i64().and_then(|n| i32::try_from(n).ok()).ok_or("Office enum overflow")?;
+            office_values.push((ty.to_owned(), v["name"].as_str().ok_or("Office enum name")?.to_owned(), n));
+        }
+    }
+    office_values.sort();
+    let office_source = render_office_enums(&office_types, &office_values);
     let unassigned_descriptors = descriptors
         .keys()
-        .filter(|key| !contract_ids.contains(*key) && !DOCUMENTATION_EXCEPTIONS.iter().any(|(owner, member, _)| key.0 == *owner && key.1 == *member))
+        .filter(|key| {
+            !contract_ids.contains(*key)
+                && !office_keys.contains(*key)
+                && !DOCUMENTATION_EXCEPTIONS.iter().any(|(owner, member, _)| key.0 == *owner && key.1 == *member)
+        })
         .map(|(owner, member)| format!("{owner}.{member}"))
         .collect::<Vec<_>>();
     if !unassigned_descriptors.is_empty() {
@@ -166,6 +229,7 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
             "id": format!("{owner}.{member}"),
             "reason": reason,
         })).collect::<Vec<_>>(),
+        "office_runtime_extensions":office_contracts,
         "pages": contracts,
     });
     let enum_source = render_enum_source(&enum_types, &constants, &aliases);
@@ -173,10 +237,12 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     if write {
         fs::write(&contract_file, serde_json::to_vec_pretty(&contract_value).map_err(|e| e.to_string())?)
             .map_err(|e| format!("{}: {e}", contract_file.display()))?;
+        fs::write(root.join("crates/vba/src/vba_office_enums.rs"), &office_source).map_err(|e| e.to_string())?;
         fs::write(&enum_file, enum_source).map_err(|e| format!("{}: {e}", enum_file.display()))?;
         fs::write(&report_file, report).map_err(|e| format!("{}: {e}", report_file.display()))?;
     } else {
         compare_generated(&contract_file, &contract_value)?;
+        compare_generated_text(&root.join("crates/vba/src/vba_office_enums.rs"), &office_source)?;
         compare_generated_text(&enum_file, &enum_source)?;
         compare_generated_text(&report_file, &report)?;
     }
@@ -187,6 +253,95 @@ pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
         constants.len(),
         report_file.display()
     );
+    Ok(())
+}
+
+const OM12_DRAWING_TESTS: &[&str] = &[
+    "crates/vba/tests/drawings.rs::typed_series_arrays_trendlines_and_layout_share_native_state",
+    "crates/vba/tests/drawings.rs::shapes_text_range_format_zorder_and_inactive_sheet_undo",
+    "crates/vba/tests/drawings.rs::series_add_delete_and_rebind_never_retarget_parked_children",
+    "crates/vba/tests/drawings.rs::drawing_ranges_follow_sheet_moves_and_refuse_stale_or_unsupported_bulk_writes",
+    "crates/vba/tests/drawings.rs::drawing_protection_and_reused_ids_refuse_before_effects",
+    "crates/vba/tests/drawings.rs::picture_reads_and_failed_services_preserve_native_drawing_state",
+    "crates/vba/tests/drawings.rs::add_picture_embeds_native_file_with_original_dimensions_on_inactive_owner",
+    "crates/vba/tests/drawings.rs::names_native_anchor_transforms_and_source_deletion_stay_live",
+    "crates/vba/tests/drawings.rs::embedded_chart_location_retargets_parked_descendants_without_switching_view",
+    "crates/vba/tests/drawings.rs::external_chart_moves_preserve_existing_graph_lifetimes",
+];
+fn validate_om12_acceptance(
+    root: &Path,
+    rows: &[Value],
+    descriptors: &BTreeMap<(String, String), MemberDescriptor>,
+) -> Result<BTreeMap<String, Vec<String>>, String> {
+    let path = root.join("docs/vba-object-model-om12-acceptance.json");
+    let value: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    if value["packet"] != "OM12" || value["documentation_commit"] != COMMIT {
+        return Err("OM12 ledger provenance mismatch".into());
+    }
+    let source_ids = rows.iter().filter_map(|r| r["id"].as_str().map(fold_identifier)).collect::<BTreeSet<_>>();
+    let mut result = BTreeMap::new();
+    for group in value["required_obligations"].as_array().ok_or("OM12 ledger obligations missing")? {
+        let tests = group["test_ids"]
+            .as_array()
+            .ok_or("OM12 tests missing")?
+            .iter()
+            .map(|t| t.as_str().map(str::to_owned).ok_or("OM12 test ID must be text"))
+            .collect::<Result<Vec<_>, _>>()?;
+        if tests.is_empty() {
+            return Err("OM12 obligation has no tests".into());
+        }
+        for test in &tests {
+            validate_test_reference(root, test)?;
+        }
+        for id in group["source_ids"].as_array().ok_or("OM12 source IDs missing")? {
+            let id = id.as_str().ok_or("OM12 source ID must be text")?;
+            let key = fold_identifier(id);
+            if !source_ids.contains(&key) {
+                return Err(format!("unknown OM12 source ID: {id}"));
+            }
+            let (owner, member) = id.split_once('.').ok_or("OM12 obligation must name a member")?;
+            if descriptors.get(&(fold_identifier(owner), fold_identifier(member))).is_none_or(|d| d.availability != MemberAvailability::Implemented) {
+                return Err(format!("OM12 required member is not implemented: {id}"));
+            }
+            result.entry(key).or_insert_with(Vec::new).extend(tests.clone());
+        }
+    }
+    if result.is_empty() {
+        return Err("OM12 ledger has no required members".into());
+    }
+    println!("OM12 native acceptance: {} required source contracts; native product gaps remain explicit", result.len());
+    Ok(result)
+}
+fn render_office_enums(types: &[&str], values: &[(String, String, i32)]) -> String {
+    let mut out = String::from("// Generated from the pinned VBA-Docs Office enum pages; regenerate with cargo xtask vba-audit --write.\n");
+    out.push_str("pub(crate) const OFFICE_ENUM_TYPES: &[&str] = &[\n");
+    for ty in types {
+        out.push_str(&format!("    {ty:?},\n"));
+    }
+    out.push_str("];\npub(crate) const OFFICE_ENUM_CONSTANTS: &[(&str, &str, i32)] = &[\n");
+    for (ty, name, n) in values {
+        out.push_str(&format!("    ({ty:?}, {name:?}, {n}),\n"));
+    }
+    out.push_str("];\n");
+    out
+}
+const OM12_TESTS: &[&str] = &[
+    "crates/vba/tests/charts.rs::typed_chart_graph_edits_inactive_sheet_and_retains_single_undo_group",
+    "crates/vba/tests/charts.rs::chart_source_and_collection_defaults_use_live_native_state",
+    "crates/vba/tests/charts.rs::native_chart_id_reuse_does_not_retarget_parked_handles",
+    "crates/vba/tests/charts.rs::invalid_chart_options_and_protection_do_not_partially_write",
+    "crates/vba/tests/charts.rs::chart_edits_persist_and_renderer_reads_the_same_native_model",
+    "crates/vba/tests/charts.rs::deleting_title_and_chart_updates_live_counts_and_invalidates_children",
+];
+fn validate_test_reference(root: &Path, test: &str) -> Result<(), String> {
+    let (file, function) = test.split_once("::").ok_or("invalid acceptance test reference")?;
+    if !file.starts_with("crates/") || !file.ends_with(".rs") || file.contains("..") {
+        return Err(format!("invalid acceptance test path: {file}"));
+    }
+    let source = fs::read_to_string(root.join(file)).map_err(|e| format!("{file}: {e}"))?;
+    if !source.contains(&format!("fn {function}(")) {
+        return Err(format!("missing acceptance test function: {test}"));
+    }
     Ok(())
 }
 
@@ -216,14 +371,7 @@ fn validate_high_acceptance(root: &Path, source_rows: &[Value]) -> Result<BTreeM
         let mut test_ids = BTreeSet::new();
         for test in tests {
             let test = test.as_str().ok_or("invalid High test id")?;
-            let (file, function) = test.split_once("::").ok_or("invalid High test reference")?;
-            if !file.starts_with("crates/") || !file.ends_with(".rs") || file.contains("..") {
-                return Err(format!("invalid High test path: {file}"));
-            }
-            let source = fs::read_to_string(root.join(file)).map_err(|e| format!("{file}: {e}"))?;
-            if !source.contains(&format!("fn {function}(")) {
-                return Err(format!("missing High test function: {test}"));
-            }
+            validate_test_reference(root, test)?;
             test_ids.insert(test.to_owned());
         }
         for file in row.get("native_evidence").and_then(Value::as_array).ok_or("High obligation without native evidence")? {
@@ -398,7 +546,7 @@ fn contract_row(row: &Value, markdown: &str, descriptors: &BTreeMap<(String, Str
             MemberAvailability::OutOfScope=>"OUT_OF_SCOPE_GRIDCRAFT",
         }),
         "dispatch_evidence": if descriptor.is_some() { "shared-member-descriptor" } else if implementation_symbol.is_some() { "explicit-event-or-enum" } else { "none" },
-        "test_ids": [],
+        "test_ids": if descriptor.is_some_and(|d| d.implementation_symbol.starts_with("crates/vba/src/chart_api.rs")) {json!(OM12_TESTS)} else if descriptor.is_some_and(|d| ["series_api.rs","chart_parts_api.rs","drawing_api.rs"].iter().any(|file|d.implementation_symbol.contains(file))) {json!(OM12_DRAWING_TESTS)} else {json!([])},
         "result_state": result_state,
         "signature_review": signature_review,
     }))

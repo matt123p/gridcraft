@@ -7,6 +7,10 @@ use vba_values::NominalType;
 // Adapter profile identity, not a claim about an installed Office typelib version.
 const EXCEL_TYPES_VERSION: &str = "GridCraft.Excel.v1";
 include!("vba_enum_data.rs");
+include!("vba_office_enums.rs");
+const EXCEL_OFFICE_ALIASES: &[&str] = &["FillFormat", "LineFormat", "ColorFormat", "TextFrame2"];
+pub(crate) const OFFICE_TYPES: &[&str] = &["FillFormat", "LineFormat", "ColorFormat", "TextFrame2", "TextRange2", "Font2"];
+const OFFICE_VERSION: &str = "GridCraft.Office.v1";
 
 pub(crate) fn references() -> Result<ReferenceSet> {
     ReferenceSet::new(vec![
@@ -16,6 +20,33 @@ pub(crate) fn references() -> Result<ReferenceSet> {
             available: true,
             types: [
                 "Application",
+                "ChartFormat",
+                "SeriesCollection",
+                "Series",
+                "Trendlines",
+                "Trendline",
+                "Axes",
+                "Axis",
+                "AxisTitle",
+                "Gridlines",
+                "ChartArea",
+                "PlotArea",
+                "DataLabels",
+                "DataLabel",
+                "Shapes",
+                "Shape",
+                "ShapeRange",
+                "TextFrame",
+                "Characters",
+                "FillFormat",
+                "LineFormat",
+                "ColorFormat",
+                "TextFrame2",
+                "ChartObjects",
+                "ChartObject",
+                "Chart",
+                "ChartTitle",
+                "Legend",
                 "WorksheetFunction",
                 "Names",
                 "Name",
@@ -75,6 +106,20 @@ pub(crate) fn references() -> Result<ReferenceSet> {
                 .collect(),
         },
         ReferenceLibrary {
+            name: "Office".into(),
+            version: OFFICE_VERSION.into(),
+            available: true,
+            types: OFFICE_TYPES
+                .iter()
+                .map(|n| ReferenceType { name: (*n).into(), kind: ReferenceTypeKind::Object })
+                .chain(OFFICE_ENUM_TYPES.iter().map(|n| ReferenceType { name: (*n).into(), kind: ReferenceTypeKind::Enum }))
+                .collect(),
+            constants: OFFICE_ENUM_CONSTANTS
+                .iter()
+                .map(|(m, n, v)| ReferenceConstant { name: (*n).into(), module: Some((*m).into()), value: Value::Long(*v) })
+                .collect(),
+        },
+        ReferenceLibrary {
             name: "ExcelEnumAliases".into(),
             version: EXCEL_TYPES_VERSION.into(),
             available: true,
@@ -95,6 +140,13 @@ pub(crate) struct Objects {
     document: u64,
     closed: AtomicBool,
     values: RwLock<Vec<Object>>,
+}
+fn object_weight(object: &Object) -> usize {
+    match object {
+        Object::Document(_, object) => object_weight(object),
+        Object::Feature(f) => 1 + f.items.len(),
+        _ => 1,
+    }
 }
 impl Objects {
     pub(crate) fn new(identity: u64, document: u64, sheet: usize) -> Self {
@@ -162,10 +214,17 @@ impl Objects {
                 _ => continue,
             };
             let sheet = match object {
-                Object::Feature(f) => match f.sheet.as_mut() {
-                    Some(sheet) => sheet,
-                    None => continue,
-                },
+                Object::Feature(f) => {
+                    for item in &mut f.items {
+                        if let Some(sheet) = item.sheet.as_mut() {
+                            *sheet = mapping.get(*sheet).copied().flatten().unwrap_or(usize::MAX);
+                        }
+                    }
+                    match f.sheet.as_mut() {
+                        Some(sheet) => sheet,
+                        None => continue,
+                    }
+                }
                 Object::Sheet(s) | Object::Range(s, _) | Object::Areas(s, _) | Object::Format(s, _, _) => s,
                 _ => continue,
             };
@@ -176,6 +235,45 @@ impl Objects {
             }
         }
         Ok(())
+    }
+    /// Prepare a bounded registry update before a native embedded-chart transfer.
+    pub(crate) fn relocate_chart(
+        &self,
+        document: u64,
+        source: usize,
+        target: usize,
+        identity: &gridcraft_engine::model::sheet::SheetIdentity,
+    ) -> HostResult<Vec<Object>> {
+        let objects = self.values.read().map_err(|_| failure(91, "object store unavailable"))?;
+        let mut staged = Vec::new();
+        staged.try_reserve(objects.len()).map_err(|_| failure(7, "chart ownership allocation"))?;
+        for object in objects.iter() {
+            let mut object = object.clone();
+            if let Object::Document(doc, inner) = &mut object
+                && *doc == document
+                && let Object::Feature(f) = inner.as_mut()
+            {
+                let belongs = |f: &super::features::Feature| {
+                    f.sheet == Some(source)
+                        && (f.identity.as_ref().is_some_and(|id| id.same(identity)) || f.ancestors.first().is_some_and(|id| id.same(identity)))
+                };
+                if belongs(f) {
+                    f.sheet = Some(target);
+                }
+                let mut moved = false;
+                for item in &mut f.items {
+                    if belongs(item) {
+                        item.sheet = Some(target);
+                        moved = true;
+                    }
+                }
+                if moved {
+                    f.sheet = Some(if f.items.iter().all(|f| f.sheet == Some(target)) { target } else { usize::MAX });
+                }
+            }
+            staged.push(object);
+        }
+        Ok(staged)
     }
     pub(crate) fn rebase(&self, document: u64, sheet: usize, edit: &gridcraft_engine::formula::adjust::Edit) -> HostResult<Vec<Object>> {
         use gridcraft_engine::formula::{self, Expr};
@@ -253,7 +351,7 @@ impl Objects {
     /// Reserve space for handles before a lifecycle operation creates native state.
     pub(crate) fn reserve(&self, count: usize) -> HostResult<()> {
         let mut objects = self.values.write().map_err(|_| failure(91, "object store unavailable"))?;
-        if objects.len().checked_add(count).is_none_or(|n| n > MAX_OBJECTS) {
+        if objects.iter().map(object_weight).sum::<usize>().checked_add(count).is_none_or(|n| n > MAX_OBJECTS) {
             return Err(failure(7, "object handle budget exceeded"));
         }
         objects.try_reserve(count).map_err(|_| failure(7, "object handle allocation"))
@@ -265,7 +363,8 @@ impl Objects {
         let mut objects = self.values.write().map_err(|_| failure(91, "object store unavailable"))?;
         // Preflight the whole snapshot before extending the existing registry.
         let missing = values.iter().filter(|v| !objects.contains(v)).count();
-        if objects.len().checked_add(missing).is_none_or(|n| n > MAX_OBJECTS) {
+        let weight = values.iter().filter(|v| !objects.contains(v)).map(object_weight).sum::<usize>();
+        if objects.iter().map(object_weight).sum::<usize>().checked_add(weight).is_none_or(|n| n > MAX_OBJECTS) {
             return Err(failure(7, "object handle budget exceeded"));
         }
         objects.try_reserve(missing).map_err(|_| failure(7, "object allocation"))?;
@@ -291,7 +390,7 @@ impl Objects {
         if let Some(index) = objects.iter().position(|o| o == &object) {
             return Ok(index);
         }
-        if objects.len() >= MAX_OBJECTS {
+        if objects.iter().map(object_weight).sum::<usize>().saturating_add(object_weight(&object)) > MAX_OBJECTS {
             return Err(failure(7, "object handle budget exceeded"));
         }
         objects.try_reserve(1).map_err(|_| failure(7, "object allocation"))?;
@@ -313,7 +412,11 @@ impl ObjectTypeResolver for Objects {
         let name = match object {
             Object::Application => "application",
             Object::Feature(ref f) => match f.kind {
-                "ConditionFont" => "Font",
+                "ConditionFont" | "ShapeFont" => "Font",
+                "SeriesInterior" => "Interior",
+                "SeriesBorder" | "TrendlineBorder" => "Border",
+                "ShapeFont2" => "Font2",
+                "SeriesFormat" => "ChartFormat",
                 "ConditionInterior" => "Interior",
                 kind => kind,
             },
@@ -340,7 +443,11 @@ impl ObjectTypeResolver for Objects {
                 }
             }
         };
-        Ok(expected.library() == "excel" && expected.version() == EXCEL_TYPES_VERSION && expected.name().eq_ignore_ascii_case(name))
+        let office = OFFICE_TYPES.iter().any(|n| n.eq_ignore_ascii_case(name));
+        let excel = !office || EXCEL_OFFICE_ALIASES.iter().any(|n| n.eq_ignore_ascii_case(name));
+        let library = (office && expected.library() == "office" && expected.version() == OFFICE_VERSION)
+            || (excel && expected.library() == "excel" && expected.version() == EXCEL_TYPES_VERSION);
+        Ok(library && expected.name().eq_ignore_ascii_case(name))
     }
 }
 
