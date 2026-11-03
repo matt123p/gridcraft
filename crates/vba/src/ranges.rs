@@ -225,11 +225,7 @@ impl Bridge {
             4 => "year",
             _ => return Err(failure(1004, format!("Range.DataSeries Date {date_unit} is invalid"))),
         };
-        let event = self.preflight_change(session, sheet)?;
-        if event.is_some() {
-            self.intern(super::objects::Object::Range(sheet, range.clone()))?;
-            self.pending_events.try_reserve(1).map_err(|_| failure(7, "worksheet event queue allocation"))?;
-        }
+        let event = self.prepare_change(session, sheet, range.clone())?;
         let mut params = json!({"sheet":sheet,"range":rect.a1(),"type":kind,"dateUnit":unit,"step":step});
         if let Some(rows) = rows {
             params["direction"] = serde_json::Value::String(if rows { "rows" } else { "columns" }.into());
@@ -238,9 +234,7 @@ impl Bridge {
             params["stop"] = json!(stop);
         }
         session.execute("edit.fillSeries", params).map_err(|error| failure(1004, error.to_string()))?;
-        if let Some(owner) = event {
-            self.queue_change(owner, sheet, range.clone())?;
-        }
+        self.queue_changes(event);
         Ok(Value::Empty)
     }
 
@@ -324,7 +318,7 @@ impl Bridge {
             return Err(failure(7, "clear range exceeds VBA cell budget"));
         }
         let changes_contents = matches!(what, "all" | "contents");
-        let event = if changes_contents { self.preflight_change(session, sheet)? } else { None };
+        let event = if changes_contents { self.prepare_change(session, sheet, range.clone())? } else { super::PreparedChanges::default() };
         let address = range.areas.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
         let command = match what {
             "all" => "edit.clearAll",
@@ -335,9 +329,7 @@ impl Bridge {
             _ => return Err(failure(438, "unsupported Range clear operation")),
         };
         session.execute(command, json!({"sheet":sheet,"range":address})).map_err(|e| failure(1004, e.to_string()))?;
-        if let Some(owner) = event {
-            self.queue_change(owner, sheet, range.clone())?;
-        }
+        self.queue_changes(event);
         Ok(Value::Empty)
     }
 
@@ -356,12 +348,10 @@ impl Bridge {
             "down" | "up" | "right" | "left" => None,
             _ => return Err(failure(438, "unsupported Range fill direction")),
         };
-        let event = if changed.is_some() { self.preflight_change(session, sheet)? } else { None };
-        if let Some(target) = changed
-            && event.is_some()
-        {
-            self.intern(super::Object::Range(sheet, target.into()))?;
-        }
+        let event = match changed {
+            Some(target) => self.prepare_change(session, sheet, target.into())?,
+            None => super::PreparedChanges::default(),
+        };
         let command = match direction {
             "down" => "edit.fillDown",
             "up" => "edit.fillUp",
@@ -370,9 +360,7 @@ impl Bridge {
             _ => return Err(failure(438, "unsupported Range fill direction")),
         };
         session.execute(command, json!({"sheet":sheet,"range":rect.a1()})).map_err(|error| failure(1004, error.to_string()))?;
-        if let (Some(owner), Some(target)) = (event, changed) {
-            self.queue_change(owner, sheet, target.into())?;
-        }
+        self.queue_changes(event);
         Ok(Value::Empty)
     }
 
@@ -427,18 +415,14 @@ impl Bridge {
             9..=11 => return Err(failure(1004, "Range.AutoFill type requires a trend or FlashFill service")),
             _ => return Err(failure(1004, "invalid Range.AutoFill Type")),
         };
-        let event = if changed.is_some() { self.preflight_change(session, sheet)? } else { None };
-        if let Some(target) = changed
-            && event.is_some()
-        {
-            self.intern(super::Object::Range(sheet, target.into()))?;
-        }
+        let event = match changed {
+            Some(target) => self.prepare_change(session, sheet, target.into())?,
+            None => super::PreparedChanges::default(),
+        };
         session
             .execute("edit.autoFill", json!({"sheet":sheet,"source":source.a1(),"target":destination.a1(),"mode":mode}))
             .map_err(|error| failure(1004, error.to_string()))?;
-        if let (Some(owner), Some(target)) = (event, changed) {
-            self.queue_change(owner, sheet, target.into())?;
-        }
+        self.queue_changes(event);
         Ok(Value::Empty)
     }
 }

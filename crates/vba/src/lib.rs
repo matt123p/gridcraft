@@ -90,6 +90,15 @@ fn failure(number: i32, text: impl Into<String>) -> ForeignError {
     ForeignError { number, description: text.into() }
 }
 
+type PendingEvent = (String, String, Vec<Value>);
+
+/// Fully materialized callback data and reserved queue capacity. Preparation and
+/// commit surround one synchronous operation; no callback runs between them.
+#[derive(Default)]
+struct PreparedChanges {
+    events: Vec<PendingEvent>,
+}
+
 /// State persists across bounded IDE ticks, but never holds a document borrow.
 pub struct Bridge {
     identity: u64,
@@ -101,7 +110,7 @@ pub struct Bridge {
     group: BTreeMap<u64, GroupToken>,
     consent: bool,
     enable_events: bool,
-    pending_events: VecDeque<(String, String, Vec<Value>)>,
+    pending_events: VecDeque<PendingEvent>,
     event_work: usize,
     pub(crate) event_owner_sheet: Option<usize>,
     document_code_names: Arc<RwLock<std::collections::BTreeSet<String>>>,
@@ -174,7 +183,9 @@ impl Bridge {
         }
         let mapping: Vec<_> = self.sheets.get(&doc.uid).into_iter().flatten().map(|old| current.iter().position(|id| id.same(old))).collect();
         self.objects.remap_sheets(doc.uid, &mapping)?;
-        if let Some(owner) = self.event_owner_sheet {
+        if doc.uid == self.doc
+            && let Some(owner) = self.event_owner_sheet
+        {
             self.event_owner_sheet = Some(mapping.get(owner).copied().flatten().unwrap_or(usize::MAX));
         }
         self.context = doc.uid;
@@ -339,6 +350,11 @@ impl Bridge {
             return Ok(None);
         }
         let doc = session.doc().map_err(|_| failure(91, "workbook closed"))?;
+        // Imported document modules belong only to this bridge's workbook.
+        // Code names are not globally unique across open workbooks.
+        if doc.uid != self.doc {
+            return Ok(None);
+        }
         let Some(code_name) = doc.wb.sheet(sheet).and_then(|sheet| sheet.code_name.as_deref()) else {
             return Ok(None);
         };
@@ -364,37 +380,73 @@ impl Bridge {
         };
         self.intern(object)
     }
-    fn preflight_change(&mut self, session: &Session, sheet: usize) -> HostResult<Option<String>> {
-        let Some(code_name) = self.change_owner(session, sheet)? else {
-            return Ok(None);
-        };
+    fn prepare_changes(&mut self, session: &Session, changes: &[(usize, ranges::Range)]) -> HostResult<PreparedChanges> {
+        let mut owners = Vec::new();
+        owners.try_reserve(changes.len()).map_err(|_| failure(7, "worksheet event preparation allocation"))?;
+        for (sheet, range) in changes {
+            if let Some(owner) = self.change_owner(session, *sheet)? {
+                range.validate()?;
+                owners.push((owner, *sheet, range));
+            }
+        }
+        if owners.is_empty() {
+            return Ok(PreparedChanges::default());
+        }
         self.reset_event_budget_if_idle();
-        if self.event_work >= MAX_QUEUED_EVENTS || self.pending_events.len() >= MAX_QUEUED_EVENTS {
+        let count = owners.len();
+        if self.event_work.checked_add(count).is_none_or(|n| n > MAX_QUEUED_EVENTS)
+            || self.pending_events.len().checked_add(count).is_none_or(|n| n > MAX_QUEUED_EVENTS)
+        {
             return Err(failure(28, "worksheet event budget exceeded"));
         }
-        Ok(Some(code_name))
+        self.pending_events.try_reserve(count).map_err(|_| failure(7, "worksheet event queue allocation"))?;
+        let mut objects = Vec::new();
+        objects.try_reserve(count * 2).map_err(|_| failure(7, "worksheet event target allocation"))?;
+        for (_, sheet, range) in &owners {
+            // Reserve both the callback owner and its exact Target, qualified by
+            // the actual target document rather than the last ambient context.
+            objects.push(Object::Document(self.doc, Box::new(Object::Sheet(*sheet))));
+            objects.push(Object::Document(self.doc, Box::new(Object::Range(*sheet, (*range).clone()))));
+        }
+        let handles = self.objects.intern_many(objects)?;
+        let mut events = Vec::new();
+        events.try_reserve(count).map_err(|_| failure(7, "worksheet event preparation allocation"))?;
+        for ((owner, _, _), pair) in owners.into_iter().zip(handles.as_chunks::<2>().0) {
+            events.push((owner, "Worksheet_Change".into(), vec![Value::Object(self.reference(pair[1]))]));
+        }
+        Ok(PreparedChanges { events })
     }
-    fn queue_change(&mut self, code_name: String, sheet: usize, range: ranges::Range) -> HostResult<()> {
-        if self.group.is_empty() && self.pending_events.is_empty() {
-            self.event_work = 0;
-        }
-        if self.pending_events.len() >= MAX_QUEUED_EVENTS || self.event_work >= MAX_QUEUED_EVENTS {
-            return Err(failure(28, "worksheet event budget exceeded"));
-        }
-        let target = self.intern(Object::Range(sheet, range))?;
-        self.pending_events.try_reserve(1).map_err(|_| failure(7, "worksheet event queue allocation"))?;
-        self.pending_events.push_back((code_name, "Worksheet_Change".into(), vec![target]));
-        self.event_work = self.event_work.saturating_add(1);
-        Ok(())
+    fn prepare_change(&mut self, session: &Session, sheet: usize, range: ranges::Range) -> HostResult<PreparedChanges> {
+        self.prepare_changes(session, &[(sheet, range)])
+    }
+    /// Infallible after a successful synchronous mutation: all handles, callback
+    /// arguments and queue storage were prepared before the engine was called.
+    fn queue_changes(&mut self, changes: PreparedChanges) {
+        self.event_work += changes.events.len();
+        self.pending_events.extend(changes.events);
+    }
+    fn write_range(
+        &mut self,
+        session: &mut Session,
+        sheet: usize,
+        range: &ranges::Range,
+        value: &Value,
+        formula: bool,
+        typed: bool,
+    ) -> HostResult<Value> {
+        let rectangle = range.rectangle()?;
+        let changes = self.prepare_change(session, sheet, range.clone())?;
+        values::write(session, sheet, rectangle, value, formula, typed)?;
+        self.queue_changes(changes);
+        Ok(Value::Empty)
     }
     pub fn notify_sheet_change(&mut self, session: &Session, sheet: usize, range: RangeRef) -> Result<()> {
         if !self.current(session) || !self.permitted(session) {
             return Ok(());
         }
-        let Some(code_name) = self.preflight_change(session, sheet).map_err(|error| diagnostic(error.description))? else {
-            return Ok(());
-        };
-        self.queue_change(code_name, sheet, range.into()).map_err(|error| diagnostic(error.description))
+        let changes = self.prepare_change(session, sheet, range.into()).map_err(|error| diagnostic(error.description))?;
+        self.queue_changes(changes);
+        Ok(())
     }
     /// Queue Workbook_Open only after the embedding has explicitly authorized execution.
     /// Opening or decoding a package never calls this method automatically.
@@ -495,13 +547,19 @@ impl Bridge {
             && matches!(ide.mode(), Mode::Completed | Mode::Design)
             && let Some((code_name, handler, arguments)) = self.pending_events.pop_front()
         {
-            self.event_owner_sheet = session.doc().ok().and_then(|doc| {
-                doc.wb.sheets.iter().position(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(&code_name)))
-            });
             if self.group.is_empty() {
                 self.ensure_group(session, self.doc)?;
             }
-            let owner = self.document_owner_object(session, &code_name).map_err(|error| diagnostic(error.description))?;
+            let owner = session
+                .with_target(gridcraft_engine::Target::Doc(self.doc), |session| {
+                    self.sync_sheets(session)?;
+                    self.event_owner_sheet = session.doc().ok().and_then(|doc| {
+                        doc.wb.sheets.iter().position(|sheet| sheet.code_name.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(&code_name)))
+                    });
+                    self.document_owner_object(session, &code_name)
+                })
+                .map_err(diagnostic)?
+                .map_err(|error| diagnostic(error.description))?;
             let Value::Object(owner) = owner else { return Err(diagnostic("document owner handle is not an object")) };
             if let Err(error) = ide.dispatch_document_event_for_owner(&code_name, &handler, arguments, Some(owner), &mut self.host(session)) {
                 self.cancel_pending_events();
@@ -566,18 +624,6 @@ impl Host for WorkbookHost<'_> {
                 Object::Document(doc, object) => (doc, *object),
                 object => (self.session.doc().map_err(|_| failure(91, "workbook closed"))?.uid, object),
             };
-            let mutation = match &object {
-                Object::Range(sheet, range)
-                    if matches!(call.kind, InvokeKind::Let | InvokeKind::Set)
-                        && matches!(call.member.to_ascii_lowercase().as_str(), "value" | "value2" | "formula") =>
-                {
-                    self.bridge.preflight_change(self.session, *sheet)?.map(|code_name| (code_name, *sheet, range.clone()))
-                }
-                Object::Range(sheet, range) if call.kind == InvokeKind::Call && call.member.eq_ignore_ascii_case("ClearContents") => {
-                    self.bridge.preflight_change(self.session, *sheet)?.map(|code_name| (code_name, *sheet, range.clone()))
-                }
-                _ => None,
-            };
             let target = self.session.document(doc).ok_or_else(|| failure(91, "workbook closed"))?;
             if !target.trust.allows_code() && !(doc == self.bridge.doc && self.bridge.consent) {
                 return Err(failure(70, "target workbook requires consent"));
@@ -596,11 +642,6 @@ impl Host for WorkbookHost<'_> {
                 })
                 .map_err(|e| failure(91, e.to_string()))?;
             self.bridge.sync_sheets(self.session)?;
-            if result.is_ok()
-                && let Some((code_name, sheet, range)) = mutation
-            {
-                self.bridge.queue_change(code_name, sheet, range)?;
-            }
             result
         })();
         match result {

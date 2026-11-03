@@ -55,9 +55,9 @@ impl Bridge {
             selected.start.offset(i64::from(height) - 1, i64::from(width) - 1).ok_or_else(|| failure(1004, "PasteSpecial exceeds the worksheet"))?;
         let target = RangeRef::new(selected.start, end);
         let event = if matches!(what, "all" | "allExceptBorders" | "formulas" | "formulasAndNumberFormats" | "values" | "valuesAndNumberFormats") {
-            self.preflight_change(session, sheet)?
+            self.prepare_change(session, sheet, target.into())?
         } else {
-            None
+            super::PreparedChanges::default()
         };
         let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
         if doc.sheet_index() != sheet {
@@ -67,9 +67,7 @@ impl Bridge {
         session
             .execute("edit.pasteSpecial", json!({"sheet":sheet,"what":what,"operation":operation,"skipBlanks":skip_blanks,"transpose":transpose}))
             .map_err(|e| failure(1004, e.to_string()))?;
-        if let Some(owner) = event {
-            self.queue_change(owner, sheet, target.into())?;
-        }
+        self.queue_changes(event);
         Ok(Value::Empty)
     }
 
@@ -131,14 +129,12 @@ impl Bridge {
                 .offset(i64::from(rect.height()) - 1, i64::from(rect.width()) - 1)
                 .ok_or_else(|| failure(1004, "Copy destination exceeds the worksheet"))?;
             let target = RangeRef::new(start, end);
-            let event = self.preflight_change(session, destination_sheet)?;
+            let event = self.prepare_change(session, destination_sheet, target.into())?;
             session.execute("edit.copy", json!({"sheet":sheet,"range":rect.a1()})).map_err(|e| failure(1004, e.to_string()))?;
             session.execute("sheet.activate", json!({"sheet":destination_sheet})).map_err(|e| failure(1004, e.to_string()))?;
             session.execute("selection.set", json!({"range":start.a1(),"active":start.a1()})).map_err(|e| failure(1004, e.to_string()))?;
             session.execute("edit.paste", json!({})).map_err(|e| failure(1004, e.to_string()))?;
-            if let Some(owner) = event {
-                self.queue_change(owner, destination_sheet, target.into())?;
-            }
+            self.queue_changes(event);
             return Ok(Value::Empty);
         }
         if args.first().is_some_and(|v| !matches!(v, Value::Missing)) {
@@ -169,27 +165,19 @@ impl Bridge {
             if sheet == destination_sheet && rect.intersects(&target) {
                 return Err(failure(1004, "overlapping cut moves are unsupported"));
             }
-            let source_event = self.preflight_change(session, sheet)?;
-            let destination_event = self.preflight_change(session, destination_sheet)?;
+            let events = if sheet == destination_sheet {
+                let mut changed: Range = rect.into();
+                changed.areas.push(target);
+                changed.areas.sort_by_key(|area| (area.start.row, area.start.col));
+                self.prepare_change(session, sheet, changed)?
+            } else {
+                self.prepare_changes(session, &[(sheet, rect.into()), (destination_sheet, target.into())])?
+            };
             session.execute("edit.cut", json!({"sheet":sheet,"range":rect.a1()})).map_err(|e| failure(1004, e.to_string()))?;
             session.execute("sheet.activate", json!({"sheet":destination_sheet})).map_err(|e| failure(1004, e.to_string()))?;
             session.execute("selection.set", json!({"range":start.a1(),"active":start.a1()})).map_err(|e| failure(1004, e.to_string()))?;
             session.execute("edit.paste", json!({})).map_err(|e| failure(1004, e.to_string()))?;
-            if sheet == destination_sheet {
-                if let Some(owner) = source_event.or(destination_event) {
-                    let mut changed: Range = rect.into();
-                    changed.areas.push(target);
-                    changed.areas.sort_by_key(|area| (area.start.row, area.start.col));
-                    self.queue_change(owner, sheet, changed)?;
-                }
-            } else {
-                if let Some(owner) = source_event {
-                    self.queue_change(owner, sheet, rect.into())?;
-                }
-                if let Some(owner) = destination_event {
-                    self.queue_change(owner, destination_sheet, target.into())?;
-                }
-            }
+            self.queue_changes(events);
             return Ok(Value::Empty);
         }
         if args.first().is_some_and(|v| !matches!(v, Value::Missing)) {
@@ -250,23 +238,21 @@ impl Bridge {
         let end =
             selected.start.offset(i64::from(height) - 1, i64::from(width) - 1).ok_or_else(|| failure(1004, "Paste extends outside the worksheet"))?;
         let target = RangeRef::new(selected.start, end);
-        let mut events: Vec<(String, usize, Range)> = Vec::new();
-        if clip.cut {
+        let events = if clip.cut {
             if clip.sheet == destination_sheet && clip.range.intersects(&target) {
                 return Err(failure(1004, "overlapping cut moves are unsupported"));
             }
-            if let Some(owner) = self.preflight_change(session, clip.sheet)? {
-                events.push((owner, clip.sheet, clip.range.into()));
-            }
-        }
-        if let Some(owner) = self.preflight_change(session, destination_sheet)? {
-            if clip.cut && clip.sheet == destination_sheet && !events.is_empty() {
-                events[0].2.areas.push(target);
-                events[0].2.areas.sort_by_key(|area| (area.start.row, area.start.col));
+            if clip.sheet == destination_sheet {
+                let mut changed: Range = clip.range.into();
+                changed.areas.push(target);
+                changed.areas.sort_by_key(|area| (area.start.row, area.start.col));
+                self.prepare_change(session, destination_sheet, changed)?
             } else {
-                events.push((owner, destination_sheet, target.into()));
+                self.prepare_changes(session, &[(clip.sheet, clip.range.into()), (destination_sheet, target.into())])?
             }
-        }
+        } else {
+            self.prepare_change(session, destination_sheet, target.into())?
+        };
         if doc.sheet_index() != destination_sheet {
             session.execute("sheet.activate", json!({"sheet":destination_sheet})).map_err(|e| failure(1004, e.to_string()))?;
         }
@@ -274,9 +260,7 @@ impl Bridge {
             session.execute("selection.set", json!({"range":start.a1(),"active":start.a1()})).map_err(|e| failure(1004, e.to_string()))?;
         }
         session.execute("edit.paste", json!({})).map_err(|e| failure(1004, e.to_string()))?;
-        for (owner, changed_sheet, changed_range) in events {
-            self.queue_change(owner, changed_sheet, changed_range)?;
-        }
+        self.queue_changes(events);
         Ok(Value::Empty)
     }
 
@@ -317,15 +301,13 @@ impl Bridge {
                 formulas.set((row * width + column) as usize, values::vba_text(&formula)?).map_err(|error| failure(7, error.to_string()))?;
             }
         }
-        let event = self.preflight_change(session, sheet)?;
+        let event = self.prepare_change(session, sheet, target.into())?;
         let linked_values = Value::Array(formulas);
         values::write(session, sheet, target, &linked_values, true, false)?;
         session
             .execute("selection.set", json!({"range":target.a1(),"active":target.start.a1()}))
             .map_err(|error| failure(1004, error.to_string()))?;
-        if let Some(owner) = event {
-            self.queue_change(owner, sheet, target.into())?;
-        }
+        self.queue_changes(event);
         Ok(Value::Empty)
     }
 }

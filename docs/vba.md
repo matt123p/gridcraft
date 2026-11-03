@@ -26,7 +26,12 @@ compatibility report.
 The accepted prioritization is in the
 [final v1 report](vba-object-model-v1-priority-final.md); the
 [implementation plan](vba-object-model-implementation-plan.md) applies its
-existing-capability gate before High/Medium/Low ordering. A later GridCraft
+existing-capability gate before High/Medium/Low ordering. The
+[delivery stages](vba-object-model-implementation-plan.md#work-packets-and-delivery-order)
+put High roots/formulas/formatting/data/tables first, with events and protection
+alongside each operation, then selected Medium subsets. Low runtime work,
+including OM14/OM16/OM17 and Low members in mixed families, is deferred at this
+time. OM numbers are stable family IDs, not queue positions. A later GridCraft
 feature can make a member eligible, but that product work belongs to GridCraft's
 normal roadmap, not this integration workstream.
 
@@ -310,8 +315,15 @@ The reviewed native mutation list is covered by authored event-source tests, inc
 cell-editor commit, direct-control edits and pointer drag-cut delivery for both committed ranges.
 Format-only operations and no-op duplicate removal do not queue events.
 If a native edit commits but the bounded event queue is full, the edit remains
-committed and GridCraft reports that the event could not be queued. A VBA Range
-write checks the event budget before mutating and refuses before the write.
+committed and GridCraft reports that the event could not be queued. VBA Range
+writes, clears, clipboard operations, Replace and fills prepare the complete
+callback batch before mutation: queue/chain capacity, owner and Target handles,
+and callback arguments. A two-sheet cut reserves both events together. Event
+capacity or handle-allocation refusal therefore occurs before data, selection
+or clipboard effects. The post-success enqueue consumes the prepared batch
+without fallible allocation. Explicit, default and indexed assignments all use
+this path; ClearContents queues exactly one event. An unsuppressed write inside
+a callback queues a later event, including a default assignment.
 If a callback fails, remaining callbacks in the queued event batch are cancelled;
 successful writes already made remain in the grouped undo step. Reset, close and
 trust revocation also cancel queued callbacks before releasing the host.
@@ -323,6 +335,10 @@ debugger path. Worksheet callbacks scope
 unqualified Range/Cells/Rows/Columns construction to the owner sheet without
 changing active selection. `Me.Range` and declared sheet/workbook members dispatch
 through the captured live host owner; unsupported members still fail explicitly.
+Handlers belong to this bridge's workbook UID, so matching code names in another
+workbook cannot dispatch this project's handlers. Captured writes and callbacks
+continue to target the owning workbook while another workbook is active; scoped
+owner resolution restores the active workbook afterward.
 GridCraft's embedded IDE imports `.tvform` files through File → Import File (also
 available as the `vba.importSource` UI command) and runs the selected Label/TextBox/
 CommandButton profile through tiny-vba's shared form designer/runtime. TextBox and
@@ -405,7 +421,7 @@ WASI execution. Logs are ignored under `target/worksheet-final-*`; this is local
 acceptance, not a claim that the edited hosted CI workflow has already run.
 
 The same adapter tests also use `wasm-bindgen-test` on wasm32-unknown-unknown.
-Install `wasm-bindgen-cli` 0.2.129, set
+Use Node 22 (matching CI), install `wasm-bindgen-cli` 0.2.129, set
 `CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner`, and run
 `cargo test -p gridcraft-vba --target wasm32-unknown-unknown`. These execute in
 JavaScript (Node), including GridCraft's browser clock imports. WASI is not a
@@ -426,3 +442,16 @@ outside this profile; M5 document/event execution is partially implemented below
 2026-10-29: M4 adds stable document/sheet ownership, dynamic active roots, typed
 Value conversion, Address arguments and live formatting/calculation. The shared getter prerequisite is published and pinned by immutable Git revision;
 the temporary local override is removed.
+
+## Event remediation revision (2026-11-03)
+
+Document-targeted callback ownership and complete pre-mutation event reservation
+are implemented in the optional adapter. The [implementation plan](vba-object-model-implementation-plan.md#event-remediation-2026-11-03)
+records the failing regressions, corrected assignment/ClearContents behavior and
+validation evidence.
+
+Remediation validation passes 121 native adapter tests, 119 JavaScript-hosted
+WASM tests (Node 22), and 32 VBA UI/event/form/window tests. The audit, strict
+Clippy, layering and VBA-enabled web build pass. Full workspace CI reaches two
+unrelated missing-glyph failures without the optional craft-fonts checkout;
+exact commands and limitations are recorded in the implementation plan.

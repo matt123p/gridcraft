@@ -111,7 +111,7 @@ End Sub"#;
     ide.add_document_module(
         "Menu.cls",
         "MenuCode",
-        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nApplication.EnableEvents = False\nMe.Range(\"Z1\") = Target.Address\nApplication.EnableEvents = True\nEnd Sub\n",
     )?;
     b.configure_document(&mut ide, &s.doc()?.wb)?;
     for (address, value) in [("A1", "cat"), ("A2", "cat"), ("A3", "x"), ("B1", "cat")] {
@@ -141,6 +141,7 @@ End Sub"#;
     let code = r#"Sub Main()
 On Error Resume Next
 Range("A1:EY1").Replace What:="x", Replacement:="y", LookAt:=xlWhole
+Application.EnableEvents = False
 Range("E2") = Err.Number
 End Sub"#;
     let (mut session, mut bridge, mut interpreter) = setup(code)?;
@@ -148,7 +149,7 @@ End Sub"#;
     interpreter.add_document_module(
         "Menu.cls",
         "MenuCode",
-        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nApplication.EnableEvents = False\nMe.Range(\"Z1\") = Target.Address\nApplication.EnableEvents = True\nEnd Sub\n",
     )?;
     bridge.configure_document(&mut interpreter, &session.doc()?.wb)?;
     for column in (0..129).step_by(2) {
@@ -338,7 +339,7 @@ End Sub"#;
     ide.add_document_module(
         "Sheet.cls",
         "SheetCode",
-        "Attribute VB_Name = \"SheetCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+        "Attribute VB_Name = \"SheetCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nApplication.EnableEvents = False\nMe.Range(\"Z1\") = Target.Address\nApplication.EnableEvents = True\nEnd Sub\n",
     )?;
     b.configure_document(&mut ide, &s.doc()?.wb)?;
     s.execute("range.setValues", serde_json::json!({"range":"A1","values":[[1],[3]]}))?;

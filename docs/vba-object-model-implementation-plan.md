@@ -29,8 +29,12 @@ Every row must record one of these eligibility outcomes before packet priority:
 - `POLICY_BLOCKED` or `SERVICE_UNAVAILABLE`: retain the exact reason and fail
   explicitly rather than providing a compatibility stub.
 
-High/Medium/Low orders eligible projections only. A High Excel member whose
-behavior GridCraft lacks is still out of scope. If GridCraft later implements
+High/Medium/Low orders eligible projections only. Deliver eligible High slices
+first, then selected eligible Medium subsets. **Low is deferred and will not be
+implemented in this workstream at this time**, even when its backing capability
+exists. OM IDs are stable family identifiers, not implementation sequence numbers.
+The [delivery order](#work-packets-and-delivery-order) below is authoritative.
+A High Excel member whose behavior GridCraft lacks is still out of scope. If GridCraft later implements
 that behavior through its own roadmap, eligibility can be reviewed separately.
 
 Do not audit or reimplement VBA intrinsic functions, syntax, or the worksheet
@@ -71,7 +75,13 @@ pin and current adapter before each implementation slice; this plan does not
 freeze a historical source commit. The Microsoft documentation archive and
 inventory provenance remain independently pinned as recorded above.
 
-## What the implementation actually exposes
+## Initial audit baseline (historical)
+
+The tables below describe the initial audit, before the OM02 slices recorded at
+the end of this plan; they are not the current missing-work queue. In particular,
+Union/Intersect, fills, Replace, SpecialCells, CurrentRegion, linked paste and
+grouped selection have since landed. Use current descriptors, tests and the
+implementation progress below when selecting work.
 
 The shipping adapter is principally `crates/vba/src/objects.rs`, with argument
 binding in that file, type/enum registration in `types.rs`, completion metadata
@@ -149,47 +159,221 @@ precedence where a member has multiple concerns, and OM20 must resolve the tail.
 - Preserve current roadmap IDs and completed intrinsic work. OM IDs below are
   a new cross-repository object-model workstream, not replacements for M1-M8.
 
-## Work packets and order
+## Architecture review and low-friction delivery (2026-11-03)
 
-OM00's deterministic source/semantic exporter and OM01's bounded execution,
-shared descriptor, diagnostics and compatibility-reporting foundation are
-implemented and accepted. OM02's bounded `GridCraft.Excel.v1` selection,
-clipboard and editing profile is also implemented and accepted as recorded in
-the progress section. System-clipboard services and behavior owned by later
-packets remain explicit rather than being counted as silent OM02 successes.
-Split each packet into small PRs by object family and behavior. Do not
-make one PR containing the whole object model. OM00-OM02 are complete; continue
-with the eligible portions of OM03-OM07, then eligible portions of the remaining
-families with their prerequisites.
-OM20 classification starts early and must be complete before final sign-off.
+This review inspected the Rust implementation, not just the reference catalogue.
+Keep the existing crate boundary. No new crate, RPC service, plugin framework or
+second workbook abstraction is needed. The changes below are implementation
+instructions for subsequent slices, not claims that those changes have landed.
 
-| Packet | Reconciled pages | Deliverable | Prerequisites |
+### Verified ownership and concrete review findings
+
+| Concern | Existing Rust evidence | Delivery decision |
+|---|---|---|
+| Dependency boundary | `crates/vba/Cargo.toml`, `crates/engine/Cargo.toml`, `xtask/src/layers.rs`: adapter at L6 above engine; engine has no VBA dependency | Keep Excel names, errors, bindings and handles in `gridcraft-vba`; retain optional shell features. |
+| Dispatch and metadata | `objects.rs::invoke_object` is a large receiver/member ladder; `lib.rs::member_descriptors` supplies signatures, but handlers separately pass argument-name arrays to `objects::arguments` | Extract touched families into private modules incrementally. Share reviewed argument specifications; do not require a wholesale dispatcher rewrite. |
+| Identity and targeting | `types.rs::Objects`, `Bridge::sync_sheets`, `WorkbookHost::invoke`, `Session::with_target` already implement shared handles and document targeting | Reuse these mechanisms for new collections; never create another registry or capture document borrows in objects. |
+| Mutations | `values.rs` uses native typed content operations; `clipboard.rs` and `search.rs` use engine commands, including Replace preview | Keep exact VBA values typed. Reuse command execution and its undo/recalc/protection path; do not write model cells directly. |
+| Events | Review reproduced wrong-workbook ownership, duplicate/missing events and post-write capacity failures; now `prepare_changes` runs in the receiver context, materializes handles/arguments and reserves the complete batch | Remediated with native and WASM regression coverage recorded below. Imported handlers remain bound to their own workbook, including when another workbook uses identical code names. |
+| Services | `WorkbookHost::resume` currently refuses and `cancel` is empty | Synchronous projections can land now. File/dialog operations needing a wait require a separate bounded continuation slice; engine file support alone does not establish that host contract. |
+| Audit | `xtask/src/vba_audit.rs` already verifies the pinned archive and generates contracts, enum Rust and the audit report | Extend this exporter; do not build a competing generator. Current result states are derived from baseline status/metadata, not executed compatibility evidence. |
+
+The source comment defending a single dispatch ladder describes the current
+implementation, not a requirement to keep growing it. Leave `objects.rs` with
+receiver/default-member routing, shared binding and collection mechanics; move
+Application, lifecycle, formatting and data-tool handlers into private family
+modules as those families are touched. Keep one `Bridge` and object store. A
+small direct Rust match or shared helper is preferable to a generic kernel DSL
+until several actual members demonstrate the same behavior.
+
+### Keep the engine boundary useful, not obstructive
+
+An adapter may need a narrow **host-neutral exposure of existing behavior**:
+explicit document/sheet/range targeting, a read-only preview, a typed entry point
+sharing the command executor, or an effect footprint. That is allowed plumbing,
+as demonstrated by the existing Replace preview and native content API. Keep it
+small, reusable by CLI/UI/MCP, and tested at the engine boundary. It must not add
+Excel member names, VBA errors, foreign handles, or another mutation path below
+L6. A new spreadsheet algorithm, dialog, provider or persistence capability
+still belongs to GridCraft's separate roadmap.
+
+Prefer explicit targets when the engine supports them (`data.sort` already
+accepts sheet/range). Do not introduce temporary selection/activation merely to
+reuse a UI-oriented default. Where unavoidable in an existing command path,
+define and test the visible state on both success and failure. An undo group is
+not an atomic transaction for a sequence of commands. Validate options, target,
+protection and all event/handle capacity before the first write; do not roll back
+successful earlier macro statements on a later error.
+
+Adapter-only transient state is legitimate for Excel interaction protocols,
+such as pending SortFields before Apply, Find options and event policy. Key it
+by existing document/sheet identity, bound it and clear/invalidate it on the
+appropriate lifecycle transition. It must not duplicate persisted workbook
+state or add a new GridCraft feature.
+
+### One source for each kind of information
+
+Keep source-page provenance in the inventory and documented contracts in the
+exported contracts file. Add reviewed implementation decisions to the inventory,
+keyed by stable row ID: eligibility, engine symbol/command evidence, supported
+options, family, priority and test IDs. Distinguish an unreviewed row from an
+out-of-scope row; do not classify all absent projections as missing engine
+capabilities. Review the selected slice first; full-catalogue classification is
+an acceptance task, not a prerequisite to the next useful PR.
+
+Keep supported runtime descriptors in Rust. Incrementally add structured
+argument/access information used by binding and catalogue generation for touched
+families. Do not parse signature strings at runtime. Pinned documentation has
+unknown defaults/modes; it is input for review, not executable semantics.
+Generate only reviewed boilerplate and metadata, with handwritten semantic
+handlers and positive behavior tests. Registration or a generic implementation
+symbol does not prove that a handler supports all advertised options.
+
+### Tooling that pays for itself
+
+Use the existing Rust exporter for durable checks and generation:
+
+```sh
+cargo +1.99.1 run -p xtask --features vba-audit -- vba-audit
+# Only when changing inventory/contracts or generated metadata:
+cargo +1.99.1 run -p xtask --features vba-audit -- vba-audit --write
+cargo +1.99.1 run -p xtask --features vba-audit -- vba-audit
+cargo +1.99.1 test -p gridcraft-vba --test collections --test workbooks
+cargo +1.99.1 xtask layers
+```
+
+The audit needs `target/vba-docs-audit/reference.zip` with the documented hash;
+ordinary builds/tests must not fetch it. Replace the example test targets with
+the affected family suites. Use the full commit gates below before committing.
+
+Next extend the same exporter to validate eligibility/evidence fields and emit
+an eligible queue by family. Then add binding consistency checks and generated
+negative cases for the first repeated family. Do not generate semantic expected
+outputs from the same descriptors being tested. Keep generated Rust checked in;
+no build-time generator or Python runtime dependency. Defer `vba-usage`, proc
+macros, command-schema extraction and benchmarking infrastructure until a
+measured recurring task justifies them. Command parameter documentation is not
+an executable schema and cannot supply Excel defaults automatically.
+
+Python's standard library is useful now for read-only JSON joins, duplicate and
+page-count checks, packet counts and Markdown link checks. Use it for analysis
+or mechanical migrations with reviewed diffs; promote recurring authoritative
+checks into the existing Rust xtask. Never execute downloaded macros during
+analysis. Do not hand-edit generated contracts, enums or the audit report.
+
+### Smallest useful implementation sequence
+
+1. Select one eligible synchronous OM03/OM04 slice, recording its engine backing
+   and reachable root/collection path. Existing calculation is a baseline to
+   verify, not work to recreate. `Run` needs generic invocation/reentrancy review;
+   it is not automatically a simple engine-command wrapper.
+2. Extract only the family being changed and share its repeated binding data.
+   Land behavior plus metadata/tests together; avoid a foundation-only rewrite.
+3. Add reachable read-only collections/properties and existing sheet operations;
+   handle blocking Open/Save/Close and prompt continuations separately. Retain the
+   target/event reservation regressions when broadening cross-document writes.
+4. Take the smallest eligible formatting, Sort/SortFields or formula/name slice
+   whose actual prerequisites exist. WorksheetFunction should use one proxy into
+   the existing calculator, with explicit per-function eligibility and VBA
+   argument/result/error conversion, not hundreds of wrappers.
+5. Complete the eligible High table graph (OM18) before general Medium work.
+   Deliver OM11 event behavior with each High slice; enforce protection on every
+   mutation and project ordinary Protect/Unprotect under the High member rule.
+   Then take the selected Medium subsets in the delivery order below. Low slices
+   are deferred. Prerequisites are per slice: an existing single-workbook
+   formatting property need not wait for all lifecycle, view and event APIs.
+
+For each slice test exact results/errors, named/omitted arguments, receiver
+identity and the relevant effects. Add undo/protection/events for writes,
+persistence for persisted state, and pause/resume for waiting operations. Reuse
+shared regression suites instead of repeating the entire matrix for each
+property. UI/render inspection is required when the slice changes visible UI
+or rendering; it is not a prerequisite for a metadata-only change. No reliable
+calendar estimate follows from documentation page counts.
+
+## Work packets and delivery order
+
+**Do not implement packets in numeric order.** OM00-OM02 are accepted foundations;
+the event remediation is also complete. The remaining delivery order follows
+[the accepted priority report](vba-object-model-v1-priority-final.md), subject to
+each member's existing-capability gate. Keep OM IDs and inventory routing stable:
+renumbering them would break provenance and handoffs without simplifying delivery.
+Detailed packet contracts below remain in numeric order for reference only.
+
+| Stage | Delivery order | Acceptance boundary |
+|---|---|---|
+| Accepted foundation | OM00 → OM01 → OM02, plus completed event remediation | Retain the accepted bounded profiles and their regressions; do not restart them. |
+| High: reachable roots | OM03 + OM04 synchronous roots, collections, identity and existing sheet operations | Establish the object paths needed by later slices. Review ordinary protection members from OM09 here where they support these operations. |
+| High: formula and function access | OM07 | Reachable WorksheetFunction proxy, then eligible formula/name/Evaluate slices. Do not wait for blocking file lifecycle operations to finish. |
+| High: everyday workbook operations | OM05 → OM06 → OM18 | Common formatting, then sort/filter/validation/data tools, then structured tables. OM18 comes before general Medium work. |
+| High: remaining invocation/lifecycle work | Remaining eligible OM03/OM04 slices as their contracts are ready; complete before High sign-off | Run/reentrancy and Open/Save/Close waits are separate slices. Implement earlier when their actual dependencies are ready; they do not block unrelated synchronous High work. |
+| Alongside every implemented slice | OM11 events; OM09 protection enforcement; OM00 metadata and OM20 reconciliation | Event ordering/cancellation and existing protection gates land with the operation, not in a later catch-up packet. Events follow their owning feature's tier. |
+| Medium: first subsets | OM12 → OM13 | Reachable basic charts/drawings first, then existing local pivot behavior. No provider/OLAP expansion. |
+| Medium: remaining selected subsets | OM08 → remaining OM09 → OM10 → OM19 → OM15 | Views, additional protection/permission projections, print/export, local annotations and interaction/controls, taking only slices whose dependencies and services exist. |
+| Deferred Low | OM14, OM16, OM17, and Low members routed to any other packet | No runtime implementation now. Retain provenance, classification, existing package fidelity and explicit unsupported results. |
+| Profile sign-off | OM20 | Close after High and the selected Medium subsets; Low implementation is not a prerequisite. Publish supported, partial, out-of-scope and deferred rows separately. |
+
+Arrows give the default queue, not whole-packet barriers. A later slice may move
+forward when its actual receiver/engine dependencies exist. A small Medium-owned
+helper required by a High operation (for example a prompt continuation) may land
+with that High slice; this does not authorize the rest of the Medium family.
+Do not pull Low behavior into a High slice through a dependency. Refuse the Low
+variant and retain the portable High path. High acceptance requires every
+eligible required High obligation to be implemented/tested; unresolved High
+requirements block High sign-off. Record them rather than silently downgrading
+them to unblock Medium work.
+
+Ordinary sheet/workbook Protect/Unprotect and protection status are High under
+the member-level rules in the final report, even though OM09's family default is
+Medium. Existing protection enforcement is required from the first mutation.
+Likewise, OM11's family default is High, but events for deferred Low APIs remain
+deferred, and Medium-feature events accompany their selected Medium slice.
+
+### Packet index by delivery tier
+
+Counts retain the original source-page routing. A family tier is a planning
+default; classify mixed-owner members by behavior. Prerequisites below mean the
+specific needed receiver/command contract, not completion of every listed packet.
+
+| Packet | Reconciled pages | Tier / disposition | Deliverable and actual dependencies |
 |---|---:|---|---|
-| OM00 | 272 | Complete inventory, signatures, enum and constant contracts | None |
-| OM01 | Cross-cutting | Host execution policy, member registry and diagnostics | OM00 schema |
-| OM02 | 68 | Selection, clipboard, editing and range operations | OM01 |
-| OM03 | 206 | Project existing Application roots, settings, calculation and dispatch | OM01 |
-| OM04 | 278 | Project existing workbook/sheet collections and lifecycle | OM01, OM03 |
-| OM05 | 541 | Project existing formatting, styles and conditional formatting | OM02, OM04 |
-| OM06 | 180 | Project existing sort/filter/validation/outline/data tools | OM02, OM05 |
-| OM07 | 515 | Project existing names, formulas and evaluation/function bridges | OM03, OM04 |
-| OM08 | 163 | Project existing windows, panes, view and navigation | OM03, OM04 |
-| OM09 | 96 | Project existing protection and permission state | OM04 |
-| OM10 | 133 | Project existing page setup, printing and export | OM04, OM05, OM08 |
-| OM11 | 123 | Application/workbook/worksheet event completeness | OM01, OM04; incremental with every mutating packet |
-| OM12 | 1,220 | Project existing charts, drawings, images and associated objects | OM04, OM05, OM08 |
-| OM13 | 838 | Project existing local pivot behavior; unsupported slicer/model/provider behavior is out of scope | OM04, OM06 |
-| OM14 | 305 | Classify connections/query/import/XML/refresh; project only existing local behavior | OM04 |
-| OM15 | 115 | Project existing dialogs, interaction, proofing and controls | OM03, OM08, OM11 |
-| OM16 | 138 | Classify sharing/collaboration/publishing APIs; no new providers | OM04, OM09 |
-| OM17 | 570 | Classify legacy/Graph/OS/COM/XLL/VBE interoperability; no new platform layer | OM00 |
-| OM18 | 134 | Project existing structured tables and table styles | OM04, OM05, OM06, OM07 |
-| OM19 | 101 | Project existing notes/comments, hyperlinks and metadata | OM04, OM05, OM11 |
-| OM20 | Cross-cutting | Reconcile aliases/reference pages and finish acceptance; every row implemented or explicitly classified | Starts at OM00; closes after all packets |
+| OM00 | 272 | Accepted / cross-cutting | Pinned inventory, signatures/enums and metadata; maintain with each slice. |
+| OM01 | Cross-cutting | Accepted foundation | Execution policy, registry and diagnostics over OM00. |
+| OM02 | 68 | Accepted High profile | Selection, clipboard/editing/ranges; extend only for selected High dependencies. |
+| OM03 | 206 | High | Existing Application roots/calculation/invocation; synchronous roots first, Run only with its reviewed invocation contract. |
+| OM04 | 278 | High | Existing workbook/sheet collections and lifecycle; needs relevant OM03 roots and explicit consent/identity. Waiting services are separate slices. |
+| OM07 | 515 | High | Names/formula/Evaluate/function bridge; needs only the relevant OM03/OM04 roots and calculator context. |
+| OM05 | 541 | High | Existing formatting/styles/conditional-format subsets; existing Range/Worksheet receivers suffice for simple properties. |
+| OM06 | 180 | High | Existing sort/filter/validation/data tools; depends on OM02 range targeting and only the OM05 properties actually consumed. |
+| OM18 | 134 | High | Existing structured tables; needs relevant OM04 receivers, OM05 styles, OM06 operations and OM07 structured references per slice. |
+| OM11 | 123 | High by owning feature | Existing event hooks, cancellation/order and lifecycle semantics; implement alongside the corresponding operation. |
+| OM12 | 1,220 | Medium | Existing basic charts/drawings; needs OM04 object ownership and relevant OM05 formatting; OM08 only for genuinely window-dependent members. |
+| OM13 | 838 | Medium | Existing local pivots; relevant OM04/OM06 and table/formula contracts where used; provider/model behavior excluded. |
+| OM08 | 163 | Medium | Existing windows/panes/views; relevant OM03/OM04 document/window identity. |
+| OM09 | 96 | Medium default; ordinary protection members High | Existing protection/permission projections; relevant OM04 receivers. Mutation protection enforcement applies throughout. |
+| OM10 | 133 | Medium | Existing page setup/print/export; relevant OM04/OM05 state, OM08 only for view-dependent calls, actual export/print service. |
+| OM19 | 101 | Medium | Existing local notes/links/metadata; relevant OM04/OM05 receivers and event hooks if the operation needs them. |
+| OM15 | 115 | Medium | Existing interactions/controls; actual host-service continuation and relevant OM03/OM08/OM11 contracts only. |
+| OM14 | 305 | Low — deferred | Connections/query/import/XML/refresh automation: classify/report only; no projection work now, including otherwise eligible local variants. |
+| OM16 | 138 | Low — deferred | Remote/collaboration/publishing: classify/report only; no projection/provider work now. |
+| OM17 | 570 | Low — deferred | Legacy/Graph/platform/VBE interoperability: classify/report only; no projection/platform work now. |
+| OM20 | Cross-cutting | Continuous / sign-off | Reconcile source rows and reachability against the selected profile; close without implementing deferred Low rows. |
 
-Page routing is not a project estimate: for example, one chart method may need
-several engine capabilities, whereas many enum pages can be registered together.
-Record reassignments in the inventory, keeping the original pinned source set.
+`DEFERRED_LOW` is a planning disposition, separate from eligibility and runtime
+result state. An eligible Low row is deferred, not `OUT_OF_SCOPE_GRIDCRAFT`; a row
+lacking backing behavior remains out of scope and may also be Low. Runtime
+support already present is retained; this decision creates no new Low runtime
+work. Low triage records the family/tier, eligibility or known restriction and
+source provenance; it does not require deep parameter review, new receiver
+objects, enum/binding generation, per-member stubs or a new Low test programme.
+Use existing unsupported dispatch/diagnostics rather than building deferred graphs.
+The per-row priority/disposition schema migration remains planned, not
+implemented by this documentation change. Do not reinterpret generated MISSING
+counts as an instruction to implement all rows, or hand-edit generated reports.
+
+Page routing is not a project estimate. Record genuine family reassignments in
+the inventory, keeping the pinned source set; delivery ordering alone requires
+no inventory reassignment or generated-file regeneration.
 
 ### OM00 — inventory and contracts first
 
@@ -374,6 +558,9 @@ raised runtime errors, UDF read-only policy, locale and recursion/payload budget
 
 ### OM08 — windows, panes and navigation
 
+Medium: follow the delivery table after High completion, except a narrowly
+required helper for a High operation.
+
 Project eligible Windows/Window/Panes/Pane and custom/sheet views onto real per-window
 state: ActiveWindow, activation, selection, scrolling, freeze/split panes, Zoom,
 gridlines/headings, display modes, bounds and window lifecycle. Worksheet-owned
@@ -383,6 +570,11 @@ saved views, closed handles, narrow/native/browser layouts and headless results.
 [Window reference](https://learn.microsoft.com/en-us/office/vba/api/excel.window).
 
 ### OM09 — protection and permissions
+
+Ordinary protection/status/Protect/Unprotect members are High under the
+member-level rules; additional eligible permission/protected-view/encryption
+projections are Medium. Existing protection checks apply to every mutation
+throughout the workstream. Do not defer those checks until this packet.
 
 Project existing workbook/sheet/range protection and AllowEditRanges, protection status,
 password/encryption options, protected-view and document permissions through
@@ -405,6 +597,10 @@ output and inspecting it, plus cancellation, unavailable printer and file errors
 [PageSetup](https://learn.microsoft.com/en-us/office/vba/api/excel.pagesetup).
 
 ### OM11 — event completeness
+
+Deliver events with the owning operation: High lifecycle/edit/table events in
+the High queue, selected Medium events with their feature, Low events deferred.
+This packet is not a demand to implement all 123 event pages before High sign-off.
 
 Inventory every documented event and ByRef/Cancel parameter. Extend delivery
 only for lifecycle and mutation signals GridCraft already exposes. Events that
@@ -446,9 +642,14 @@ visible as `OUT_OF_SCOPE_GRIDCRAFT`, not an empty successful refresh or VBA back
 
 ### OM14 — connections, import and refresh
 
+Low — deferred; classification/reporting only at this time. Do not implement
+members even if a local backing behavior exists. Native file/import features
+and existing package preservation continue through their established owners.
+
 Classify Connections/WorkbookConnection, QueryTables/QueryTable, queries,
 parameters, text/ODBC/OLEDB/XML/data-feed connection objects, mappings and refresh
-lifecycle. Project only local operations already supported by GridCraft. Database
+lifecycle. Retain local candidates for future reprioritization; no OM14 runtime
+projection is scheduled now. Database
 drivers, network/authentication, refresh providers and credential ownership are
 not added by this project and are `OUT_OF_SCOPE_GRIDCRAFT`. Existing package-part
 preservation remains a file-fidelity behavior, not an executable VBA provider.
@@ -468,8 +669,11 @@ Cancel and typed results, selection/focus, project teardown and accessibility.
 
 ### OM16 — remote, collaboration and publishing APIs
 
+Low — deferred; classification/reporting only at this time.
+
 Keep every sharing/review/mail/server/SharePoint/publishing/cloud-related row
-visible. Project only behavior already provided by a GridCraft feature/service.
+visible. No new projection is scheduled, including for an existing GridCraft
+feature/service.
 There are currently no general host adapters for these APIs, so provider-backed
 rows are `OUT_OF_SCOPE_GRIDCRAFT`. Do not reinterpret SendMail as a
 no-op, automatically send messages, or silently replace a Microsoft service with
@@ -478,25 +682,31 @@ remote state changes.
 
 ### OM17 — legacy and platform interoperability
 
+Low — deferred; classification/reporting only at this time. Portable equivalents
+remain deferred even if existing GridCraft behavior could back them.
+
 Reconcile Excel Graph legacy topics, XLM/Excel4 methods, DDE, COM/XLL/add-ins,
 OLE, OS-specific operations, VBProject/VBE and similar APIs. Classify aliases,
 deprecated-but-documented contracts and true platform dependencies. Preserve
 all rows even when a native portable implementation is inappropriate.
 The existing Rust-only/no-ambient-COM/no-VM-IO and third-party-control boundaries
-still apply. Project portable equivalents only when their behavior is explicit
-and GridCraft already implements it; otherwise retain `OUT_OF_SCOPE_GRIDCRAFT`,
-`SERVICE_UNAVAILABLE` or `POLICY_BLOCKED` with exact reasons.
+still apply. Retain eligibility evidence separately from the deferred priority;
+use `OUT_OF_SCOPE_GRIDCRAFT`, `SERVICE_UNAVAILABLE` or `POLICY_BLOCKED` only where
+those reasons actually apply. Do not change eligibility merely to express deferral.
 Any policy expansion needs its own reviewed design, not an implicit exception in
 an implementation PR. A complete portable profile and complete Windows Excel
 interoperability are different acceptance claims; publish both denominators.
 
 ### OM18 — structured tables
 
+High: deliver the selected table graph after its actual formatting/data/formula
+prerequisites, ahead of general Medium work; its number is not its queue position.
+
 Project existing ListObjects/ListObject, ListRows/ListRow, ListColumns/ListColumn,
 table ranges/totals/header rows, resize/convert/add/delete, styles, filters and
 structured references through actual table models. Include TableObject and
-connection-backed variants with OM14; they remain out of scope without an
-existing provider. Test empty-table ranges, headers and
+connection-backed variants with OM14; they are Low/deferred, and independently
+out of scope without an existing provider. Test empty-table ranges, headers and
 totals, calculated columns, row insertion/deletion, reference maintenance,
 filter/sort interaction, protection, formula spill interaction and saved files.
 [ListObject](https://learn.microsoft.com/en-us/office/vba/api/excel.listobject).
@@ -506,7 +716,8 @@ filter/sort interaction, protection, formula spill interaction and saved files.
 Project existing Comments/Comment, threaded comments/persons/replies where supported,
 Hyperlinks/Hyperlink, custom and built-in document properties, custom worksheet
 properties and annotation formatting/visibility. Distinguish local notes from
-collaborative threaded state and external follow-link actions. Use current
+collaborative threaded state and external follow-link actions. Remote identity/
+service-backed Low members remain deferred even if a provider becomes available. Use current
 metadata/comment/link commands and package models. Test copy/move/delete,
 structural rebase, author/thread identities, formatting, undo, file round trips
 and unavailable remote/person services. Missing remote identity/thread services
@@ -519,11 +730,17 @@ Reconcile every `reference-triage` row within its assigned family, including
 names with unusual receiver spelling and legacy standalone pages. Ensure smart
 tag actions/proofing (OM15), phonetics/characters (OM05), add-ins (OM17), cell
 watches (OM08), file converters/recovery (OM04) and the smaller object families
-are projected when eligible or explicitly classified out of scope rather than
-lost behind the headline objects. New source pages must be routed to a precise
+are projected when eligible and selected for High/Medium delivery, or explicitly
+classified as deferred Low/out of scope/unavailable rather than lost behind the
+headline objects. Low and unselected Medium rows are not runtime implementation
+requirements for this sign-off. New source pages must be routed to a precise
 packet or a new explicit family packet. Do not
 introduce an unexamined miscellaneous bucket at sign-off. Resolve duplicates/
 aliases without deleting source-page provenance.
+
+Close OM20 after High and the selected Medium subsets. Retain all Low rows in
+the report as deferred; their implementation is not required for acceptance.
+Do not label all of Medium complete when only selected subsets have landed.
 
 Run a final object graph reachability audit: a member cannot be complete when
 its receiver cannot be obtained, its return type has no usable projection, or
@@ -566,14 +783,19 @@ Do not infer broad Excel parity from the absence of runtime error 438.
 
 ## Recommended next Luna assignment
 
-Start by applying the eligibility gate to OM03. Implement the smallest coherent
-Application slice backed by existing GridCraft behavior: roots, calculation,
-`Run` and environment/path projections. Mark ScreenUpdating, DisplayAlerts,
-StatusBar/DisplayStatusBar, Cursor and scheduling out of scope wherever no
-matching GridCraft state/service exists. Then move into the eligible OM04
-lifecycle projection. OM06a Sort/SortFields remains the next data-tools slice
-after its eligible prerequisites. Keep the rest of this plan as an ordered audit
-catalogue plus eligible backlog; do not turn it into a full Excel feature plan.
+Take one synchronous High OM03/OM04 roots/collection slice with existing engine
+backing, supported paths and identity tests. Verify the existing calculation
+baseline rather than recreating it. Then take the reachable OM07 WorksheetFunction
+proxy or formula/name slice; continue OM05 → OM06 → OM18 by actual prerequisites.
+Keep OM11 events and OM09 protection obligations in each relevant slice. Return
+to remaining eligible High OM03/OM04 lifecycle/Run work as its invocation/wait
+contracts are ready, and finish it before High sign-off.
+
+Do not start general Medium work while required High behavior remains incomplete.
+The first Medium delivery is a basic OM12 chart/drawing slice, then OM13 local
+pivots, followed by selected OM08/OM09/OM10/OM19/OM15 subsets. OM14/OM16/OM17 and
+all other Low members receive classification/diagnostics only; no Low runtime
+implementation is scheduled. Use the delivery table rather than numeric OM order.
 
 ## Audit validation performed in this planning task
 
@@ -718,3 +940,76 @@ belong to OM06, and CopyOrigin from-right/below remains an explicit unsupported
 option rather than a silent substitution. `Range.CopyPicture` and
 `Worksheet.PasteSpecial` retain explicit clipboard-image/external-format service
 results, satisfying the packet's native/browser service-unavailable contract.
+
+## Event remediation (2026-11-03)
+
+The review risks were reproduced with five failing integration tests before the
+fix. The adapter now prepares events at the actual write handlers, after scoped
+receiver resolution, rather than partly before `Session::with_target`.
+
+- `Bridge::prepare_changes` checks the entire event-chain/queue requirement,
+  interns callback owner and exact Target handles and materializes callback
+  arguments before the first engine effect. `queue_changes` consumes that
+  preparation without fallible allocation. Two-sheet cuts reserve both events
+  together; same-sheet cuts retain one combined source/destination Target.
+- `Bridge::write_range` covers explicit Value/Value2/Formula, default and indexed
+  assignments and direct Application/Worksheet range assignments. Clearing uses
+  only its own handler, removing the duplicate ClearContents notification.
+- Clipboard, Replace, clearing, fills and DataSeries use the same preparation.
+  Failed operations drop their prepared batch without queueing callbacks. Earlier
+  successful macro writes retain the existing undo-group policy.
+- Handler lookup rejects other document UIDs even when code names match. Event
+  delivery resolves the owner under the bound workbook's scoped target without
+  leaving that workbook active; sheet synchronization remaps callback ownership
+  only for the bound workbook.
+- Reporting callbacks in older clipboard/range fixtures now explicitly suppress
+  their own writes. A separate test verifies that an unsuppressed default
+  assignment queues exactly one later callback and remains in the same undo step.
+
+Regressions in `crates/vba/tests/events.rs` cover inactive-workbook writes and
+callback writes through Me, duplicate code names in another workbook, exact
+assignment/ClearContents callback counts, follow-up callback delivery, an event
+batch exceeding the remaining queue capacity and handle exhaustion before copy.
+Capacity refusals preserve workbook data, selection and clipboard. The existing
+pause/resume, Reset, trust, event ordering, protection and undo suites remain
+part of acceptance. All product changes are private to `gridcraft-vba`; engine
+and tiny-vba contracts remain as reviewed.
+
+### Remediation validation
+
+All commands used Rust 1.99.1. Evidence logs are local under
+`/tmp/gridcraft-vba-remediation-*.log`.
+
+- `cargo +1.99.1 test -p gridcraft-vba --no-fail-fast`: **121 passed**.
+- `PATH=/tmp/tiny-vba-m8-browser/node_modules/node/bin:$PATH CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner cargo +1.99.1 test -p gridcraft-vba --target wasm32-unknown-unknown`: **119 passed**, using the existing cached Node 22.23.4 and runner 0.2.129. System Node 18 crashed in the runner; use Node 22 as CI does.
+- `cargo +1.99.1 test -p gridcraft-ui-egui --features vba-window --test vba_events --test vba --test vba_forms --test vba_windows`: **32 passed**.
+- `cargo +1.99.1 clippy -p gridcraft-vba --all-targets -- -D warnings`: passed. Workspace formatting and strict Clippy also passed through `cargo +1.99.1 xtask ci`.
+- `cargo +1.99.1 run -p xtask --features vba-audit -- vba-audit`: passed; all 5,996 pinned source/semantic rows, 272 enum types and 2,260 constants unchanged.
+- `cargo +1.99.1 check -p gridcraft-vba -p gridcraft-web --features gridcraft-web/vba --target wasm32-unknown-unknown`: passed.
+- `target/debug/xtask layers`, `assets`, `parity --check` and `keytips --check`: passed. Local Markdown links/new section anchors and `git diff --check` passed.
+- Full `cargo +1.99.1 xtask ci` **does not pass in this checkout**: UI suite `it` has 901 passing tests and two unrelated font failures, `interaction::column_autocomplete_folds_case_beyond_ascii` (missing U+1E9E) and `interaction::language_switch_renders_the_ribbon_and_persists` (missing U+1EBB). The build lacks CI's optional craft-fonts checkout; no font policy or glyph assertions were changed. The task stops at tests, so its later stages were not run as part of that invocation; individual layer/asset/generated checks and the VBA web build were run separately above.
+- Fixed the existing unused `args` warning in `xtask::cmd_vba_audit` when its feature is disabled so the strict workspace Clippy gate can run. No dependency or CI workflow changed.
+
+## Revision history
+
+- 2026-11-03: Replaced numeric OM delivery order with High-first/selected-Medium stages; moved OM18 ahead of Medium, interleaved OM11/protection, and explicitly deferred all Low runtime work. IDs and source routing unchanged.
+
+- 2026-11-03: Implemented event targeting and complete pre-mutation batch reservation; added regression evidence and corrected callback fixtures.
+- 2026-11-03: Rust architecture review; retained the optional adapter boundary,
+  specified incremental family extraction, permitted narrow host-neutral engine
+  plumbing, recorded event/targeting risks, and replaced broad prerequisite and
+  generator work with slice-sized delivery. Historical baseline labelled.
+
+### Initial documentation-review validation (before remediation)
+
+- `cargo +1.99.1 run -p xtask --features vba-audit -- vba-audit`: passed;
+  5,996 source/semantic rows, 272 enum types and 2,260 constants.
+- `cargo +1.99.1 xtask layers`: passed; 17 crates, no violations.
+- Python standard-library checks: inventory/contract source paths match exactly;
+  OM02 remains 64 implemented subsets, two object subsets and two service rows;
+  local link targets in the three edited documents exist.
+- `git diff --check`: passed. No runtime source or generated artifact changed;
+  runtime regression suites and full CI were not run for this documentation edit.
+- Local `plan/STATUS.md`, `plan/execution-plan.md` and `plan/architecture.md`
+  were absent; review used committed docs and current Rust sources. Cargo emitted
+  unused-patch warnings and the existing non-audit xtask unused-argument warning.

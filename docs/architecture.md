@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-10-28 · **Last updated:** 2026-10-28 · **Change:** minor (fork-owned nominal Excel types over the separate tiny-vba contract; earlier: the hidden names that hold macros; macro engine on the engine building blocks) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (reviewed VBA adapter boundary and incremental object-model delivery) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -33,11 +33,26 @@ Optional VBA integration is isolated in toolkit-free `gridcraft-vba` at L6 above
 engine and the `ui-egui/vba` shell feature. The engine has no VBA dependency; the
 separate tiny-vba Git repository supplies the compiler/VM and reusable editor.
 Workbook mutations remain engine commands. See [the profile and lifecycle](vba.md).
+The [object-model architecture review](vba-object-model-implementation-plan.md#architecture-review-and-low-friction-delivery-2026-11-03)
+keeps this boundary: Excel semantics stay in private adapter family modules;
+engine changes may expose existing behavior through small host-neutral targeted,
+typed or preview APIs sharing command execution. No VBA types or dependency
+enter the engine. Family extraction and richer shared binding metadata are
+planned incrementally, not already implemented or a new framework prerequisite.
+The adapter now prepares each synchronous mutation's entire event batch before
+engine effects: callback owner/Target handles, arguments and queue capacity.
+Commit queues that batch without fallible allocation. Callback lookup and delivery
+use the bound workbook identity; identical code names in another workbook cannot
+select its handlers. See the [remediation evidence](vba-object-model-implementation-plan.md#event-remediation-2026-11-03).
 Excel type descriptors and the type resolver live exclusively in `gridcraft-vba`.
 The resolver shares the bridge's existing object store with bounded read queries;
 no document borrow or store lock survives a query/host call. tiny-vba owns only
 generic identity, verified metadata and validation. [M1.1 evidence](vba-m1-types.md)
 records the ownership and lifecycle checks.
+Object-model scheduling follows the [priority delivery stages](vba-object-model-implementation-plan.md#work-packets-and-delivery-order):
+eligible High first, then selected Medium subsets; Low runtime work is deferred.
+OM IDs remain stable catalogue identifiers, with event/protection work attached
+to each supported operation rather than delayed to numeric packet order.
 The optional `vba-window` desktop feature presents the same editor/session in one
 immediate egui viewport, created by the native shell after workbook windows draw.
 The root remains the only execution driver; child rendering cannot replay host
@@ -183,6 +198,9 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Linked priority-based OM delivery: High first, selected Medium next, Low deferred; stable IDs retained |
+| 2026-11-03 | minor | VBA event batches prepared before mutation; callback ownership remains bound across workbook activation |
+| 2026-11-03 | minor | Reviewed VBA boundary, narrow engine plumbing and incremental object-model delivery; linked concrete Rust findings |
 | 2026-10-28 | minor | Optional native VBA viewport with shared session, embedded override and Excel-style entry routes |
 | 2026-10-27 | minor | Generic custom calculation provider and workbook item command; fork-owned VBA worksheet functions and assigned UI controls |
 | 2026-10-27 | minor | Native typed cell-content command shares command lifecycle and removes VBA's Text-format write limitation |

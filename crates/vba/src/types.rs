@@ -215,6 +215,7 @@ impl Objects {
         if objects.len() >= MAX_OBJECTS {
             return Err(failure(7, "object handle budget exceeded"));
         }
+        objects.try_reserve(1).map_err(|_| failure(7, "object allocation"))?;
         let index = objects.len();
         objects.push(object);
         Ok(index)

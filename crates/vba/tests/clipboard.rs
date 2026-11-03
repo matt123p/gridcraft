@@ -152,7 +152,7 @@ End Sub"#;
     ide.add_document_module(
         "Ingredients.cls",
         "IngredientsCode",
-        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nApplication.EnableEvents = False\nMe.Range(\"Z1\") = Target.Address\nApplication.EnableEvents = True\nEnd Sub\n",
     )?;
     b.configure_document(&mut ide, &s.doc()?.wb)?;
     run(&mut s, &mut b, &mut ide)?;
@@ -200,7 +200,7 @@ End Sub"#;
     ide.add_document_module(
         "Ingredients.cls",
         "IngredientsCode",
-        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+        "Attribute VB_Name = \"IngredientsCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nApplication.EnableEvents = False\nMe.Range(\"Z1\") = Target.Address\nApplication.EnableEvents = True\nEnd Sub\n",
     )?;
     b.configure_document(&mut ide, &s.doc()?.wb)?;
     run(&mut s, &mut b, &mut ide)?;
@@ -307,7 +307,7 @@ End Sub"#;
     ide.add_document_module(
         "Menu.cls",
         "MenuCode",
-        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nMe.Range(\"Z1\") = Target.Address\nEnd Sub\n",
+        "Attribute VB_Name = \"MenuCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nApplication.EnableEvents = False\nMe.Range(\"Z1\") = Target.Address\nApplication.EnableEvents = True\nEnd Sub\n",
     )?;
     b.configure_document(&mut ide, &s.doc()?.wb)?;
     let history = s.doc()?.undo.len();

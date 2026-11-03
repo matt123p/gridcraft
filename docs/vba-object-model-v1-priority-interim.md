@@ -4,6 +4,14 @@ Reviewed and accepted 2026-11-03. This is a product-priority assessment of the p
 Microsoft Excel VBA object-model inventory, not a compatibility claim. It is the
 pre-corpus judgment requested before measuring the repository test material.
 
+## Status of this assessment
+
+This is the historical pre-corpus assessment. The [final priority report](vba-object-model-v1-priority-final.md)
+and [implementation delivery order](vba-object-model-implementation-plan.md#work-packets-and-delivery-order)
+supersede its scheduling recommendations: eligible High first, selected Medium
+subsets afterward, and **no Low runtime implementation at this time**. OM IDs
+remain stable family identifiers; numeric order is not the work queue.
+
 ## Accepted scope boundary
 
 This integration exposes **only capabilities that GridCraft already supports**.

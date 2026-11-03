@@ -378,8 +378,7 @@ impl Bridge {
             let Object::Range(sheet, range) = self.object(session, reference)? else {
                 return Err(failure(13, "Range required"));
             };
-            values::write(session, sheet, range.rectangle()?, &value, false, true)?;
-            return Ok(Value::Empty);
+            return self.write_range(session, sheet, &range, &value, false, true);
         }
         if read_kind(call.kind) && member == "application" {
             arguments(&call, &[])?;
@@ -800,8 +799,7 @@ impl Bridge {
                     let cell = Self::range_item(&range, &call, write)?;
                     if write {
                         let args = arguments(&call, &["RowIndex", "ColumnIndex", "Value"])?;
-                        values::write(session, sheet, cell.rectangle()?, required(&args, 2)?, false, true)?;
-                        Ok(Value::Empty)
+                        self.write_range(session, sheet, &cell, required(&args, 2)?, false, true)
                     } else {
                         self.intern(Object::Range(sheet, cell))
                     }
@@ -840,8 +838,7 @@ impl Bridge {
                         values::read(session, sheet, range.rectangle()?, member == "formula", member == "value")
                     } else if call.kind == InvokeKind::Let {
                         let args = arguments(&call, &["Value"])?;
-                        values::write(session, sheet, range.rectangle()?, required(&args, 0)?, member == "formula", member == "value")?;
-                        Ok(Value::Empty)
+                        self.write_range(session, sheet, &range, required(&args, 0)?, member == "formula", member == "value")
                     } else {
                         Err(failure(13, "Range value requires Let, not Set"))
                     }

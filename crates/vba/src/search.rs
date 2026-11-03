@@ -333,19 +333,16 @@ impl Bridge {
         if changed.is_empty() {
             return Ok(Value::Boolean(false));
         }
-        let event = self.preflight_change(session, sheet)?;
-        let target = if event.is_some() { Some(replace_target(changed)?) } else { None };
-        if let Some(target) = &target {
-            self.intern(Object::Range(sheet, target.clone()))?;
-            self.pending_events.try_reserve(1).map_err(|_| failure(7, "worksheet event queue allocation"))?;
-        }
+        let event = if self.change_owner(session, sheet)?.is_some() {
+            self.prepare_change(session, sheet, replace_target(changed)?)?
+        } else {
+            super::PreparedChanges::default()
+        };
         let result = session.execute("edit.replace", params).map_err(|error| failure(1004, error.to_string()))?;
         if result.get("replaced").and_then(serde_json::Value::as_u64) != Some(changed.len() as u64) {
             return Err(failure(1004, "Range.Replace result changed after preview"));
         }
-        if let (Some(owner), Some(target)) = (event, target) {
-            self.queue_change(owner, sheet, target)?;
-        }
+        self.queue_changes(event);
         Ok(Value::Boolean(true))
     }
 }

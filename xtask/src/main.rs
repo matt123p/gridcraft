@@ -82,6 +82,7 @@ fn cmd_vba_audit(args: &[&str]) -> Result<(), String> {
     }
     #[cfg(not(feature = "vba-audit"))]
     {
+        let _ = args;
         Err("vba-audit requires optional dependencies; run `cargo run -p xtask --features vba-audit -- vba-audit`".into())
     }
 }
