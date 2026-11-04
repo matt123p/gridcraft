@@ -75,7 +75,7 @@ fn native_boolean_instances_run_through_the_workbook_bridge_and_keep_package_byt
         (
             "Launch",
             "Module",
-            "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As NativeForm\nSet f=New NativeForm\nf.Check1.Value=True\nf.ChoiceA.Value=True\nf.ChoiceB.Value=True\nDebug.Print f.ChoiceA.Value\nDebug.Print f.ChoiceB.Value\nf.Show 0\nEnd Sub",
+            "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,c As Object,u As Object,n As Long\nDebug.Print UserForms.Count\nf.Check1.Value=True\nf.ChoiceA.Value=True\nf.ChoiceB.Value=True\nDebug.Print f.ChoiceA.Value\nDebug.Print f.ChoiceB.Value\nf.Show 0\nFor Each c In f.Controls\nn=n+1\nNext c\nDebug.Print n\nn=0\nFor Each u In UserForms\nIf u Is f Then n=n+1\nNext u\nDebug.Print n\nEnd Sub",
         ),
     ]));
     let mut wb = Workbook::new();
@@ -91,7 +91,7 @@ fn native_boolean_instances_run_through_the_workbook_bridge_and_keep_package_byt
     bridge.dispatch(&mut session, &mut ide, Action::Run)?;
     settle(&mut session, &mut bridge, &mut ide)?;
     assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
-    assert_eq!(ide.output(), vec!["initialized", "False", "True"]);
+    assert_eq!(ide.output(), vec!["0", "initialized", "False", "True", "7", "1"]);
     let instance = *ide.form_instances()?.first().ok_or("instance")?;
     assert_eq!(ide.form_instance_field(instance, Some(14), "Value")?, vba_values::Value::Boolean(true));
     ide.form_instance_event(instance, Some(14), None, &mut bridge.host(&mut session))?;

@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `d2de831892e5d2b17557de6b7abb00a83fdfc292`.
+The host/editor now pin shared revision `b95a38a2b5c6784c1e6de616ef662121e2997515`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -465,3 +465,17 @@ saving. No fresh Office observation or vendor asset is included.
 GridCraft CI uses its existing permitted craft-fonts input at revision
 `aced4137c022f1f587624d48e81ec77e1914a9cc`; without it two unrelated glyph tests fail.
 The existing wasm-only dead-code warning remains.
+
+M7A.4 collection/lazy-instance follow-up (2026-11-04): the pinned shared runtime
+adds Controls/UserForms For Each, retained enumerator/snapshot ownership, and
+scalar project-class/native-form As New. Constructor reads use ordinary debugger
+frames; declarations, Set targets and inspection remain inert. The native boolean
+package case now verifies zero loaded forms before the first As New reference,
+canonical child enumeration and UserForms identity, then actual input and exact
+original package preservation. Expanded native families, focus/typed events and
+MSForms type bindings remain open; this is not full M7A.4 acceptance.
+
+Validation for this follow-up: full repository CI PASS (GridCraft 10 gates with
+the licensed craft-fonts input; WordCraft 8 gates with serial tests), both native
+package cases PASS natively and in actual Node 22 JavaScript/WASM, and strict
+optional VBA/UI Clippy PASS. These are authored integration results.
