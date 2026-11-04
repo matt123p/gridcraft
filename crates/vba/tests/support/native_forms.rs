@@ -250,3 +250,40 @@ pub fn list_companion() -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Independent ComboBox records: fmDisplayStyleCombo/DropList, shared list columns.
+pub fn combo_companion(style: u8, matching: u8) -> Vec<u8> {
+    let mut all = controls();
+    let flags = if style == 3 { 0x2c80481b } else { 0x2c80081b };
+    let mut body = u32s(&[0x80017941, 0, flags]);
+    body.extend([style, 0]);
+    body.extend(2u16.to_le_bytes());
+    body.extend(1i16.to_le_bytes());
+    body.extend(2i16.to_le_bytes());
+    body.extend(5u16.to_le_bytes());
+    body.extend([matching, 0]);
+    body.extend(u32s(&[6000, 635]));
+    let mut combo = record(0x200, &body);
+    combo.extend(record(0x200, &[0; 4]));
+    all.push(combo);
+    let mut root = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x8000000b, 32000, 10583, 7056, 10583, 7056]);
+    root.extend(string("Native form"));
+    let mut f = record(0x400, &root);
+    f.extend(0u16.to_le_bytes());
+    f.extend(4u32.to_le_bytes());
+    let mut sites = vec![0, 0x84, 1, 0];
+    for (((id, name), class), (tab, control)) in
+        [(11, "Heading"), (12, "Entry"), (13, "Apply"), (14, "Combo1")].into_iter().zip([21, 23, 17, 25]).zip(all.iter().enumerate())
+    {
+        sites.extend(site(id, name, class, tab as u16, control.len()));
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    file.create_stream("/f").unwrap().write_all(&f).unwrap();
+    file.create_stream("/o").unwrap().write_all(&all.concat()).unwrap();
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}

@@ -74,7 +74,7 @@ interchangeable in arguments, coercion or error behavior.
 | Sharing and Office services | Coauthoring, legacy shared-workbook change tracking, workflows, publishing, mail, cloud users and external identity are unavailable |
 | Office security services | IRM, resolved user ACLs, Protected View, independent write reservation, digital signing and encryption writing have no matching backend; code consent is a separate policy |
 | Recovery and converter graphs | Excel AutoRecover scheduling and plugin FileConverter objects are not native file Open/Save or GridCraft's host AutoSave preference |
-| Forms and controls | Worksheet ActiveX, UserForm resources/control types outside the declared nine-family flat import/runtime profile, arbitrary Office forms-control graphs, WordArt and SmartArt remain unsupported |
+| Forms and controls | Worksheet ActiveX, UserForm resources/control types outside the declared ten-family flat import/runtime profile, arbitrary Office forms-control graphs, WordArt and SmartArt remain unsupported |
 | Advanced rendering/state | Editable gradient-stop collections, arbitrary chart effects, indexed Office palettes and independent settings not represented in the native model cannot be added as inert VBA flags |
 | Search and proofing options | Persistent Excel FindFormat/ReplaceFormat criteria, AutoCorrect graphs and full Office dictionary/options behavior are broader than native search/basic spelling |
 
@@ -165,6 +165,6 @@ full focus/validation and list/container/scroll/image/binding/platform packets
 remain unsupported; native edited saving and .tvform removal stay later tasks.
 
 M7A.4 runtime follow-up — 2026-11-04: selected native SpinButton/ScrollBar and
-TextBox selection/input behavior are implemented. ComboBox, further ListBox arrays/multiple selection/bindings, Frame/pages/
+TextBox selection/input behavior are implemented. Further ComboBox/ListBox arrays/multiple selection/bindings, Frame/pages/
 tabs, Image/RefEdit, broader properties/bindings/input and worksheet ActiveX remain
 unsupported or incomplete; full M7A.4 acceptance is still open.

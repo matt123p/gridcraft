@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `c578131f76c17228c6c5890a8ae5fdf9086d442c`.
+The host/editor now pin shared revision `6534f4fcbd70dfc54e4e332836f45912549fc37b`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -528,3 +528,14 @@ VBA project bytes on reopen. All 10 full-CI gates, five native and actual
 Node 22 WASM cases, strict optional VBA/UI Clippy and optional VBA web build
 PASS. Whole-array list APIs,
 multiple selection, bindings, ComboBox and broader M7A.4 scope remain open.
+
+M7A.4 ComboBox follow-up (2026-11-04): shared revision `6534f4fcbd70dfc54e4e332836f45912549fc37b`
+adds selected native editable/drop-list ComboBox records, ordinary shared rows,
+text/selection/matching and VM-owned drop state. Authorized text, navigation and
+drop input preserves focus/validation and Change/Click/DropButtonClick debugger
+continuations. The sixth authored package case checks MSForms.ComboBox access,
+trusted row selection and UTF-16 free text with matching disabled, and exact
+original project bytes after reopen. All 10 full-CI gates, six native and
+actual Node 22 WASM package cases, strict optional VBA/UI Clippy and optional
+VBA web build PASS. Locale limits,
+further list APIs/bindings/resources, containers and broader M7A.4 remain open.

@@ -19,7 +19,7 @@ required-features = ["vba"]
 
 [dependencies]
 gridcraft-vba = { path = "../vba", optional = true }
-vba-ui-egui = { git = "https://github.com/matt123p/tiny-vba.git", rev = "c578131f76c17228c6c5890a8ae5fdf9086d442c", optional = true }
+vba-ui-egui = { git = "https://github.com/matt123p/tiny-vba.git", rev = "6534f4fcbd70dfc54e4e332836f45912549fc37b", optional = true }
 # The shared capture slot (`craft_ui::capture`) comes from the one craft-libs revision every
 # craft-libs dependency uses (see the root Cargo.toml).
 craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "c5a1cbfb5f9049f9270955caffb5bee5997aebf7" }
