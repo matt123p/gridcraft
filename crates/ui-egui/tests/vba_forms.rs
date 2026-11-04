@@ -136,3 +136,30 @@ fn settle(app: &mut SheetApp) -> R {
     }
     Err("form execution exceeded the acceptance tick budget".into())
 }
+
+#[test]
+fn form_launch_and_instance_callbacks_require_workbook_execution_consent() -> R {
+    use gridcraft_engine::{DocState, Trust, model::Workbook};
+    let mut session = Session::new();
+    session.add_document(DocState::new(Workbook::new(), None, "Untrusted".into(), Trust::FromFile));
+    let mut app = SheetApp::new(session, Services::default());
+    app.run("vba.open", json!({})).map_err(std::io::Error::other)?;
+    let editor = app.vba.as_mut().ok_or("editor")?;
+    let id = editor.ide.add_form("GuardForm")?;
+    editor.ide.set_text("Private Sub UserForm_QueryClose(Cancel As Integer,CloseMode As Integer)\nDebug.Print \"executed\"\nEnd Sub".into())?;
+    assert!(gridcraft_ui_egui::vba::dispatch_editor_command(editor, &mut app.session, Command::Form(FormCommand::Run(id, false))).is_err());
+    assert!(editor.ide.output().is_empty());
+    editor.bridge.consent(true);
+    gridcraft_ui_egui::vba::dispatch_editor_command(editor, &mut app.session, Command::Form(FormCommand::Run(id, false)))?;
+    settle(&mut app)?;
+    let editor = app.vba.as_mut().ok_or("editor")?;
+    let instance = *editor.ide.form_instances()?.first().ok_or("form instance")?;
+    editor.bridge.consent(false);
+    assert!(
+        gridcraft_ui_egui::vba::dispatch_editor_command(editor, &mut app.session, Command::Form(FormCommand::InstanceEvent(instance, None, None)))
+            .is_err()
+    );
+    assert!(editor.ide.output().is_empty());
+    assert!(editor.ide.form_instance_visible(instance));
+    Ok(())
+}

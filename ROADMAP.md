@@ -323,3 +323,9 @@ form persistence, broader native semantics and custom-format removal remain open
 M7A.3 revision — 2026-11-04: native worksheet controls share Shape state and normal
 engine undo/recalc. ControlFormat/assigned macros use the optional adapter/bridge;
 OOXML/VML persistence retains untouched parts. See the bounded profile/evidence.
+
+M7A.4 progress — 2026-11-04: updated the optional shared VBA engine/editor pin,
+added native boolean form/control integration and enforced execution consent for
+instance input. Authored native package/input/trust regressions accompany the
+change. This is partial M7A.4; native edited persistence and .tvform removal remain
+separate work, with fresh Office observations still NOT_RUN.

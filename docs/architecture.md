@@ -202,3 +202,9 @@ engine control commands own transactions/undo/recalc; XLSX joins and patches nat
 control/VML/DrawingML parts. The optional VBA adapter/shell supplies ControlFormat,
 accessible widgets and trusted, owner-bound assignments. No shared VM or GUI edge
 enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contracts.
+
+M7A.4 increment — 2026-11-04: the shared native form runtime is pinned at
+`d2de831892e5d2b17557de6b7abb00a83fdfc292`. Form instance commands are classified
+centrally by the shared UI API and retain the existing host execution-consent
+checks. Canonical controls/lifetimes stay in tiny-vba; document state, package
+retention and authorization stay in this fork. Full M7A.4 remains open.

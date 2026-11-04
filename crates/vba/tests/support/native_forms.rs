@@ -28,8 +28,15 @@ fn string(value: &str) -> Vec<u8> {
     bytes
 }
 pub fn controls() -> Vec<Vec<u8>> {
+    controls_with_properties(0)
+}
+fn controls_with_properties(max_length: u32) -> Vec<Vec<u8>> {
     let label = leaf(false, "Authored label");
-    let mut b = u32s(&[0x80400100, 0, 0x80000000 | 7, 2540, 635]);
+    let mut b = if max_length == 0 {
+        u32s(&[0x80400100, 0, 0x80000000 | 7, 2540, 635])
+    } else {
+        u32s(&[0x80400108, 0, max_length, 0x80000000 | 7, 2540, 635])
+    };
     b.extend(string("initial"));
     let mut textbox = record(0x200, &b);
     textbox.extend(record(0x200, &[0; 4]));
@@ -53,7 +60,10 @@ fn site(id: u32, name: &str, class: u16, tab: u16, size: usize) -> Vec<u8> {
     record(0, &b)
 }
 pub fn streams() -> Vec<(String, Vec<u8>)> {
-    let controls = controls();
+    streams_with_properties(0, false, false)
+}
+fn streams_with_properties(max_length: u32, default: bool, cancel: bool) -> Vec<(String, Vec<u8>)> {
+    let controls = controls_with_properties(max_length);
     let mut b = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x80000000 | 11, 32000, 10583, 7056, 10583, 7056]);
     b.extend(string("Native form"));
     let mut f = record(0x400, &b);
@@ -63,15 +73,23 @@ pub fn streams() -> Vec<(String, Vec<u8>)> {
     for (((id, name), class), (tab, c)) in
         [(11, "Heading"), (12, "Entry"), (13, "Apply")].into_iter().zip([21, 23, 17]).zip(controls.iter().enumerate())
     {
-        sites.extend(site(id, name, class, tab as u16, c.len()));
+        let mut encoded = site(id, name, class, tab as u16, c.len());
+        if class == 17 {
+            let flags = 0x13u32 | if default { 4 } else { 0 } | if cancel { 8 } else { 0 };
+            encoded[16..20].copy_from_slice(&flags.to_le_bytes());
+        }
+        sites.extend(encoded);
     }
     f.extend((sites.len() as u32).to_le_bytes());
     f.extend(sites);
     vec![("f".into(), f), ("o".into(), controls.concat())]
 }
 pub fn companion() -> Vec<u8> {
+    companion_with_properties(0, false, false)
+}
+pub fn companion_with_properties(max_length: u32, default: bool, cancel: bool) -> Vec<u8> {
     let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
-    for (name, bytes) in streams() {
+    for (name, bytes) in streams_with_properties(max_length, default, cancel) {
         file.create_stream(format!("/{name}")).unwrap().write_all(&bytes).unwrap();
     }
     let bytes = file.into_inner().into_inner();
@@ -87,4 +105,56 @@ pub fn add_designer(project: Vec<u8>) -> Vec<u8> {
         file.create_stream(format!("/NativeForm/{name}")).unwrap().write_all(&bytes).unwrap();
     }
     file.into_inner().into_inner()
+}
+
+/// Original six-family form; native cached MorphData classes, never Office output.
+pub fn boolean_companion() -> Vec<u8> {
+    let mut all = controls();
+    for (display, caption, group) in [(4u8, "Check", ""), (5, "Choice A", "choices"), (5, "Choice B", "choices"), (6, "Toggle", "")] {
+        let mut body = u32s(&[0x80c00140, u32::from(!group.is_empty())]);
+        body.extend([display, 0, 0, 0]);
+        body.extend(u32s(&[0x80000001, 0x80000000 | caption.len() as u32]));
+        if !group.is_empty() {
+            body.extend(u32s(&[0x80000000 | group.len() as u32]));
+        }
+        body.extend(u32s(&[2540, 635]));
+        body.extend(string("0"));
+        body.extend(string(caption));
+        if !group.is_empty() {
+            body.extend(string(group));
+        }
+        let mut control = record(0x200, &body);
+        control.extend(record(0x200, &[0; 4]));
+        all.push(control);
+    }
+    let mut root = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x8000000b, 32000, 10583, 7056, 10583, 7056]);
+    root.extend(string("Native form"));
+    let mut f = record(0x400, &root);
+    f.extend(0u16.to_le_bytes());
+    f.extend((all.len() as u32).to_le_bytes());
+    let mut sites = vec![0, 0x87, 1, 0];
+    for (i, ((name, class), control)) in
+        [("Heading", 21), ("Entry", 23), ("Apply", 17), ("Check1", 26), ("ChoiceA", 27), ("ChoiceB", 27), ("Toggle1", 28)]
+            .into_iter()
+            .zip(&all)
+            .enumerate()
+    {
+        let mut encoded = site(11 + i as u32, name, class, i as u16, control.len());
+        if i >= 3 {
+            let n = encoded.len();
+            encoded[n - 8..n - 4].copy_from_slice(&4000u32.to_le_bytes());
+            encoded[n - 4..].copy_from_slice(&(635 + (i as u32 - 3) * 1000).to_le_bytes());
+        }
+        sites.extend(encoded);
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    for (name, bytes) in [("f", f), ("o", all.concat())] {
+        file.create_stream(format!("/{name}")).unwrap().write_all(&bytes).unwrap();
+    }
+    let bytes = file.into_inner().into_inner();
+    let mut companion = (bytes.len() as u32).to_le_bytes().to_vec();
+    companion.extend(bytes);
+    companion
 }

@@ -74,7 +74,7 @@ interchangeable in arguments, coercion or error behavior.
 | Sharing and Office services | Coauthoring, legacy shared-workbook change tracking, workflows, publishing, mail, cloud users and external identity are unavailable |
 | Office security services | IRM, resolved user ACLs, Protected View, independent write reservation, digital signing and encryption writing have no matching backend; code consent is a separate policy |
 | Recovery and converter graphs | Excel AutoRecover scheduling and plugin FileConverter objects are not native file Open/Save or GridCraft's host AutoSave preference |
-| Forms and controls | Worksheet ActiveX, UserForm resources/control types outside the declared three-control import profile, arbitrary Office forms-control graphs, WordArt and SmartArt remain unsupported |
+| Forms and controls | Worksheet ActiveX, UserForm resources/control types outside the declared six-family flat import/runtime profile, arbitrary Office forms-control graphs, WordArt and SmartArt remain unsupported |
 | Advanced rendering/state | Editable gradient-stop collections, arbitrary chart effects, indexed Office palettes and independent settings not represented in the native model cannot be added as inert VBA flags |
 | Search and proofing options | Persistent Excel FindFormat/ReplaceFormat criteria, AutoCorrect graphs and full Office dictionary/options behavior are broader than native search/basic spelling |
 
@@ -158,3 +158,8 @@ Native edited form saving remains unsupported.
 M7A.3 revision — 2026-11-04: worksheet Form Controls no longer require a future
 interactive-support stage. Profile limits and independent authored evidence remain
 explicit; no ActiveX, UserForm encoder or fresh Office acceptance is implied.
+
+M7A.4 increment — 2026-11-04: selected native boolean controls, instance routing,
+properties and lifecycle are implemented. Collection enumeration/type binding,
+full focus/validation and list/container/scroll/image/binding/platform packets
+remain unsupported; native edited saving and .tvform removal stay later tasks.

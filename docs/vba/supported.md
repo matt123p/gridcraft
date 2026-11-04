@@ -35,7 +35,7 @@ arguments and implementation/test references.
 | Control flow | Conditions, loops, procedure calls and VBA error handlers within the runtime's resource limits |
 | Debugging | Compile diagnostics, breakpoints, pause/resume, step into/over/out, locals and output |
 | Worksheet Form Controls | Nine native families, selected ControlFormat APIs, linked data, trusted assignments and native OOXML/VML persistence; [limits](worksheet-controls.md) |
-| UserForms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for immediate Label/TextBox/CommandButton controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
+| UserForms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for flat Label/TextBox/CommandButton/CheckBox/OptionButton/ToggleButton controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
 
 Public no-argument Subs appear in the macro picker. Public Functions become
 worksheet functions after source is applied. Private procedures and `Option
@@ -349,3 +349,8 @@ the shared decoder; explicit consent precedes execution. [Profile and contracts]
 M7A.3 revision — 2026-11-04: native worksheet controls supersede the earlier
 metadata-only slice; reference catalogue regenerated against the existing shared
 87a862a9 pin. Fresh Office comparisons remain NOT_RUN.
+
+M7A.4 increment — 2026-11-04: the pinned shared runtime adds explicit instances,
+selected boolean/group/input/property semantics, Controls/UserForms lookup and
+separate window/code lifetime. See [the shared scope and remaining work](../../../tiny-vba/docs/m7a4-native-runtime.md).
+This is not full M7A.4 or native edited-save acceptance.

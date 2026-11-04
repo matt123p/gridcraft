@@ -1268,6 +1268,30 @@ pub fn macro_picker(app: &mut SheetApp, ui: &mut egui::Ui, values: &mut serde_js
     false
 }
 
+/// Shared editor actions keep the workbook's existing execution-consent policy.
+pub fn dispatch_editor_command(editor: &mut Editor, session: &mut gridcraft_engine::Session, command: Command) -> gridcraft_vba::Result<()> {
+    match command {
+        Command::Action(a) => {
+            if a == Action::Reset {
+                editor.external_lifecycle = None;
+                editor.saved_events.clear();
+                editor.pending_prompt = None;
+                editor.approved_close = None;
+                editor.close_after_save = None;
+                editor.lifecycle_result = Some(json!({"state":"cancelled"}));
+            }
+            editor.bridge.dispatch(session, &mut editor.ide, a)
+        }
+        Command::RunToCursor => editor.bridge.begin(session).and_then(|()| editor.ide.run_to_cursor(&mut editor.bridge.host(session))),
+        other => {
+            if other.executes_code() {
+                editor.bridge.begin(session)?;
+            }
+            vba_ui_egui::apply(&mut editor.ide, other, &mut editor.bridge.host(session))
+        }
+    }
+}
+
 pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let Some(mut editor) = app.vba.take() else { return };
     editor.bridge.set_prompt_services(prompt_services(&app.services));
@@ -1310,23 +1334,7 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     });
     commands.extend(editor.view.show(ui, &editor.ide, host_theme(theme::Tokens::get(ui.ctx()))));
     for command in commands {
-        let result = match command {
-            Command::Action(a) => {
-                if a == Action::Reset {
-                    editor.external_lifecycle = None;
-                    editor.saved_events.clear();
-                    editor.pending_prompt = None;
-                    editor.approved_close = None;
-                    editor.close_after_save = None;
-                    editor.lifecycle_result = Some(json!({"state":"cancelled"}));
-                }
-                editor.bridge.dispatch(&mut app.session, &mut editor.ide, a)
-            }
-            Command::RunToCursor => {
-                editor.bridge.begin(&mut app.session).and_then(|()| editor.ide.run_to_cursor(&mut editor.bridge.host(&mut app.session)))
-            }
-            other => vba_ui_egui::apply(&mut editor.ide, other, &mut editor.bridge.host(&mut app.session)),
-        };
+        let result = dispatch_editor_command(&mut editor, &mut app.session, command);
         if let Err(e) = result {
             editor.ide.message(e.to_string());
         }
