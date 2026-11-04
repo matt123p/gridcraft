@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `2ce3f205b1d6cce9a7bc7a6935cee1026c448d18`.
+The host/editor now pin shared revision `c578131f76c17228c6c5890a8ae5fdf9086d442c`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -517,3 +517,14 @@ native package test covers typed control access, trusted small/large steps and
 original VBA-byte preservation. All 10 full-CI gates, four native and actual
 Node 22 WASM package tests, strict optional VBA/UI Clippy and optional VBA web
 build PASS. Additional native control/property/binding/platform scope remains open.
+
+M7A.4 unbound ListBox follow-up (2026-11-04): shared revision `c578131f76c17228c6c5890a8ae5fdf9086d442c`
+adds selected native ListBox records, ordinary indexed ten-column row data,
+AddItem/RemoveItem/Clear, selection/Value/Text and column properties. Pointer/
+keyboard input uses authorized focus/validation and ordinary Change/Click frames;
+Stop/resume preserves committed state without replay. The fifth authored native
+package test checks MSForms.ListBox access, trusted selection and exact original
+VBA project bytes on reopen. All 10 full-CI gates, five native and actual
+Node 22 WASM cases, strict optional VBA/UI Clippy and optional VBA web build
+PASS. Whole-array list APIs,
+multiple selection, bindings, ComboBox and broader M7A.4 scope remain open.

@@ -215,3 +215,38 @@ pub fn numeric_companion() -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Original unbound ListBox; selected native column fields, no external list/binding data.
+pub fn list_companion() -> Vec<u8> {
+    let mut all = controls();
+    let mut body = u32s(&[0x80003940, 0]);
+    body.push(2); // native fmDisplayStyleList
+    body.push(0); // alignment before BoundColumn
+    body.extend(2u16.to_le_bytes());
+    body.extend(1i16.to_le_bytes());
+    body.extend(2i16.to_le_bytes());
+    body.extend(u32s(&[6000, 1800]));
+    let mut list = record(0x200, &body);
+    list.extend(record(0x200, &[0; 4]));
+    all.push(list);
+    let mut root = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x8000000b, 32000, 10583, 7056, 10583, 7056]);
+    root.extend(string("Native form"));
+    let mut f = record(0x400, &root);
+    f.extend(0u16.to_le_bytes());
+    f.extend(4u32.to_le_bytes());
+    let mut sites = vec![0, 0x84, 1, 0];
+    for (((id, name), class), (tab, control)) in
+        [(11, "Heading"), (12, "Entry"), (13, "Apply"), (14, "List1")].into_iter().zip([21, 23, 17, 24]).zip(all.iter().enumerate())
+    {
+        sites.extend(site(id, name, class, tab as u16, control.len()));
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    file.create_stream("/f").unwrap().write_all(&f).unwrap();
+    file.create_stream("/o").unwrap().write_all(&all.concat()).unwrap();
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}
