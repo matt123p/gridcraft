@@ -30,6 +30,7 @@ vba-runtime = { git = "https://github.com/matt123p/tiny-vba.git", rev = "8f4bebc
 image = { workspace = true }
 gridcraft-xlsx = { workspace = true }
 cfb = "=0.14.0"
+web-time = { workspace = true }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
 wasm-bindgen-test = "=0.3.79"

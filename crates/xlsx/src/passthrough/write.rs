@@ -98,6 +98,33 @@ pub(super) fn write_parts(out: &mut Out, parts: &[PreservedPart]) -> NameMap {
     names
 }
 
+/// Preserve project-related payloads only with the exact original project. A source editor
+/// export is separate from binary writeback; replacing this blob cannot retain old signatures.
+pub fn write_vba_package(wb: &Workbook, out: &mut Out) -> Result<(), IoError> {
+    let Some(package) = wb.vba_package.as_deref() else { return Ok(()) };
+    let Some(root) = package.rels.first() else { return Err(IoError::Format("VBA package has no project root".into())) };
+    let original = package.parts.iter().find(|part| normalize(&part.name) == normalize(&root.target));
+    let Some(original) = original else { return Err(IoError::Format("VBA package has no original project".into())) };
+    if wb.vba_project.as_deref().map(Vec::as_slice) != Some(original.data.as_ref()) {
+        return Err(IoError::Format("edited binary VBA project writeback is unsupported; original signature/data parts cannot be reused".into()));
+    }
+    let mut names = NameMap::new();
+    names.insert(normalize(&original.name), "xl/vbaProject.bin".into());
+    for part in package.parts.iter().filter(|part| normalize(&part.name) != normalize(&original.name)) {
+        names.insert(normalize(&part.name), out.kept.claim(&part.name));
+    }
+    for part in &package.parts {
+        let Some(name) = names.get(&normalize(&part.name)) else { continue };
+        if normalize(&part.name) != normalize(&original.name) {
+            out.part(name, Some(&part.content_type), part.data.to_vec());
+        }
+        if !part.rels.is_empty() {
+            out.part(&rels_part_name(name), None, part_rels_xml(&part.rels, &names).into_bytes());
+        }
+    }
+    Ok(())
+}
+
 /// Adds the owner's relationships; returns old id → new id.
 pub(super) fn attach(rels: &mut Rels, list: &[PreservedRel], names: &NameMap) -> HashMap<String, String> {
     let mut ids = HashMap::new();

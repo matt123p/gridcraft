@@ -938,3 +938,74 @@ fn notes_take_shape_blocks_the_header_pictures_dont_use() {
     }
     assert!(notes_ids.iter().all(|b| notes_map.contains(b)), "note ids outside their drawing's blocks");
 }
+
+/// M7: these are opaque signature sentinels, not valid signatures or Office-produced files.
+fn vba_graph_fixture(project_target: &str, related_target: &str) -> Vec<u8> {
+    let mut base = gridcraft_model::Workbook::new();
+    base.vba_project = Some(Arc::new(b"authored project bytes".to_vec()));
+    let bytes = crate::write_xlsx_as(&base, crate::XlsxKind::MacroWorkbook).unwrap();
+    let mut unpacked = Unpacked::new(&bytes);
+    unpacked.parts.insert(
+        "xl/_rels/vbaProject.bin.rels".into(),
+        rels(&[("signature-id", "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignature", project_target)]).into_bytes(),
+    );
+    let root_rels = unpacked.text("_rels/.rels").replace("</Relationships>", "<Relationship Id=\"package-signature\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin\" Target=\"_xmlsignatures/origin.xml\"/></Relationships>");
+    unpacked.parts.insert("_rels/.rels".into(), root_rels.into_bytes());
+    unpacked.parts.insert("_xmlsignatures/origin.xml".into(), b"<authored-package-signature/>".to_vec());
+    unpacked.parts.insert("xl/signature.bin".into(), b"opaque signature sentinel".to_vec());
+    unpacked.parts.insert(
+        "xl/_rels/signature.bin.rels".into(),
+        rels(&[("data-id", if related_target.starts_with("worksheets/") { "worksheet" } else { "urn:authored:related-data" }, related_target)])
+            .into_bytes(),
+    );
+    unpacked.parts.insert("xl/data.bin".into(), b"opaque nested payload".to_vec());
+    let ct = unpacked.text("[Content_Types].xml").replace(
+        "</Types>",
+        concat!(
+            "<Override PartName=\"/xl/signature.bin\" ContentType=\"application/vnd.ms-office.vbaProjectSignature\"/>",
+            "<Override PartName=\"/xl/data.bin\" ContentType=\"application/octet-stream\"/></Types>"
+        ),
+    );
+    unpacked.parts.insert("[Content_Types].xml".into(), ct.into_bytes());
+    let entries: Vec<_> = unpacked.parts.iter().map(|(n, b)| (n.as_str(), b.as_slice())).collect();
+    make_zip(&entries)
+}
+
+#[test]
+fn m7_vba_related_graph_preserves_payloads_relationship_ids_and_content_types() {
+    let input = vba_graph_fixture("signature.bin", "data.bin");
+    let (mut wb, _) = read_xlsx(&input).unwrap();
+    assert!(wb.vba_package.is_some());
+    // Normal document edits preserve the unedited project and its related graph.
+    wb.sheet_mut(0).unwrap().name = "Edited tab".into();
+    let output = crate::write_xlsx_as(&wb, crate::XlsxKind::MacroWorkbook).unwrap();
+    let zip = Unpacked::new(&output);
+    zip.assert_valid();
+    let (ty, signature) = zip.target("xl/vbaProject.bin", "signature-id");
+    assert!(ty.ends_with("/vbaProjectSignature"));
+    assert_eq!(zip.parts[&signature], b"opaque signature sentinel");
+    let (_, data) = zip.target(&signature, "data-id");
+    assert_eq!(zip.parts[&data], b"opaque nested payload");
+    assert_eq!(zip.parts["xl/vbaProject.bin"], b"authored project bytes");
+    assert!(!zip.parts.contains_key("_xmlsignatures/origin.xml"));
+    assert!(!zip.rels("").iter().any(|r| r.1.contains("digital-signature/origin")));
+    let (back, _) = read_xlsx(&output).unwrap();
+    assert_eq!(back.vba_package.as_ref().unwrap().parts.len(), 3);
+    // Macro-free export removes the project graph as one unit.
+    let plain = Unpacked::new(&crate::write_xlsx_as(&wb, crate::XlsxKind::Workbook).unwrap());
+    assert!(!plain.parts.contains_key("xl/vbaProject.bin"));
+    assert!(!plain.parts.values().any(|v| v == b"opaque signature sentinel"));
+    // A replaced binary must never silently inherit the original's signature/data.
+    wb.vba_project = Some(Arc::new(b"replacement project".to_vec()));
+    assert!(crate::write_xlsx_as(&wb, crate::XlsxKind::MacroWorkbook).is_err());
+}
+
+#[test]
+fn m7_vba_damaged_or_rewritten_related_graph_is_reported_without_execution() {
+    for (project, related) in [("missing.bin", "data.bin"), ("signature.bin", "worksheets/sheet1.xml")] {
+        let (wb, report) = read_xlsx(&vba_graph_fixture(project, related)).unwrap();
+        assert_eq!(wb.vba_project.as_deref().unwrap().as_slice(), b"authored project bytes");
+        assert!(wb.vba_package.is_none());
+        assert!(report.warnings.iter().any(|w| w.contains("VBA related parts could not be preserved")));
+    }
+}

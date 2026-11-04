@@ -1,5 +1,13 @@
 # Unsupported VBA functions and features
 
+Updated 2026-11-04: edited-source binary VBA project writeback and cryptographic
+signature verification/re-signing remain unsupported. Save Source exports raw
+source separately; document save retains the original binary project. Replacing
+a captured binary project while reusing its original signature/data graph refuses.
+Package-wide signatures are invalidated by package rewrite. Native worksheet
+Form Controls and binary UserForm import remain deferred. See the
+[writeback/signature contract](../../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md).
+
 GridCraft exposes its existing workbook capabilities through a bounded VBA
 adapter. Some Excel features have no native equivalent; others exist in
 GridCraft but do not yet have a VBA binding. This reference distinguishes those

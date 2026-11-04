@@ -1,5 +1,10 @@
 # GridCraft roadmap
 
+VBA package update (2026-11-04): the shared plan's M7 authored unchanged-document
+profile has fork-owned package/trust/source/event acceptance; see
+[tiny-vba M7](../tiny-vba/docs/m7-acceptance.md). Edited binary project writeback,
+real signature verification and fresh Office comparison remain explicit limits.
+
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
 > **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (optional VBA integration; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)

@@ -364,6 +364,7 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
     if let Some(data) = wb.vba_project.as_ref().filter(|_| kind.is_macro_enabled()) {
         wb_rels.add("vbaProject", "vbaProject.bin");
         out.part("xl/vbaProject.bin", Some(CT_VBA), data.to_vec());
+        crate::passthrough::write_vba_package(wb, &mut out)?;
     }
     out.part("xl/_rels/workbook.xml.rels", None, wb_rels.xml().into_bytes());
 

@@ -403,12 +403,13 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<(Workbook, ReadReport), IoError> {
         wb.props.company = x.child("Company").map(|e| e.text.clone()).unwrap_or_default();
     }
 
-    // A VBA project is carried through unchanged: GridCraft never runs macros, but preserving the
-    // binary keeps macro-enabled workbooks from being silently stripped on save.
+    // Loading is inert. Carry the project and its related graph through unchanged; execution
+    // requires the optional VBA adapter and explicit host authorization.
     if let Some(r) = find_rel(&wb_rels, "vbaProject").cloned() {
         match cx.pkg.read(&r.target) {
             Ok(Some(data)) => {
                 wb.vba_project = Some(data.into());
+                wb.vba_package = kept.vba_package(&mut cx, &r.target);
                 cx.warn("macros (VBA project) were kept but not executed");
             }
             Ok(None) => cx.warn("macros (VBA project) reference a missing part and were dropped"),

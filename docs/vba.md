@@ -1,5 +1,11 @@
 # VBA in GridCraft
 
+Updated 2026-11-04: [M7 package acceptance](../../tiny-vba/docs/m7-acceptance.md)
+adds reviewed original `.xlsm` specimens and real load/compile/run/save/reopen
+workflows. The writer preserves the original VBA project and supported related
+parts; it does not encode edited IDE source into that binary project. Loading
+never executes handlers or grants consent.
+
 GridCraft can run VBA macros and worksheet functions against its own workbooks.
 The optional integration includes a source editor, debugger and a subset of the
 Excel object model, backed by GridCraft's existing commands and calculator.

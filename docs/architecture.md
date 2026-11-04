@@ -1,6 +1,12 @@
 # Architecture
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (optional VBA integration) · **Target:** Microsoft Excel (Microsoft 365)
+VBA package contract update (2026-11-04): source decoding stays in the existing
+pinned tiny-vba `vba-project` crate; document attachment, trust and OOXML preservation
+stay in this fork. There is no encoder or reverse dependency. The
+[M7 writeback/signature decision](../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md)
+separates original binary retention from source exports and future edited writeback.
+
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-04 · **Change:** minor (optional VBA integration) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -170,3 +176,7 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 | 2026-10-24 | minor | Engine building blocks for multi-command actions: undo groups, recording buffer, document trust, chunked hidden-name storage |
 | 2026-10-14 | minor | Document Undo's retained-cell-storage budget and latest-step guarantee |
 | 2026-10-10 | major | Created from the code on main: crates, layers, data flow, agent control, known gaps |
+
+M7 revision history — 2026-11-04: added the authored unchanged-document/package
+profile, original-project/source-export distinction and explicit signature policy.
+See the linked shared M7 acceptance record for exact tests and limitations.

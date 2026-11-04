@@ -1,5 +1,12 @@
 # Supported VBA functions and features
 
+Updated 2026-11-04: M7's authored `.xlsm` workflows preserve original VBA
+project bytes, code names and supported related payload/relationship graphs
+through document edits and save/reopen. Loading and compiling are inert; execution
+requires document permission. See [M7 acceptance](../../../tiny-vba/docs/m7-acceptance.md)
+for exact source/typed-result, cross-workbook context, event and WASM evidence.
+Opaque signature payload preservation does not verify signature validity.
+
 This is the feature reference for `GridCraft.Excel.v1`. It describes GridCraft's
 VBA integration, including the language runtime supplied by its pinned tiny-vba
 dependency. [Getting started](../vba.md) covers build options and the editor.

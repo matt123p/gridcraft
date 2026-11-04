@@ -176,12 +176,16 @@ pub struct Workbook {
     /// which holds unmodelled parts), so it is saved to JSON as well as to XLSX.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub phonetics: Vec<PhoneticString>,
-    /// VBA project (`xl/vbaProject.bin`) carried through unchanged. GridCraft does not run
-    /// macros; the blob is preserved so that saving a macro-enabled workbook never destroys the
-    /// macros it arrived with. base64 in JSON. `None` = the workbook has no macros. Shared, so a
+    /// VBA project (`xl/vbaProject.bin`) carried through unchanged. Loading is inert; execution
+    /// uses the optional, explicitly authorized VBA adapter. The blob is preserved on
+    /// macro-enabled save. Base64 in JSON. `None` = the workbook has no macros. Shared, so a
     /// copy of the workbook (every edit's undo step) doesn't copy it.
     #[serde(default, with = "crate::b64::opt")]
     pub vba_project: Option<Arc<Vec<u8>>>,
+    /// Original VBA part and its bounded relationship graph. The writer checks the original
+    /// project bytes before carrying related signature/data parts forward. Never executed.
+    #[serde(skip)]
+    pub vba_package: Option<Arc<crate::preserved::Preserved>>,
     /// Field separator of the CSV this workbook was read from, so saving it as CSV writes the same
     /// separator back (a `;` file stays a `;` file). `None` = not read from CSV: CSV saves use `,`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -297,6 +301,7 @@ impl Workbook {
             cell_styles: vec![],
             phonetics: vec![],
             vba_project: None,
+            vba_package: None,
             csv_delimiter: None,
             macros: crate::macros::Macros::default(),
             macros_read: vec![],

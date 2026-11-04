@@ -56,6 +56,27 @@ pub struct KeptReader {
 }
 
 impl KeptReader {
+    /// Capture the original project and related payloads without interpreting signatures or
+    /// following external targets. Reuse the same part/byte/depth limits as other kept graphs.
+    pub fn vba_package(&mut self, cx: &mut Ctx<'_>, part: &str) -> Option<Arc<Preserved>> {
+        if !self.on {
+            cx.warn("VBA related parts could not be preserved: unsupported package metadata");
+            return None;
+        }
+        let root = PreservedRel {
+            target: part.into(),
+            rel_type: "http://schemas.microsoft.com/office/2006/relationships/vbaProject".into(),
+            ..PreservedRel::default()
+        };
+        match self.closure(cx, &root, &HashSet::new(), &["vbaProject"]) {
+            Ok(parts) => Some(Arc::new(Preserved { rels: vec![root], parts, ..Preserved::default() })),
+            Err(error) => {
+                cx.warn(format!("VBA related parts could not be preserved: {error}"));
+                None
+            }
+        }
+    }
+
     pub fn new(cx: &mut Ctx<'_>) -> KeptReader {
         let mut k = KeptReader {
             on: true,

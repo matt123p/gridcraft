@@ -2146,6 +2146,7 @@ dependencies = [
  "vba-values",
  "vba-vm",
  "wasm-bindgen-test",
+ "web-time",
 ]
 
 [[package]]
