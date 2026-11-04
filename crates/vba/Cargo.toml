@@ -11,20 +11,20 @@ workspace = true
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-vba-compiler = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-diagnostics = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-syntax = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-vm = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-ir = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
+vba-compiler = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-diagnostics = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-syntax = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-vm = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-ir = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
 gridcraft-engine = { workspace = true }
 gridcraft-chart = { workspace = true }
 gridcraft-model = { workspace = true }
-vba-foreign = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-ide = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-project = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
-vba-values = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
+vba-foreign = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-ide = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-project = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
+vba-values = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
 
-vba-runtime = { git = "https://github.com/matt123p/tiny-vba.git", rev = "b95a38a2b5c6784c1e6de616ef662121e2997515" }
+vba-runtime = { git = "https://github.com/matt123p/tiny-vba.git", rev = "d94a7a33ea45424b2191d3e922dfc41f11b5fd6e" }
 
 [dev-dependencies]
 image = { workspace = true }

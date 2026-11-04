@@ -75,7 +75,7 @@ fn native_boolean_instances_run_through_the_workbook_bridge_and_keep_package_byt
         (
             "Launch",
             "Module",
-            "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,c As Object,u As Object,n As Long\nDebug.Print UserForms.Count\nf.Check1.Value=True\nf.ChoiceA.Value=True\nf.ChoiceB.Value=True\nDebug.Print f.ChoiceA.Value\nDebug.Print f.ChoiceB.Value\nf.Show 0\nFor Each c In f.Controls\nn=n+1\nNext c\nDebug.Print n\nn=0\nFor Each u In UserForms\nIf u Is f Then n=n+1\nNext u\nDebug.Print n\nEnd Sub",
+            "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,c As MSForms.Control,u As MSForms.UserForm,n As Long\nDebug.Print VBA.UserForms.Count\nf.Check1.Value=True\nf.ChoiceA.Value=True\nf.ChoiceB.Value=True\nDebug.Print f.ChoiceA.Value\nDebug.Print f.ChoiceB.Value\nf.Show 0\nFor Each c In f.Controls\nn=n+1\nNext c\nDebug.Print n\nn=0\nFor Each u In VBA.UserForms\nIf u Is f Then n=n+1\nNext u\nDebug.Print n\nEnd Sub",
         ),
     ]));
     let mut wb = Workbook::new();
