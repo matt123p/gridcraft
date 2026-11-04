@@ -1,5 +1,12 @@
 # File-format parity
 
+M7A implementation update (2026-11-04): native worksheet Button metadata can be
+decoded from controls/ctrlProp/VML, with namespace/identity/assignment validation
+and original package save/reopen regressions. Inherited default namespaces are
+now retained in preserved fragments. Geometry/rendering, execution and edited
+native form persistence are not implemented by this slice.
+[Exact profile/evidence](../../tiny-vba/docs/m7a-inventory.md).
+
 VBA package update (2026-11-04): original binary project preservation and source
 attachment have authored M7 load/compile/run/save/reopen evidence. Related
 signature bytes remain opaque; package-wide signatures are invalidated on rewrite.
@@ -164,3 +171,6 @@ refresh. Counted under features (Get & Transform, ~10% ready), not here.
 M7 revision history — 2026-11-04: added the authored unchanged-document/package
 profile, original-project/source-export distinction and explicit signature policy.
 See the linked shared M7 acceptance record for exact tests and limitations.
+
+M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
+remaining native form/control gaps; no interactive control or edited-save claim.

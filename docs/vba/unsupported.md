@@ -1,5 +1,11 @@
 # Unsupported VBA functions and features
 
+M7A status (2026-11-04): native worksheet Button metadata decoding has started.
+Interactive worksheet Form Controls, native `.frm`/`.frx` or embedded UserForm
+import, edited native form persistence and `.tvform` removal are still open.
+The metadata reader does not authorize or execute macros.
+[Native forms ledger](../../../tiny-vba/docs/m7a-inventory.md).
+
 Updated 2026-11-04: edited-source binary VBA project writeback and cryptographic
 signature verification/re-signing remain unsupported. Save Source exports raw
 source separately; document save retains the original binary project. Replacing
@@ -140,3 +146,6 @@ types raise 13, stale references 91, native range/option failures commonly 1004,
 and consent failures 70. A handled error can be caught in VBA. Earlier successful
 macro writes remain committed and grouped for undo; a later error does not
 roll them back automatically.
+
+M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
+remaining native form/control gaps; no interactive control or edited-save claim.

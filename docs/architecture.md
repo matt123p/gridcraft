@@ -1,5 +1,11 @@
 # Architecture
 
+M7A implementation update (2026-11-04): `gridcraft-xlsx::read_worksheet_controls`
+reads the existing sheet preservation graph into a bounded native Button metadata
+snapshot. No duplicate writable control store, UI/VM dependency or authority is
+added. Full DrawingML identity reconciliation and interactive/native save paths
+remain separate gates; [ADR 0039](../../tiny-vba/docs/decisions/0039-m7a-native-control-metadata.md).
+
 VBA package contract update (2026-11-04): source decoding stays in the existing
 pinned tiny-vba `vba-project` crate; document attachment, trust and OOXML preservation
 stay in this fork. There is no encoder or reverse dependency. The
@@ -180,3 +186,6 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 M7 revision history — 2026-11-04: added the authored unchanged-document/package
 profile, original-project/source-export distinction and explicit signature policy.
 See the linked shared M7 acceptance record for exact tests and limitations.
+
+M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
+remaining native form/control gaps; no interactive control or edited-save claim.

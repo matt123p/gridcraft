@@ -27,3 +27,6 @@ sha2 = { workspace = true }
 [dev-dependencies]
 # Every registered function name, for the formula file-spelling test.
 gridcraft-functions = { workspace = true }
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
+wasm-bindgen-test = "=0.3.79"

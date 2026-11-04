@@ -1,5 +1,11 @@
 # Supported VBA functions and features
 
+M7A start (2026-11-04): XLSX now decodes a bounded, read-only snapshot of native
+worksheet Button metadata (shape identity/name, caption text, raw anchor/style and
+macro assignment) from preserved control/VML/property parts. This is internal format
+decoding; native controls are not yet rendered or activated.
+[Inventory and remaining work](../../../tiny-vba/docs/m7a-inventory.md).
+
 Updated 2026-11-04: M7's authored `.xlsm` workflows preserve original VBA
 project bytes, code names and supported related payload/relationship graphs
 through document edits and save/reopen. Loading and compiling are inert; execution
@@ -331,3 +337,6 @@ A listed object is a projection of existing native state, not a complete Excel c
 </details>
 
 <!-- END VBA OBJECT MEMBERS -->
+
+M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
+remaining native form/control gaps; no interactive control or edited-save claim.

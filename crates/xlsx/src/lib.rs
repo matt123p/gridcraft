@@ -20,6 +20,7 @@ mod csv;
 mod drawing;
 mod feature_bags;
 mod fmla;
+mod form_controls;
 mod ods;
 mod package;
 mod passthrough;
@@ -46,6 +47,7 @@ use gridcraft_model::Workbook;
 
 pub use crypto::{DecryptError, check_encryption, decrypt};
 pub use csv::{MAX_CSV_BYTES, read_csv, write_csv, write_csv_limited};
+pub use form_controls::{UnsupportedWorksheetControl, WorksheetButton, WorksheetControlMetadata, read_worksheet_controls};
 pub use ods::read_ods;
 pub use package::MAX_PART;
 pub use passthrough::rebase_links;

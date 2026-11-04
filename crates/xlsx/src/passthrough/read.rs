@@ -465,6 +465,14 @@ fn scan_sheet(bytes: &[u8]) -> Option<SheetScan> {
             Event::Start(e) if !in_root => {
                 in_root = true;
                 for a in e.attributes().with_checks(false).flatten() {
+                    if a.key.as_ref() == b"xmlns" {
+                        if let Ok(v) = std::str::from_utf8(&a.value)
+                            && !v.contains('"')
+                        {
+                            decls.push((String::new(), v.into()));
+                        }
+                        continue;
+                    }
                     if let Some(p) = a.key.as_ref().strip_prefix(b"xmlns:")
                         && let (Ok(p), Ok(v)) = (std::str::from_utf8(p), std::str::from_utf8(&a.value))
                         && !v.contains('"')
@@ -545,7 +553,11 @@ fn with_decls(frag: &str, decls: &[(String, String)]) -> String {
     let head = frag.get(..frag.find('>').unwrap_or(frag.len())).unwrap_or("");
     let mut add = String::new();
     for (p, v) in decls {
-        if !head.contains(&format!("xmlns:{p}=")) {
+        if p.is_empty() {
+            if !head.contains("xmlns=") {
+                let _ = write!(add, " xmlns=\"{v}\"");
+            }
+        } else if !head.contains(&format!("xmlns:{p}=")) {
             let _ = write!(add, " xmlns:{p}=\"{v}\"");
         }
     }
