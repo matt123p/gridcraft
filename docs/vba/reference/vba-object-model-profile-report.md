@@ -4,7 +4,7 @@ Profile `GridCraft.Excel.v1` · reviewed 2026-11-03 · status **ACCEPTED_BOUNDED
 
 Closes the declared High native profiles and selected Medium ledgers; does not certify all Excel members, options or all Medium/Low families. Raw catalogue missing/partial states remain independent of planning disposition.
 
-5996 pinned source pages retained; **673 required source IDs** resolved, **124 nominal object types** reachable from Application, with checked signatures and reviewed dynamic edges. Source-page counts are not an Excel compatibility percentage.
+5996 pinned source pages retained; **673 required source IDs** resolved, **125 nominal object types** reachable from Application, with checked signatures and reviewed dynamic edges. Source-page counts are not an Excel compatibility percentage.
 
 ## Source classification
 
@@ -12,14 +12,14 @@ Closes the declared High native profiles and selected Medium ledgers; does not c
 |---|---:|
 | `ACCEPTED_REQUIRED_NATIVE` | 673 |
 | `DEFERRED_LOW` | 1078 |
-| `HIGH_REFERENCE_EXTENSION` | 885 |
-| `IMPLEMENTED_NATIVE_PARTIAL` | 959 |
+| `HIGH_REFERENCE_EXTENSION` | 865 |
+| `IMPLEMENTED_NATIVE_PARTIAL` | 984 |
 | `METADATA_ONLY` | 272 |
-| `OUT_OF_SCOPE_GRIDCRAFT` | 1003 |
+| `OUT_OF_SCOPE_GRIDCRAFT` | 1002 |
 | `SERVICE_REQUIRED` | 20 |
-| `UNSELECTED_MEDIUM` | 1106 |
+| `UNSELECTED_MEDIUM` | 1102 |
 
-[High extension capability review](vba-object-model-high-extension-review.md): 885 source pages checked against native backing; 26 direct native candidates, 50 existing generic-dispatch metadata candidates, 444 partial-native rows, 42 host-service reviews and 323 excluded source contracts. This adds no runtime acceptance.
+[High extension capability review](vba-object-model-high-extension-review.md): 865 source pages checked against native backing; 26 direct native candidates, 50 existing generic-dispatch metadata candidates, 443 partial-native rows, 42 host-service reviews and 304 excluded source contracts. This adds no runtime acceptance.
 
 High reference extensions retain High priority and their literal missing/partial catalogue state; they are outside the already accepted native obligations and are not certified or downgraded. A missing adapter does not establish a missing GridCraft feature. Unselected Medium and every Low runtime projection remain outside this sign-off.
 

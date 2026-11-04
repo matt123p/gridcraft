@@ -127,6 +127,14 @@ pub(super) fn interact(app: &mut SheetApp, ui: &mut egui::Ui, resp: &egui::Respo
         if let Some(p) = at
             && let Some((kind, id, rect)) = crate::chartview::hit(app, geo, sh, p)
         {
+            let native = kind == "shape" && sh.shapes.iter().any(|s| s.id == id && (s.format.form_control.is_some() || s.format.control_inert));
+            #[cfg(feature = "vba")]
+            let design = app.vba.as_ref().is_some_and(|e| e.design_mode);
+            #[cfg(not(feature = "vba"))]
+            let design = false;
+            if native && !design {
+                return;
+            }
             #[cfg(feature = "vba")]
             if kind == "shape"
                 && primary_clicked

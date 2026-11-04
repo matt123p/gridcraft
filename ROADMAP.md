@@ -1,8 +1,9 @@
 # GridCraft roadmap
 
-M7A started (2026-11-04): the initial native forms audit and first bounded native
-worksheet Button metadata reader are implemented. No native control UI or macro
-activation is enabled yet. [Work ledger](../tiny-vba/docs/m7a-inventory.md).
+M7A.3 (2026-11-04): all nine standard native worksheet Form Controls now support
+reconciled import, widgets, trusted assignments, live bindings, selected VBA APIs
+and native edit/save/reopen. [Profile and limits](docs/vba/worksheet-controls.md).
+UserForm semantics/persistence and .tvform removal remain separate shared tasks.
 
 VBA package update (2026-11-04): the shared plan's M7 authored unchanged-document
 profile has fork-owned package/trust/source/event acceptance; see
@@ -11,7 +12,7 @@ real signature verification and fresh Office comparison remain explicit limits.
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (optional VBA integration; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-04 · **Change:** minor (native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -318,3 +319,7 @@ embedded import now attach to the shared designer/code/debugger/runtime. Origina
 source/resources remain separate; package load stays inert, explicit consent
 precedes run, and unchanged saving retains original project bytes. Native edited
 form persistence, broader native semantics and custom-format removal remain open.
+
+M7A.3 revision — 2026-11-04: native worksheet controls share Shape state and normal
+engine undo/recalc. ControlFormat/assigned macros use the optional adapter/bridge;
+OOXML/VML persistence retains untouched parts. See the bounded profile/evidence.

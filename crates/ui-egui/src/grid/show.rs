@@ -205,6 +205,7 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     if geo.paper.is_some() {
         crate::paper_view::paint_rulers(app, &painter, rect, &geo, &t);
     }
+    crate::chartview::control_widgets(app, ui, &geo, &wb, si, sh);
     show_grid_interactions(app, ui, &resp, &geo, sh, &wb);
     let track_x = vertical_scroll_track(available, rect, rtl);
     // The track starts below the column headings and frozen rows; the bar's column beside them

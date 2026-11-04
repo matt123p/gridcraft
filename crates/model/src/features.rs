@@ -645,9 +645,20 @@ pub enum ShapeTextAnchor {
 
 /// How a shape's outline and text look. The text properties apply to the whole text (the first
 /// paragraph's and first run's properties when a file has several).
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShapeFormat {
+    /// Original DrawingML/VML native identity; distinct from the process-local object ID.
+    pub office_id: Option<u32>,
+    pub office_name: Option<String>,
+    /// Original DrawingML macro text, used only to compare preservation snapshots on save.
+    pub source_macro: Option<String>,
+    /// A native control whose graph or class cannot safely be activated.
+    pub control_inert: bool,
+    /// Cell-relative endpoints retained while hidden rows/columns collapse the displayed size.
+    pub control_attachment: Option<crate::form_controls::ControlAttachment>,
+    /// Authoritative live worksheet control state. Original package bytes remain preservation data.
+    pub form_control: Option<crate::FormControl>,
     /// No outline (`a:ln/a:noFill`), whatever `Shape::line` says.
     pub no_line: bool,
     /// Text size in points (`a:rPr sz` / 100); `None` is the default size.
@@ -666,6 +677,23 @@ pub struct ShapeFormat {
     pub anchor: Option<ShapeTextAnchor>,
     /// Paragraphs run right to left (`a:pPr rtl`).
     pub rtl: bool,
+}
+
+impl PartialEq for ShapeFormat {
+    fn eq(&self, other: &Self) -> bool {
+        self.no_line == other.no_line
+            && self.font_size == other.font_size
+            && self.bold == other.bold
+            && self.italic == other.italic
+            && self.font == other.font
+            && self.text_color == other.text_color
+            && self.text_outline == other.text_outline
+            && self.align == other.align
+            && self.anchor == other.anchor
+            && self.rtl == other.rtl
+            && self.form_control == other.form_control
+            && self.control_inert == other.control_inert
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

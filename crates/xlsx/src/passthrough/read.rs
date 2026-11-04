@@ -397,9 +397,10 @@ impl KeptReader {
                 Err(why) => cx.warn(format!("sheet \"{name}\": {slot} were dropped: {why}")),
             }
         }
-        if p.elements.iter().any(|e| e.slot == "oleObjects" || e.slot == "controls") {
-            cx.warn(format!("sheet \"{name}\": embedded objects and form controls are not shown; they are kept for saving"));
-        } else {
+        if p.elements.iter().any(|e| e.slot == "oleObjects") {
+            cx.warn(format!("sheet \"{name}\": embedded OLE/ActiveX objects are retained without activation"));
+        }
+        if !p.elements.iter().any(|e| e.slot == "oleObjects" || e.slot == "controls") {
             p.vml = None;
         }
     }

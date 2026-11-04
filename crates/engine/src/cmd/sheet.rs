@@ -260,6 +260,13 @@ pub(super) fn rewrite(cx: &mut Ctx, target: &str, e: &Edit) {
         for sp in sh.sparklines.iter_mut() {
             sp.source = fix(&sp.source);
         }
+        for shape in &mut sh.shapes {
+            if let Some(c) = shape.format.form_control.as_mut() {
+                c.linked_cell = fix(&c.linked_cell);
+                c.list_fill_range = fix(&c.list_fill_range);
+                c.group_link = fix(&c.group_link);
+            }
+        }
         // PivotTable sources (a range, table or defined name) are only rewritten when the edit
         // moves them, so table and name sources keep their text.
         for pt in sh.pivots.iter_mut() {

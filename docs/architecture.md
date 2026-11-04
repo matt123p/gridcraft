@@ -195,3 +195,10 @@ embedded import now attach to the shared designer/code/debugger/runtime. Origina
 source/resources remain separate; package load stays inert, explicit consent
 precedes run, and unchanged saving retains original project bytes. Native edited
 form persistence, broader native semantics and custom-format removal remain open.
+
+M7A.3 — 2026-11-04: [native worksheet controls](vba/worksheet-controls.md)
+live in the existing model Shape store. Pure model queries resolve bindings/groups;
+engine control commands own transactions/undo/recalc; XLSX joins and patches native
+control/VML/DrawingML parts. The optional VBA adapter/shell supplies ControlFormat,
+accessible widgets and trusted, owner-bound assignments. No shared VM or GUI edge
+enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contracts.

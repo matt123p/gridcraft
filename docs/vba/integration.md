@@ -427,3 +427,10 @@ builds and tests do not require that archive. Runtime/feature tests live in
 [`crates/ui-egui/tests`](../../crates/ui-egui/tests). Run appropriate native/WASM
 and host/UI checks when changing those behaviors. Catalogue counts and static
 graph checks are not measurements of unchanged Excel-workbook compatibility.
+
+M7A.3 — 2026-11-04: [native worksheet controls](worksheet-controls.md)
+live in the existing model Shape store. Pure model queries resolve bindings/groups;
+engine control commands own transactions/undo/recalc; XLSX joins and patches native
+control/VML/DrawingML parts. The optional VBA adapter/shell supplies ControlFormat,
+accessible widgets and trusted, owner-bound assignments. No shared VM or GUI edge
+enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contracts.

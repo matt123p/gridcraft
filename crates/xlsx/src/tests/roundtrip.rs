@@ -418,6 +418,7 @@ fn sample() -> Workbook {
             align: Some(ShapeTextAlign::Right),
             anchor: Some(ShapeTextAnchor::Bottom),
             rtl: true,
+            ..Default::default()
         },
     });
     let base_chart = Chart {

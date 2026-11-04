@@ -58,6 +58,15 @@ pub(super) fn delete_sheet(s: &mut Session, p: &Json) -> Result<Json> {
             let keys: Vec<(CellRef, Arc<gridcraft_model::Formula>)> =
                 cx.wb.sheets.get(si).map(|s| s.cells.iter().filter_map(|(c, x)| x.formula.clone().map(|f| (c, f))).collect()).unwrap_or_default();
             let Some(sh) = cx.wb.sheet_mut(si) else { continue };
+            for shape in &mut sh.shapes {
+                if let Some(c) = shape.format.form_control.as_mut() {
+                    for text in [&mut c.linked_cell, &mut c.list_fill_range, &mut c.group_link] {
+                        if let Ok(expr) = gridcraft_formula::parse(text) {
+                            *text = gridcraft_formula::print(&gridcraft_formula::adjust::delete_sheet(expr, &name, &order));
+                        }
+                    }
+                }
+            }
             for (c, f) in keys {
                 if let Some(e) = f.expr() {
                     let ne = gridcraft_formula::adjust::delete_sheet(e, &name, &order);
@@ -143,6 +152,13 @@ pub(crate) fn rename_sheet_native(s: &mut Session, i: usize, name: &str) -> Resu
                     && sheet.eq_ignore_ascii_case(&old)
                 {
                     ch.pivot = Some(crate::pivot::chart_link(&name, &pivot));
+                }
+            }
+            for shape in &mut sh.shapes {
+                if let Some(c) = shape.format.form_control.as_mut() {
+                    c.linked_cell = fix(&c.linked_cell);
+                    c.list_fill_range = fix(&c.list_fill_range);
+                    c.group_link = fix(&c.group_link);
                 }
             }
         }

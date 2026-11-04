@@ -7,6 +7,7 @@ use gridcraft_engine::{
     model::{Anchor, AnchorMode, Color, ShapeFormat, ShapeKind, ShapeTextAlign, ShapeTextAnchor, Sheet},
 };
 use serde_json::{Value as Json, json};
+mod controls;
 #[derive(Clone)]
 struct View {
     id: u32,
@@ -85,7 +86,7 @@ fn view(sh: &Sheet, f: &Feature) -> HostResult<View> {
             }
             v.id = x.id;
             v.index = i;
-            v.name = format!("{:?} {}", x.kind, x.id);
+            v.name = x.format.office_name.clone().unwrap_or_else(|| format!("{:?} {}", x.kind, x.id));
             v.anchor = x.anchor;
             v.text = x.text.clone();
             v.format = x.format.clone();
@@ -209,6 +210,7 @@ impl Bridge {
             "Shapes"
                 | "Shape"
                 | "ShapeRange"
+                | "ControlFormat"
                 | "TextFrame"
                 | "Characters"
                 | "TextFrame2"
@@ -240,8 +242,40 @@ impl Bridge {
             arguments(call, &[])?;
             return self.intern(Object::Application);
         }
+        if f.kind == "ControlFormat" {
+            return self.native_control_format(s, f, &v, call);
+        }
         if f.kind != "Shape" {
             return self.drawing_child(s, f, &v, call);
+        }
+        if m == "controlformat" && reads(call) {
+            arguments(call, &[])?;
+            if v.format.form_control.is_none() {
+                return Err(failure(1004, "shape is not a Form Control"));
+            }
+            return self.feature(child(f, "ControlFormat", 0));
+        }
+        if m == "formcontroltype" && reads(call) {
+            arguments(call, &[])?;
+            return v
+                .format
+                .form_control
+                .as_ref()
+                .map(|c| Value::Long(c.kind.excel_type()))
+                .ok_or_else(|| failure(1004, "shape is not a Form Control"));
+        }
+        if v.format.form_control.is_some() && matches!(m.as_str(), "name" | "visible") && call.kind == InvokeKind::Let {
+            let a = arguments(call, &["Value"])?;
+            let value = required(&a, 0)?;
+            let p = if m == "name" { json!({"id":v.id,"name":string(value)?}) } else { json!({"id":v.id,"visible":numeric_index(value)?!=0}) };
+            self.drawing_command(s, sheet, "control.set", p)?;
+            return Ok(Value::Empty);
+        }
+        if m == "visible"
+            && reads(call)
+            && let Some(c) = &v.format.form_control
+        {
+            return Ok(Value::Long(if c.visible { -1 } else { 0 }));
         }
         if reads(call) {
             if m == "parent" {
@@ -298,6 +332,7 @@ impl Bridge {
                 } else {
                     sh.row_top(v.anchor.cell.row) + f64::from(v.anchor.dy)
                 };
+                let pos = if v.format.form_control.is_some() { pos * 0.75 } else { pos };
                 return self.set_geometry(s, sheet, &v, if m == "incrementleft" { "left" } else { "top" }, pos + n);
             }
             if m == "pickupe" || matches!(m.as_str(), "group" | "ungroup" | "copy" | "cut" | "copypicture" | "duplicate") {
@@ -308,6 +343,7 @@ impl Bridge {
                 "name" => values::vba_text(&v.name),
                 "id" => Ok(Value::Long(i32::try_from(v.id).map_err(|_| failure(6, "drawing ID overflow"))?)),
                 "type" => Ok(Value::Long(match (v.tag, v.shape_kind) {
+                    _ if v.format.form_control.is_some() => 8,
                     ("chart", _) => 3,
                     ("image", _) => 13,
                     ("slicer", _) => 25,
@@ -322,10 +358,22 @@ impl Bridge {
                     Some(ShapeKind::Triangle) => 7,
                     _ => return Err(failure(1004, "no native AutoShape variant")),
                 })),
-                "width" => Ok(Value::Double(f64::from(v.anchor.width))),
-                "height" => Ok(Value::Double(f64::from(v.anchor.height))),
-                "left" => Ok(Value::Double(sh.col_left(v.anchor.cell.col) + f64::from(v.anchor.dx))),
-                "top" => Ok(Value::Double(sh.row_top(v.anchor.cell.row) + f64::from(v.anchor.dy))),
+                "width" => {
+                    Ok(if v.format.form_control.is_some() { Value::Single(v.anchor.width * 0.75) } else { Value::Double(f64::from(v.anchor.width)) })
+                }
+                "height" => Ok(if v.format.form_control.is_some() {
+                    Value::Single(v.anchor.height * 0.75)
+                } else {
+                    Value::Double(f64::from(v.anchor.height))
+                }),
+                "left" => {
+                    let n = sh.col_left(v.anchor.cell.col) + f64::from(v.anchor.dx);
+                    Ok(if v.format.form_control.is_some() { Value::Single((n * 0.75) as f32) } else { Value::Double(n) })
+                }
+                "top" => {
+                    let n = sh.row_top(v.anchor.cell.row) + f64::from(v.anchor.dy);
+                    Ok(if v.format.form_control.is_some() { Value::Single((n * 0.75) as f32) } else { Value::Double(n) })
+                }
                 "placement" => Ok(Value::Long(match v.anchor.mode {
                     AnchorMode::MoveAndSize => 1,
                     AnchorMode::MoveOnly => 2,
@@ -422,6 +470,7 @@ impl Bridge {
                 n.items = unique;
                 self.feature(n)
             }
+            "addformcontrol" => self.add_form_control(s, sheet, call),
             "addshape" | "addtextbox" | "addline" | "addpicture" => self.add_drawing(s, sheet, &m, call),
             _ => Err(failure(1004, "native drawing operation unavailable; groups/connectors and object clipboard are not simulated")),
         }
@@ -602,6 +651,10 @@ impl Bridge {
     }
     fn set_geometry(&mut self, s: &mut Session, sheet: usize, v: &View, member: &str, n: f64) -> HostResult<Value> {
         validate_geometry(member, n)?;
+        let n = if v.format.form_control.is_some() { n * 4. / 3. } else { n };
+        if v.format.form_control.is_some() && n > if matches!(member, "width" | "height") { 10000. } else { 1_000_000. } {
+            return Err(failure(1004, "native control geometry exceeds the profile limit"));
+        }
         let mut p = json!({"kind":v.tag,"id":v.id});
         if matches!(member, "width" | "height") {
             p[member] = json!(n);
@@ -1109,7 +1162,7 @@ pub(crate) fn descriptors() -> Vec<super::MemberDescriptor> {
         ("Shape","Width","Property Width As Single",super::MemberAvailability::Implemented),
         ("Shape","Height","Property Height As Single",super::MemberAvailability::Implemented),
         ("Shape","Placement","Property Placement As XlPlacement",super::MemberAvailability::Implemented),
-        ("Shape","Name","Property Get Name() As String",super::MemberAvailability::Implemented),
+        ("Shape","Name","Property Name As String",super::MemberAvailability::Implemented),
         ("Shape","Type","Property Get Type() As MsoShapeType",super::MemberAvailability::Implemented),
         ("Shape","AutoShapeType","Property Get AutoShapeType() As MsoAutoShapeType",super::MemberAvailability::Implemented),
         ("Shape","ZOrderPosition","Property Get ZOrderPosition() As Long",super::MemberAvailability::Implemented),
@@ -1205,5 +1258,28 @@ pub(crate) fn descriptors() -> Vec<super::MemberDescriptor> {
         ("ColorFormat","RGB","Property RGB As Long",super::MemberAvailability::Implemented),
         ("ColorFormat","ObjectThemeColor","Property ObjectThemeColor As MsoThemeColorIndex",super::MemberAvailability::Implemented),
         ("ColorFormat","TintAndShade","Property TintAndShade As Single",super::MemberAvailability::Implemented),
+        ("Shapes","AddFormControl","Function AddFormControl(Type As XlFormControl, Left As Long, Top As Long, Width As Long, Height As Long) As Shape",super::MemberAvailability::Implemented),
+        ("Shape","ControlFormat","Property Get ControlFormat() As ControlFormat",super::MemberAvailability::Implemented),
+        ("Shape","FormControlType","Property Get FormControlType() As XlFormControl",super::MemberAvailability::Implemented),
+        ("Shape","Visible","Property Visible As MsoTriState",super::MemberAvailability::Implemented),
+        ("ControlFormat","Enabled","Property Enabled As Boolean",super::MemberAvailability::Implemented),
+        ("ControlFormat","PrintObject","Property PrintObject As Boolean",super::MemberAvailability::Implemented),
+        ("ControlFormat","Value","Property Value As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","Min","Property Min As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","Max","Property Max As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","SmallChange","Property SmallChange As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","LargeChange","Property LargeChange As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","LinkedCell","Property LinkedCell As String",super::MemberAvailability::Implemented),
+        ("ControlFormat","ListFillRange","Property ListFillRange As String",super::MemberAvailability::Implemented),
+        ("ControlFormat","ListIndex","Property ListIndex As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","DropDownLines","Property DropDownLines As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","MultiSelect","Property MultiSelect As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","Parent","Property Get Parent() As Shape",super::MemberAvailability::Implemented),
+        ("ControlFormat","Application","Property Get Application() As Application",super::MemberAvailability::Implemented),
+        ("ControlFormat","ListCount","Property Get ListCount() As Long",super::MemberAvailability::Implemented),
+        ("ControlFormat","List","Function List(Optional Index As Variant) As Variant",super::MemberAvailability::Implemented),
+        ("ControlFormat","AddItem","Sub AddItem(Text As String, Optional Index As Variant)",super::MemberAvailability::Implemented),
+        ("ControlFormat","RemoveItem","Sub RemoveItem(Index As Long, Optional Count As Variant)",super::MemberAvailability::Implemented),
+        ("ControlFormat","RemoveAllItems","Sub RemoveAllItems()",super::MemberAvailability::Implemented),
     ].into_iter().map(|(owner,name,signature,availability)|super::MemberDescriptor{owner,name,signature,availability,implementation_symbol:"crates/vba/src/drawing_api.rs::Bridge::drawing_api"}).collect()
 }

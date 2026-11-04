@@ -519,12 +519,19 @@ impl Bridge {
             Object::Application | Object::Workbook if read_kind(call.kind) => {
                 let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
                 let active = doc.sheet_index();
-                let implicit_sheet = match self.event_owner_sheet {
+                let implicit_sheet = match self.event_owner_sheet.filter(|_| doc.uid == self.doc) {
                     Some(sheet) if doc.wb.sheet(sheet).is_some() => sheet,
                     Some(_) => return Err(failure(91, "worksheet event owner was deleted")),
                     None => active,
                 };
                 match member.as_str() {
+                    "caller" if object == Object::Application => {
+                        arguments(&call, &[])?;
+                        match &self.control_caller {
+                            Some(name) => values::vba_text(name),
+                            None => Ok(Value::CvErr(2023)),
+                        }
+                    }
                     "thisworkbook" | "activeworkbook" if object == Object::Application => {
                         arguments(&call, &[])?;
                         if member == "thisworkbook" {

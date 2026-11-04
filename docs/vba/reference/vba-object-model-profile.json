@@ -18,12 +18,12 @@
   "disposition_counts": {
     "ACCEPTED_REQUIRED_NATIVE": 673,
     "DEFERRED_LOW": 1078,
-    "HIGH_REFERENCE_EXTENSION": 885,
-    "IMPLEMENTED_NATIVE_PARTIAL": 959,
+    "HIGH_REFERENCE_EXTENSION": 865,
+    "IMPLEMENTED_NATIVE_PARTIAL": 984,
     "METADATA_ONLY": 272,
-    "OUT_OF_SCOPE_GRIDCRAFT": 1003,
+    "OUT_OF_SCOPE_GRIDCRAFT": 1002,
     "SERVICE_REQUIRED": 20,
-    "UNSELECTED_MEDIUM": 1106
+    "UNSELECTED_MEDIUM": 1102
   },
   "documentation_commit": "b202c96d9d53896593b73d6fae57f5230601a5e3",
   "enum_source_exceptions": [
@@ -59,13 +59,13 @@
     "ledger": "docs/vba/reference/vba-object-model-high-extension-review.json",
     "report": "docs/vba/reference/vba-object-model-high-extension-review.md",
     "reviewed": "2026-11-03",
-    "source_pages": 885,
+    "source_pages": 865,
     "status_counts": {
       "ELIGIBLE_NATIVE": 26,
       "GENERIC_DISPATCH": 50,
       "HOST_SERVICE_REVIEW": 42,
-      "NATIVE_SUBSET": 444,
-      "NO_NATIVE_CAPABILITY": 323
+      "NATIVE_SUBSET": 443,
+      "NO_NATIVE_CAPABILITY": 304
     }
   },
   "legacy_graph_pages": 283,
@@ -443,6 +443,7 @@
         "Font2.Italic",
         "LineFormat.Visible",
         "Shape.HasChart",
+        "Shape.Visible",
         "ShapeRange.Align",
         "Shapes.AddPicture",
         "TextFrame2.HasText"
@@ -499,6 +500,10 @@
         "Range.ExportAsFixedFormat",
         "Workbook.ExportAsFixedFormat",
         "Worksheet.ExportAsFixedFormat"
+      ],
+      "xlformcontrol": [
+        "Shape.FormControlType",
+        "Shapes.AddFormControl"
       ],
       "xlhalign": [
         "TextFrame.HorizontalAlignment"
@@ -580,8 +585,8 @@
       ]
     },
     "evidence_limit": "Static signature/registration reachability plus reviewed native factory tests; this is not exhaustive runtime option coverage. Variant scalars/arrays and language-owned Run results do not invent nominal Excel types.",
-    "implemented_member_descriptors": 1534,
-    "registered_object_types": 124,
+    "implemented_member_descriptors": 1558,
+    "registered_object_types": 125,
     "root_witnesses": [
       {
         "path": [
@@ -857,6 +862,17 @@
           "Databar.MaxPoint"
         ],
         "type": "ConditionValue"
+      },
+      {
+        "path": [
+          "Application",
+          "Application.ActiveSheet",
+          "Worksheet.ChartObjects",
+          "ChartObject.ShapeRange",
+          "ShapeRange.Item",
+          "Shape.ControlFormat"
+        ],
+        "type": "ControlFormat"
       },
       {
         "path": [
@@ -1838,6 +1854,6 @@
   ],
   "source_pages": 5996,
   "status": "ACCEPTED_BOUNDED_NATIVE_PROFILE",
-  "tiny_vba_revision": "8f4bebc3650cd51054fa6786f83a1ac73e07aeaf",
+  "tiny_vba_revision": "87a862a9f11a372e112d7c166b9a82d74c8e009d",
   "unresolved_required_source_ids": []
 }

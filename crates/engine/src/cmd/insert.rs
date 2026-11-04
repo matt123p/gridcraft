@@ -1194,9 +1194,15 @@ fn shape_set_text(s: &mut Session, p: &Json) -> Result<Json> {
     let id = u32_param(p, "id").ok_or_else(|| bad("shape.setText", "missing shape id"))?;
     let sheet = target_sheet(s, p)?;
     let shape = s.doc()?.wb.sheet(sheet).and_then(|sh| sh.shapes.iter().find(|x| x.id == id)).ok_or_else(|| bad("shape.setText", "no such shape"))?;
+    if shape.format.control_inert {
+        return Err(bad("shape.setText", "unsupported native control is retained without editing"));
+    }
     let text = str_param(p, "text");
-    if text.is_some() && shape.kind != ShapeKind::TextBox {
+    if text.is_some() && shape.kind != ShapeKind::TextBox && shape.format.form_control.is_none() {
         return Err(bad("shape.setText", "the shape is not a text box"));
+    }
+    if shape.format.form_control.is_some() && text.is_some_and(|t| t.len() > 16384 || !gridcraft_model::form_controls::valid_control_text(t)) {
+        return Err(bad("shape.setText", "native control caption budget"));
     }
     if text.is_some_and(|t| t.chars().nth(SHAPE_TEXT_MAX_CHARS).is_some()) {
         return Err(bad("shape.setText", "text is longer than 32767 characters"));
@@ -1257,6 +1263,9 @@ fn shape_set_macro(s: &mut Session, p: &Json) -> Result<Json> {
             return Err(EngineError::Other(PROTECTED.into()));
         }
         let shape = sh.shapes.iter_mut().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setMacro", "no such shape"))?;
+        if shape.format.control_inert {
+            return Err(bad("shape.setMacro", "unsupported native control is retained without editing"));
+        }
         if matches!(shape.kind, ShapeKind::Ink | ShapeKind::Icon) {
             return Err(bad("shape.setMacro", "assign macros to an ordinary worksheet shape"));
         }
@@ -1271,6 +1280,12 @@ fn delete_object(s: &mut Session, p: &Json) -> Result<Json> {
     let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
+        if kind == "shape" && sh.is_protected() && sh.shapes.iter().any(|s| s.id == id && s.format.form_control.is_some()) {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
+        if kind == "shape" && sh.shapes.iter().any(|s| s.id == id && s.format.control_inert) {
+            return Err(bad("object", "unsupported native control is retained without editing"));
+        }
         match kind.as_str() {
             "chart" => sh.charts.retain(|c| c.id != id),
             "image" => sh.images.retain(|c| c.id != id),
@@ -1300,6 +1315,12 @@ fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
     }
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
+        if kind == "shape" && sh.is_protected() && sh.shapes.iter().any(|s| s.id == id && s.format.form_control.is_some()) {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
+        if kind == "shape" && sh.shapes.iter().any(|s| s.id == id && s.format.control_inert) {
+            return Err(bad("object", "unsupported native control is retained without editing"));
+        }
         let anchor = match kind.as_str() {
             "chart" => sh.charts.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
             "image" => sh.images.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),

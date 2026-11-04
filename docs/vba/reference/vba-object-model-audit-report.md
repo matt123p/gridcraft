@@ -6,9 +6,9 @@ Pinned source: MicrosoftDocs/VBA-Docs `b202c96d9d53896593b73d6fae57f5230601a5e3`
 
 ## Source coverage
 
-- `MISSING`: 2676
-- `OUT_OF_SCOPE_GRIDCRAFT`: 1115
-- `PARTIAL`: 1901
+- `MISSING`: 2653
+- `OUT_OF_SCOPE_GRIDCRAFT`: 1114
+- `PARTIAL`: 1925
 - `PLATFORM_SERVICE_NEEDED`: 21
 - `REFERENCE_ALIAS`: 283
 
@@ -141,7 +141,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Application.CalculationInterruptKey` | `api/Excel.Application.CalculationInterruptKey.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CalculationState` | `api/Excel.Application.CalculationState.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CalculationVersion` | `api/Excel.Application.CalculationVersion.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Application.Caller` | `api/Excel.Application.Caller.md` | `PARTIAL` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Application.Caller` | `api/Excel.Application.Caller.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CanPlaySounds` | `api/Excel.Application.CanPlaySounds.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.CanRecordSounds` | `api/Excel.Application.CanRecordSounds.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Application.Caption` | `api/Excel.Application.Caption.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -1132,28 +1132,28 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `ConnectorFormat.Parent` | `api/Excel.ConnectorFormat.Parent.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ConnectorFormat.Type` | `api/Excel.ConnectorFormat.Type.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Constants` | `api/Excel.Constants.md` | `PARTIAL` | `METADATA` | `METADATA_ONLY` | `ENUM_VALUES_EXTRACTED_RUNTIME_TESTS_PENDING` |
-| `ControlFormat.AddItem` | `api/Excel.ControlFormat.AddItem.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.Application` | `api/Excel.ControlFormat.Application.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.AddItem` | `api/Excel.ControlFormat.AddItem.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.Application` | `api/Excel.ControlFormat.Application.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ControlFormat.Creator` | `api/Excel.ControlFormat.Creator.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `HIGH` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.DropDownLines` | `api/Excel.ControlFormat.DropDownLines.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.Enabled` | `api/Excel.ControlFormat.Enabled.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.LargeChange` | `api/Excel.ControlFormat.LargeChange.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.LinkedCell` | `api/Excel.ControlFormat.LinkedCell.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.List` | `api/Excel.ControlFormat.List.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.ListCount` | `api/Excel.ControlFormat.ListCount.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.ListFillRange` | `api/Excel.ControlFormat.ListFillRange.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.ListIndex` | `api/Excel.ControlFormat.ListIndex.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.DropDownLines` | `api/Excel.ControlFormat.DropDownLines.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.Enabled` | `api/Excel.ControlFormat.Enabled.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.LargeChange` | `api/Excel.ControlFormat.LargeChange.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.LinkedCell` | `api/Excel.ControlFormat.LinkedCell.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.List` | `api/Excel.ControlFormat.List.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.ListCount` | `api/Excel.ControlFormat.ListCount.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.ListFillRange` | `api/Excel.ControlFormat.ListFillRange.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.ListIndex` | `api/Excel.ControlFormat.ListIndex.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `ControlFormat.LockedText` | `api/Excel.ControlFormat.LockedText.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.Max` | `api/Excel.ControlFormat.Max.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat` | `api/Excel.ControlFormat.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `NOT_APPLICABLE` |
-| `ControlFormat.Min` | `api/Excel.ControlFormat.Min.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.MultiSelect` | `api/Excel.ControlFormat.MultiSelect.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.Parent` | `api/Excel.ControlFormat.Parent.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.PrintObject` | `api/Excel.ControlFormat.PrintObject.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `MEDIUM` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.RemoveAllItems` | `api/Excel.ControlFormat.RemoveAllItems.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.RemoveItem` | `api/Excel.ControlFormat.RemoveItem.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.SmallChange` | `api/Excel.ControlFormat.SmallChange.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `ControlFormat.Value` | `api/Excel.ControlFormat.Value.md` | `MISSING` | `HIGH` | `HIGH_REFERENCE_EXTENSION` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.Max` | `api/Excel.ControlFormat.Max.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat` | `api/Excel.ControlFormat.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `NOT_APPLICABLE` |
+| `ControlFormat.Min` | `api/Excel.ControlFormat.Min.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.MultiSelect` | `api/Excel.ControlFormat.MultiSelect.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.Parent` | `api/Excel.ControlFormat.Parent.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.PrintObject` | `api/Excel.ControlFormat.PrintObject.md` | `PARTIAL` | `MEDIUM` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.RemoveAllItems` | `api/Excel.ControlFormat.RemoveAllItems.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.RemoveItem` | `api/Excel.ControlFormat.RemoveItem.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.SmallChange` | `api/Excel.ControlFormat.SmallChange.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `ControlFormat.Value` | `api/Excel.ControlFormat.Value.md` | `PARTIAL` | `HIGH` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Copy` | `api/Excel.Copy.md` | `REFERENCE_ALIAS` | `LOW` | `DEFERRED_LOW` | `RECEIVER_OR_ALIAS_TRIAGE` |
 | `Corners-graph-object` | `api/Excel.Corners-graph-object.md` | `MISSING` | `LOW` | `DEFERRED_LOW` | `NOT_APPLICABLE` |
 | `Corners-graph-property` | `api/Excel.Corners-graph-property.md` | `REFERENCE_ALIAS` | `LOW` | `DEFERRED_LOW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3834,7 +3834,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Shape.ConnectionSiteCount` | `api/Excel.Shape.ConnectionSiteCount.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Connector` | `api/Excel.Shape.Connector.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.ConnectorFormat` | `api/Excel.Shape.ConnectorFormat.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Shape.ControlFormat` | `api/Excel.Shape.ControlFormat.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Shape.ControlFormat` | `api/Excel.Shape.ControlFormat.md` | `PARTIAL` | `MEDIUM` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Copy` | `api/Excel.Shape.Copy.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `MEDIUM` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.CopyPicture` | `api/Excel.Shape.CopyPicture.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `MEDIUM` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Creator` | `api/Excel.Shape.Creator.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `MEDIUM` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3844,7 +3844,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Shape.Duplicate` | `api/Excel.Shape.Duplicate.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `MEDIUM` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Fill` | `api/Excel.Shape.Fill.md` | `PARTIAL` | `MEDIUM` | `ACCEPTED_REQUIRED_NATIVE` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Flip` | `api/Excel.Shape.Flip.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Shape.FormControlType` | `api/Excel.Shape.FormControlType.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Shape.FormControlType` | `api/Excel.Shape.FormControlType.md` | `PARTIAL` | `MEDIUM` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Glow` | `api/Excel.Shape.Glow.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.GraphicStyle` | `api/Excel.Shape.GraphicStyle.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.GroupItems` | `api/Excel.Shape.GroupItems.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3895,7 +3895,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `Shape.Ungroup` | `api/Excel.Shape.Ungroup.md` | `OUT_OF_SCOPE_GRIDCRAFT` | `MEDIUM` | `OUT_OF_SCOPE_GRIDCRAFT` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.VerticalFlip` | `api/Excel.Shape.VerticalFlip.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Vertices` | `api/Excel.Shape.Vertices.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Shape.Visible` | `api/Excel.Shape.Visible.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Shape.Visible` | `api/Excel.Shape.Visible.md` | `PARTIAL` | `MEDIUM` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.Width` | `api/Excel.Shape.Width.md` | `PARTIAL` | `MEDIUM` | `ACCEPTED_REQUIRED_NATIVE` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.ZOrder` | `api/Excel.Shape.ZOrder.md` | `PARTIAL` | `MEDIUM` | `ACCEPTED_REQUIRED_NATIVE` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shape.ZOrderPosition` | `api/Excel.Shape.ZOrderPosition.md` | `PARTIAL` | `MEDIUM` | `ACCEPTED_REQUIRED_NATIVE` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
@@ -3992,7 +3992,7 @@ Rows in `MISSING`, `PARTIAL`, `PLATFORM_SERVICE_NEEDED`, `LEGACY_REVIEW` or `REF
 | `shapes.addchart2` | `api/Excel.shapes.addchart2.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shapes.AddConnector` | `api/Excel.Shapes.AddConnector.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shapes.AddCurve` | `api/Excel.Shapes.AddCurve.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
-| `Shapes.AddFormControl` | `api/Excel.Shapes.AddFormControl.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
+| `Shapes.AddFormControl` | `api/Excel.Shapes.AddFormControl.md` | `PARTIAL` | `MEDIUM` | `IMPLEMENTED_NATIVE_PARTIAL` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shapes.AddLabel` | `api/Excel.Shapes.AddLabel.md` | `MISSING` | `MEDIUM` | `UNSELECTED_MEDIUM` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shapes.AddLine` | `api/Excel.Shapes.AddLine.md` | `PARTIAL` | `MEDIUM` | `ACCEPTED_REQUIRED_NATIVE` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |
 | `Shapes.AddOLEObject` | `api/Excel.Shapes.AddOLEObject.md` | `MISSING` | `LOW` | `DEFERRED_LOW` | `SOURCE_EXTRACTED_WITH_PROVENANCE` |

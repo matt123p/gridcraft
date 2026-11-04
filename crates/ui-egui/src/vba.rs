@@ -135,6 +135,7 @@ pub fn commands(app: &SheetApp) -> Vec<Json> {
         ("vba.apply", "Save VBA Source to Workbook", "{}", None),
         ("vba.entries", "VBA Procedures", "{}", None),
         ("vba.invoke", "Run Assigned Macro", "{entry: string}", None),
+        ("vba.control", "Activate Form Control", "{sheet?, id, value?, item?, delta?}", None),
         ("vba.workbookOpen", "Run Workbook_Open Event", "{}", None),
         ("vba.assign", "Assign Macro", "{entry: string, id?: shape, at?: cell, caption?: string}", None),
         ("vba.pin", "Assign Toolbar Macro", "{entry: string, remove?: bool}", None),
@@ -146,6 +147,15 @@ pub fn commands(app: &SheetApp) -> Vec<Json> {
                     && (!matches!(a, Action::Run | Action::StepInto | Action::StepOver | Action::StepOut) || e.bridge.permitted(&app.session))
             })
         });
+        let enabled = if id == "vba.control" {
+            app.session.active().is_some()
+                && app
+                    .vba
+                    .as_ref()
+                    .is_none_or(|e| !e.design_mode && !matches!(e.ide.mode(), Mode::Running | Mode::Waiting | Mode::Break | Mode::Stale))
+        } else {
+            enabled
+        };
         commands.push(json!({"id":id,"label":label,"params":params,"enabled":enabled,"ui":true}));
     }
     commands
@@ -352,6 +362,9 @@ pub fn after_engine_command(app: &mut SheetApp, id: &str, params: &Json, result:
 
 /// UI-only commands are also reachable through SheetApp::run/control, with no dialogs.
 pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
+    if id == "vba.control" {
+        return activate_control(app, p);
+    }
     if id == "vba.showDeveloper" {
         app.ui.developer = p.get("on").and_then(Json::as_bool).ok_or("on must be true or false")?;
         if !app.ui.developer && app.ui.ribbon_tab == "Developer" {
@@ -496,6 +509,12 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
                 return Err("Finish or reset the current macro first.".into());
             }
             editor.ide.entry = entry.into();
+            if let (Some(sheet), Some(control)) = (
+                p.get("controlSheet").and_then(Json::as_u64).and_then(|n| usize::try_from(n).ok()),
+                p.get("controlId").and_then(Json::as_u64).and_then(|n| u32::try_from(n).ok()),
+            ) {
+                editor.bridge.bind_control_invocation(&app.session, sheet, control).map_err(error)?;
+            }
             editor.bridge.set_prompt_services(prompt_services(&app.services));
             editor.bridge.set_print_services(print_services(&app.services, app.chrome.file_tab));
             editor.bridge.set_interaction_services(gridcraft_vba::InteractionServices {
@@ -1012,10 +1031,92 @@ fn publish(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
     Ok(json!({"saved":true,"shape":shape}))
 }
 
+/// Validate the captured owner and assignment before any linked-cell mutation. No click
+/// is queued while a VM is paused/waiting, and the existing bridge alone starts execution.
+fn activate_control(app: &mut SheetApp, p: &Json) -> Result<Json> {
+    let doc = app.session.doc().map_err(error)?;
+    let owner = doc.uid;
+    let si = match p.get("sheet") {
+        None => doc.wb.active_sheet(),
+        Some(Json::String(s)) => doc.wb.sheet_index(s).ok_or("control sheet missing")?,
+        Some(n) => n.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or("control sheet index")?,
+    };
+    let id = p.get("id").and_then(Json::as_u64).and_then(|n| u32::try_from(n).ok()).ok_or("control id")?;
+    let sh = doc.wb.sheet(si).ok_or("control sheet missing")?;
+    let shape = sh.shapes.iter().find(|s| s.id == id && !s.format.control_inert).ok_or("control missing or inert")?;
+    let state = gridcraft_engine::model::form_controls::effective_control(&doc.wb, si, shape)?;
+    if !state.enabled || !state.visible || sh.is_protected() {
+        return Err("Control is disabled, hidden or protected.".into());
+    }
+    let identity = shape.identity.clone();
+    let assignment = shape.on_action.clone().filter(|s| !s.trim().is_empty());
+    if app.vba.as_ref().is_some_and(|e| e.design_mode || matches!(e.ide.mode(), Mode::Running | Mode::Waiting | Mode::Break | Mode::Stale)) {
+        return Err("Finish or reset the current macro and leave Design Mode first.".into());
+    }
+    let entry = if let Some(assignment) = assignment {
+        if app.vba.is_none() {
+            if doc.wb.vba_project.is_none() && Project::read(&doc.wb).map_err(error)?.is_none() {
+                return Err("This workbook has no VBA source for its assigned macro.".into());
+            }
+            run(app, "vba.open", &json!({}))?;
+            if let Some(e) = app.vba.as_mut() {
+                e.visible = false;
+            }
+        }
+        let editor = app.vba.as_ref().ok_or("VBA project missing")?;
+        if editor.bridge.document() != owner || !editor.bridge.current(&app.session) || !editor.bridge.permitted(&app.session) {
+            return Err("VBA consent is required for this workbook.".into());
+        }
+        let target = assignment.strip_prefix("[0]!").unwrap_or(&assignment);
+        let target = if let Some((book, proc)) = target.split_once('!') {
+            let book = book.trim_matches('\'').replace("''", "'");
+            let d = app.session.doc().map_err(error)?;
+            let filename = d.path.as_ref().and_then(|p| std::path::Path::new(p).file_name()).and_then(|s| s.to_str());
+            if !filename.is_some_and(|n| n.eq_ignore_ascii_case(&book)) && !d.title.eq_ignore_ascii_case(&book) {
+                return Err("Assigned macro belongs to another workbook.".into());
+            }
+            proc
+        } else {
+            target
+        };
+        let project = Project::from_ide(&editor.ide, None).map_err(error)?;
+        let entry = if let Some((module, proc)) = target.split_once('.') {
+            let selected = project
+                .modules
+                .iter()
+                .find(|(n, _)| n.trim_end_matches(".bas").eq_ignore_ascii_case(module))
+                .ok_or("Assigned macro module is missing.")?;
+            let local = Project { modules: vec![selected.clone()], toolbar: vec![] };
+            if !local.entries().map_err(error)?.iter().any(|e| !e.function && e.name.eq_ignore_ascii_case(proc)) {
+                return Err("Assigned procedure is missing from its module.".into());
+            }
+            proc
+        } else {
+            target
+        };
+        if !project.entries().map_err(error)?.iter().any(|e| !e.function && e.name.eq_ignore_ascii_case(entry)) {
+            return Err("Select a public Sub with no parameters.".into());
+        }
+        Some(entry.to_owned())
+    } else {
+        None
+    };
+    let d = app.session.doc().map_err(error)?;
+    if d.uid != owner || !d.wb.sheet(si).is_some_and(|s| s.shapes.iter().any(|s| s.id == id && identity.same(&s.identity))) {
+        return Err("Control owner changed.".into());
+    }
+    let result = app.run("control.activate", p.clone())?;
+    if let Some(entry) = entry {
+        run(app, "vba.invoke", &json!({"entry":entry,"controlSheet":si,"controlId":id}))?;
+    }
+    Ok(result)
+}
+
 pub fn assigned(app: &SheetApp, shape: u32) -> Option<String> {
     let doc = app.session.doc().ok()?;
     let sheet = doc.wb.active()?;
-    let entry = sheet.shapes.iter().find(|s| s.id == shape)?.on_action.as_deref()?;
+    let shape = sheet.shapes.iter().find(|s| s.id == shape && !s.format.control_inert)?;
+    let entry = shape.on_action.as_deref()?;
     let entry = entry.strip_prefix("[0]!").unwrap_or(entry);
     (entry.len() <= 256).then(|| entry.to_string())
 }

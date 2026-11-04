@@ -1,19 +1,17 @@
 # Unsupported VBA functions and features
 
-M7A status (2026-11-04): native worksheet Button metadata decoding has started.
-Selected native `.frm`/`.frx` and embedded UserForm import/attachment are now
-implemented for immediate Label/TextBox/CommandButton controls. Interactive
-worksheet controls, broader native variants, edited native persistence and
-`.tvform` removal are still open.
-The metadata reader does not authorize or execute macros.
-[Native forms ledger](../../../tiny-vba/docs/m7a-inventory.md).
+M7A.3 (2026-11-04): the nine standard worksheet Form Controls now have an
+[implemented bounded profile](worksheet-controls.md). Worksheet ActiveX, label
+text binding, editable combo styles, external/multicolumn bindings, broader native
+styling and unlisted control members remain outside it. Protected controls refuse
+edits/input. Selected native UserForm import remains separate; broader UserForm
+semantics, edited resources and .tvform removal are still M7A.4–M7A.7.
 
 Updated 2026-11-04: edited-source binary VBA project writeback and cryptographic
 signature verification/re-signing remain unsupported. Save Source exports raw
 source separately; document save retains the original binary project. Replacing
 a captured binary project while reusing its original signature/data graph refuses.
-Package-wide signatures are invalidated by package rewrite. Native worksheet
-Form Controls remain interactive-support work; native UserForm import now has
+Package-wide signatures are invalidated by package rewrite. Native worksheet ActiveX remains unsupported; native UserForm import has
 a selected three-control profile. See the
 [writeback/signature contract](../../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md).
 
@@ -156,3 +154,7 @@ remaining native form/control gaps; no interactive control or edited-save claim.
 M7A.1/M7A.2 revision — 2026-11-04: selected native UserForm import/attachment
 through shared designer/runtime/debugger; source/resource import remains inert.
 Native edited form saving remains unsupported.
+
+M7A.3 revision — 2026-11-04: worksheet Form Controls no longer require a future
+interactive-support stage. Profile limits and independent authored evidence remain
+explicit; no ActiveX, UserForm encoder or fresh Office acceptance is implied.

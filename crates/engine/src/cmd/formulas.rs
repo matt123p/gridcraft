@@ -451,6 +451,15 @@ fn rename_name_in_formulas(wb: &mut gridcraft_model::Workbook, old: &str, old_sc
         }
         let Some(sh) = wb.sheet_mut(i) else { continue };
         let formulas: Vec<(CellRef, std::sync::Arc<Formula>)> = sh.cells.iter().filter_map(|(c, x)| x.formula.clone().map(|f| (c, f))).collect();
+        for shape in &mut sh.shapes {
+            if let Some(control) = shape.format.form_control.as_mut() {
+                for text in [&mut control.linked_cell, &mut control.list_fill_range, &mut control.group_link] {
+                    if let Some(expr) = gridcraft_formula::parse_name(text).ok().and_then(rename) {
+                        *text = gridcraft_formula::print(&expr);
+                    }
+                }
+            }
+        }
         for (c, f) in formulas {
             let Some(e) = f.expr().and_then(rename) else { continue };
             let mut nf = Formula::from_expr(e);

@@ -237,6 +237,9 @@ fn read_shape(obj: &El, anchor: Anchor) -> Option<Shape> {
         .unwrap_or_default();
     let mut format = read_text_format(obj.child("txBody"));
     format.no_line = ln.is_some_and(|l| l.child("noFill").is_some());
+    format.office_id = obj.path(&["nvSpPr", "cNvPr"]).and_then(|p| p.attr_u32("id")).filter(|n| *n > 0);
+    format.office_name = obj.path(&["nvSpPr", "cNvPr"]).and_then(|p| p.attr("name")).map(str::to_owned);
+    format.source_macro = obj.attr("macro").filter(|s| !s.trim().is_empty()).map(str::to_owned);
     Some(Shape {
         identity: Default::default(),
         id: 0,
@@ -342,8 +345,30 @@ pub fn write_drawing(sheet: &Sheet, theme: &Theme, objs: &[Obj<'_>]) -> String {
     let mut s = String::from(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<xdr:wsDr xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\">",
     );
-    for (i, o) in objs.iter().enumerate() {
-        let id = i + 2;
+    let mut used = objs
+        .iter()
+        .filter_map(|o| match o {
+            Obj::Shape(s) => s.format.office_id.filter(|n| *n > 0).map(|n| n as usize),
+            _ => None,
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut next = 2usize;
+    for o in objs {
+        let existing = match o {
+            Obj::Shape(s) => s.format.office_id.filter(|n| *n > 0).map(|n| n as usize),
+            _ => None,
+        };
+        let id = if let Some(id) = existing {
+            id
+        } else {
+            while used.contains(&next) {
+                next = next.saturating_add(1);
+            }
+            used.insert(next);
+            let id = next;
+            next = next.saturating_add(1);
+            id
+        };
         let close_tag;
         match o {
             Obj::Image(img, rid) => {
@@ -404,9 +429,9 @@ pub fn write_drawing(sheet: &Sheet, theme: &Theme, objs: &[Obj<'_>]) -> String {
                 };
                 let _ = write!(
                     s,
-                    "<xdr:sp macro=\"{}\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"{id}\" name=\"Shape {}\"/><xdr:cNvSpPr{}/></xdr:nvSpPr><xdr:spPr>{}<a:prstGeom prst=\"{prst}\"><a:avLst/></a:prstGeom>",
+                    "<xdr:sp macro=\"{}\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"{id}\" name=\"{}\"/><xdr:cNvSpPr{}/></xdr:nvSpPr><xdr:spPr>{}<a:prstGeom prst=\"{prst}\"><a:avLst/></a:prstGeom>",
                     esc_attr(sh.on_action.as_deref().unwrap_or("")),
-                    id - 1,
+                    esc_attr(sh.format.office_name.as_deref().unwrap_or(&format!("Shape {}", id - 1))),
                     if tx { " txBox=\"1\"" } else { "" },
                     xfrm(&sh.anchor, "a:xfrm")
                 );

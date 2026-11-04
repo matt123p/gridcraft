@@ -183,6 +183,9 @@ fn range_for(sh: &Sheet, ignore_print_areas: bool) -> Option<RangeRef> {
         grow(&i.anchor);
     }
     for s in &sh.shapes {
+        if s.format.form_control.as_ref().is_some_and(|c| !c.visible || !c.print_object) {
+            continue;
+        }
         grow(&s.anchor);
     }
     // Printing starts at A1 like Excel when the data starts nearby? Excel prints from the first

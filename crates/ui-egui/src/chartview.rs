@@ -1,5 +1,7 @@
 //! Floating objects on the sheet: charts (rendered by `gridcraft-chart` into primitives that
 //! we paint with egui), pictures and shapes.
+mod controls;
+pub(crate) use controls::show as control_widgets;
 
 use egui::epaint::{PathShape, PathStroke};
 use egui::{Align2, Color32, FontId, Painter, Pos2, Rect, Stroke, StrokeKind, pos2, vec2};
@@ -285,6 +287,9 @@ pub(crate) fn paint_objects(app: &SheetApp, p: &Painter, geo: &Geo, wb: &Workboo
     // The grid paints the active workbook: its pictures are cached under it.
     let doc = app.session.active().map_or(0, |d| d.uid);
     for sp in &sh.shapes {
+        if sp.format.form_control.is_some() {
+            continue;
+        }
         let r = anchor_rect(geo, sh, &sp.anchor);
         if !r.intersects(p.clip_rect()) {
             continue;
@@ -527,6 +532,9 @@ pub fn hit(app: &SheetApp, geo: &Geo, sh: &Sheet, p: Pos2) -> Option<(&'static s
         }
     }
     for s in sh.shapes.iter().rev() {
+        if s.format.form_control.as_ref().is_some_and(|c| !c.visible) {
+            continue;
+        }
         let r = anchor_rect(geo, sh, &s.anchor);
         if r.expand(3.0).contains(p) && geo.cells.contains(p) {
             return Some(("shape", s.id, r));

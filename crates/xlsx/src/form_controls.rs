@@ -1,8 +1,13 @@
-//! Inert native worksheet Button metadata. No rendering, geometry conversion or VBA launch.
+//! Native worksheet Form Control graph import/persistence and inert source metadata.
 use crate::{IoError, package::normalize};
 use gridcraft_model::{PreservedPart, PreservedRel, Sheet};
 use std::collections::{BTreeMap, BTreeSet};
+mod native;
+mod patch;
+mod save;
 mod xml;
+pub(crate) use native::{attach as attach_controls, decode as decode_native_controls};
+pub(crate) use save::prepare as prepare_controls;
 use xml::{Budget, Node};
 const SHEET: &str = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -47,7 +52,8 @@ pub struct WorksheetControlMetadata {
 /// Decode the sheet's native control/VML/property graph without changing it or executing code.
 /// Each call is bounded to 4 MiB XML input and stored strings, 8192 nodes, depth 32, 1024
 /// controls/shapes and 16 KiB per field. Invalid/ambiguous graphs return no partial snapshot.
-/// Use a fresh snapshot after document changes; native controls are not yet rendered/activated.
+/// Use a fresh snapshot after document changes. This metadata API never launches code;
+/// the importer separately attaches reconciled native Shapes.
 pub fn read_worksheet_controls(sheet: &Sheet) -> Result<WorksheetControlMetadata, IoError> {
     let Some(kept) = sheet.preserved.as_deref() else {
         return Ok(WorksheetControlMetadata::default());

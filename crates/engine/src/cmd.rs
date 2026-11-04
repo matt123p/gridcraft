@@ -8,6 +8,7 @@ pub mod edit;
 pub mod extra;
 pub mod file;
 pub mod forecast;
+pub mod form_controls;
 pub mod format;
 pub mod formulas;
 pub mod insert;
@@ -154,6 +155,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(forecast::specs());
         v.extend(analysis::specs());
         v.extend(print::specs());
+        v.extend(form_controls::specs());
         v
     })
 }
@@ -412,6 +414,7 @@ pub(crate) fn commit<R>(d: &mut DocState, f: impl FnOnce(&mut Ctx) -> Result<R>)
     if let Some(t0) = t0 {
         eprintln!("commit: + rows {:?}", since(t0));
     }
+    form_controls::resize_attachments(&d.wb, &mut wb);
     d.wb = std::sync::Arc::new(wb);
     d.selection = sel;
     Ok(r)

@@ -449,7 +449,7 @@
       "enumeration_evidence": "Existing bounded object-array family handlers and owning native acceptance tests; descriptor check independently validates Count/Item child typing."
     }
   ],
-  "tiny_vba_revision": "8f4bebc3650cd51054fa6786f83a1ac73e07aeaf",
+  "tiny_vba_revision": "87a862a9f11a372e112d7c166b9a82d74c8e009d",
   "evidence_boundary": {
     "fresh_excel_observation": "NOT_RUN; sign-off uses pinned public documentation and native/WASM synthetic regression evidence, not a fresh Excel oracle.",
     "catalogue_completeness": "All source pages are retained and classified for namespace, kind, family, priority and profile disposition; outside-profile capability review is explicitly not claimed as completed runtime work."

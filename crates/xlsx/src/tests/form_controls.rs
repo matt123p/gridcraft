@@ -57,7 +57,8 @@ fn native_button_identity_caption_and_assignment_decode_without_effects() {
     assert_eq!(button.vml_anchor.as_deref(), Some("1, 0, 2, 0, 3, 0, 4, 0"));
     assert_eq!(button.vml_style.as_deref(), Some("position:absolute;visibility:visible"));
     assert_eq!(s.preserved, original, "decoding is inert and read-only");
-    assert!(s.shapes.is_empty(), "metadata is not a duplicate rendered shape");
+    assert_eq!(s.shapes.len(), 1, "native metadata materializes one Shape");
+    assert!(s.shapes[0].format.form_control.is_some());
 }
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
@@ -173,4 +174,56 @@ fn native_xml_budgets_bound_depth_count_fields_and_entity_fragmentation() {
         mutate(&mut s, |p| p.vml.as_mut().unwrap().data = Arc::from(vml.into_bytes()));
         assert!(matches!(read_worksheet_controls(&s), Err(IoError::TooLarge(_))));
     }
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_drawing_join_refuses_conflicting_geometry_caption_name_and_assignment() {
+    for case in 0..5 {
+        let mut s = sheet();
+        let shape = s.shapes.first_mut().unwrap();
+        match case {
+            0 => shape.anchor.width += 20.,
+            1 => shape.text = "Conflicting caption".into(),
+            2 => shape.format.office_name = Some("Other name".into()),
+            3 => shape.on_action = Some("Different".into()),
+            _ => {
+                let duplicate = shape.clone();
+                s.shapes.push(duplicate);
+            }
+        }
+        let before = s.clone();
+        assert!(crate::form_controls::decode_native_controls(&s).is_err(), "{case}");
+        assert_eq!(s, before);
+    }
+}
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_edits_preserve_unknown_xml_and_reject_invalid_output_atomically() {
+    let input = package(&format!("<controls>{}</controls>", control("")), VML);
+    let (mut wb, _) = read_xlsx(&input).unwrap();
+    let s = wb.sheet_mut(0).unwrap();
+    mutate(s, |p| {
+        p.parts[0].data = Arc::from(
+            PROPS
+                .replace("/>", " xmlns:future=\"urn:future\" future:field=\"retain\"><future:payload>Original</future:payload></formControlPr>")
+                .into_bytes(),
+        );
+    });
+    s.shapes[0].text = "Edited & escaped".into();
+    s.shapes[0].on_action = None;
+    let (back, report) = read_xlsx(&write_xlsx(&wb).unwrap()).unwrap();
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let sh = back.sheet(0).unwrap();
+    assert_eq!(sh.shapes.len(), 1);
+    assert_eq!(sh.shapes[0].text, "Edited & escaped");
+    assert!(sh.shapes[0].on_action.is_none());
+    let part = &sh.preserved.as_ref().unwrap().parts[0];
+    let text = std::str::from_utf8(&part.data).unwrap();
+    assert!(text.contains("future:field=\"retain\""));
+    assert!(text.contains("<future:payload>Original</future:payload>"));
+    let before = wb.clone();
+    wb.sheet_mut(0).unwrap().shapes[0].format.office_id = Some(0);
+    assert!(write_xlsx(&wb).is_err());
+    assert_eq!(before.sheet(0).unwrap().shapes[0].format.office_id, Some(1034));
 }

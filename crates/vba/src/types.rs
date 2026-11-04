@@ -81,6 +81,7 @@ pub(crate) fn references() -> Result<ReferenceSet> {
                 "Shapes",
                 "Shape",
                 "ShapeRange",
+                "ControlFormat",
                 "TextFrame",
                 "Characters",
                 "FillFormat",

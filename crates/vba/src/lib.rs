@@ -153,6 +153,7 @@ pub struct Bridge {
     pending_events: VecDeque<PendingEvent>,
     event_work: usize,
     pub(crate) event_owner_sheet: Option<usize>,
+    pub(crate) control_caller: Option<String>,
     document_code_names: Arc<RwLock<std::collections::BTreeSet<String>>>,
     closed: bool,
     operations: host_ops::Operations,
@@ -163,7 +164,7 @@ pub struct Bridge {
 }
 impl Bridge {
     pub fn new(session: &Session) -> Result<Self> {
-        let doc = session.doc().map_err(diagnostic)?;
+        let doc = session.doc().map_err(|e| diagnostic(e.to_string()))?;
         #[allow(deprecated)] // fetch_update is available at the workspace MSRV.
         let identity =
             NEXT_HOST.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1)).map_err(|_| diagnostic("host identity exhausted"))?;
@@ -182,6 +183,7 @@ impl Bridge {
             pending_events: VecDeque::new(),
             event_work: 0,
             event_owner_sheet: None,
+            control_caller: None,
             document_code_names: Arc::new(RwLock::new(std::collections::BTreeSet::new())),
             closed: false,
             operations: Default::default(),
@@ -420,6 +422,7 @@ impl Bridge {
         self.pending_events.clear();
         self.event_work = 0;
         self.event_owner_sheet = None;
+        self.control_caller = None;
     }
     fn reset_event_budget_if_idle(&mut self) {
         if self.group.is_empty() && self.pending_events.is_empty() {
@@ -536,7 +539,7 @@ impl Bridge {
             return Err(diagnostic("Workbook_Open can only target the bound workbook"));
         }
         self.check(session).map_err(|error| diagnostic(error.description))?;
-        let doc = session.doc().map_err(diagnostic)?;
+        let doc = session.doc().map_err(|e| diagnostic(e.to_string()))?;
         let code_name = doc.wb.code_name.as_deref().ok_or_else(|| diagnostic("workbook has no VBA code name"))?;
         let registered = self
             .document_code_names
@@ -558,7 +561,7 @@ impl Bridge {
     /// Decode VBA source without executing it or modifying the package. Document code names
     /// must match the workbook/sheet identities preserved by XLSX.
     pub fn import_project(&self, session: &Session) -> Result<Ide> {
-        let doc = session.doc().map_err(diagnostic)?;
+        let doc = session.doc().map_err(|e| diagnostic(e.to_string()))?;
         if doc.uid != self.doc {
             return Err(diagnostic("workbook changed"));
         }
@@ -594,6 +597,17 @@ impl Bridge {
     }
     pub fn host<'a>(&'a mut self, session: &'a mut Session) -> WorkbookHost<'a> {
         WorkbookHost { bridge: self, session }
+    }
+    /// Bind one native control invocation; survives debugger continuation and is cleared
+    /// on completion/Reset. Import and ordinary property writes never call this method.
+    pub fn bind_control_invocation(&mut self, session: &Session, sheet: usize, id: u32) -> Result<()> {
+        self.check(session).map_err(|e| diagnostic(e.description))?;
+        let sh = session.doc().map_err(|e| diagnostic(e.to_string()))?.wb.sheet(sheet).ok_or_else(|| diagnostic("control owner missing"))?;
+        let shape = sh.shapes.iter().find(|s| s.id == id && !s.format.control_inert).ok_or_else(|| diagnostic("control missing"))?;
+        let c = shape.format.form_control.as_ref().ok_or_else(|| diagnostic("not a worksheet Form Control"))?;
+        self.control_caller = Some(c.name.clone());
+        self.event_owner_sheet = Some(sheet);
+        Ok(())
     }
     pub fn dispatch(&mut self, session: &mut Session, ide: &mut Ide, action: Action) -> Result<()> {
         self.refresh_lifecycle_handlers(ide);
@@ -649,6 +663,7 @@ impl Bridge {
             if self.group.is_empty() {
                 self.ensure_group(session, self.doc)?;
             }
+            self.control_caller = None;
             let owner = session
                 .with_target(gridcraft_engine::Target::Doc(self.doc), |session| {
                     self.sync_sheets(session)?;
@@ -682,6 +697,7 @@ impl Bridge {
     }
     /// Retain successful writes on failure/stop and make them one ordinary undo step.
     pub fn finish(&mut self, session: &mut Session) -> Result<()> {
+        self.control_caller = None;
         for (doc, token) in std::mem::take(&mut self.group) {
             if session.document_index(doc).is_some() {
                 session.group_end(token).map_err(diagnostic)?;
@@ -914,6 +930,7 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         ("Font", "Size", "Property Size As Variant"),
         ("Font", "Color", "Property Color As Variant"),
         ("Interior", "Color", "Property Color As Variant"),
+        ("Application", "Caller", "Property Get Caller() As Variant"),
         ("Application", "ThisWorkbook", "Property Get ThisWorkbook() As Workbook"),
         ("Application", "ActiveWorkbook", "Property Get ActiveWorkbook() As Workbook"),
         ("Application", "Range", "Property Get Range(Cell1 As Variant, Optional Cell2 As Variant) As Range"),

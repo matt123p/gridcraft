@@ -35,6 +35,10 @@ enum Content {
 }
 #[derive(Debug)]
 pub(super) struct Node {
+    pub start: usize,
+    pub open_end: usize,
+    pub end_start: usize,
+    pub end: usize,
     pub ns: String,
     pub name: String,
     attrs: BTreeMap<(String, String), String>,
@@ -129,6 +133,7 @@ pub(super) fn parse(bytes: &[u8], budget: &mut Budget) -> Result<Node, IoError> 
     let mut stack: Vec<Node> = Vec::new();
     let mut root = None;
     loop {
+        let start = reader.buffer_position() as usize;
         let event = reader.read_event().map_err(|e| bad(e.to_string()))?;
         match event {
             Event::Start(ref e) | Event::Empty(ref e) => {
@@ -139,7 +144,9 @@ pub(super) fn parse(bytes: &[u8], budget: &mut Budget) -> Result<Node, IoError> 
                 let (ns, local) = reader.resolver().resolve_element(e.name());
                 let ns = budget.string(&namespace(ns)?)?;
                 let name = budget.string(std::str::from_utf8(local.as_ref()).map_err(|_| bad("invalid XML name"))?)?;
-                let mut node = Node { ns, name, attrs: BTreeMap::new(), content: vec![], supported_choice: false };
+                let end = reader.buffer_position() as usize;
+                let mut node =
+                    Node { start, open_end: end, end_start: end, end, ns, name, attrs: BTreeMap::new(), content: vec![], supported_choice: false };
                 for (count, attribute) in e.attributes().enumerate() {
                     if count >= 64 {
                         return Err(limited("native control XML attribute count"));
@@ -179,7 +186,9 @@ pub(super) fn parse(bytes: &[u8], budget: &mut Budget) -> Result<Node, IoError> 
                 }
             }
             Event::End(_) => {
-                let node = stack.pop().ok_or_else(|| bad("unmatched XML end"))?;
+                let mut node = stack.pop().ok_or_else(|| bad("unmatched XML end"))?;
+                node.end_start = start;
+                node.end = reader.buffer_position() as usize;
                 attach(&mut stack, &mut root, node)?;
             }
             Event::Text(t) => {

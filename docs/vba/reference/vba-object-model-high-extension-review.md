@@ -1,14 +1,14 @@
 # Unexposed VBA members and native capabilities
 
-Reviewed 2026-11-03 against the pinned public reference and native source. **885 source pages** in **71 review groups**, outside the declared native adapter contracts. Priorities, source identities and literal catalogue result states remain unchanged. These are capability decisions and projection candidates, not additional accepted runtime contracts.
+Reviewed 2026-11-03 against the pinned public reference and native source. **865 source pages** in **71 review groups**, outside the declared native adapter contracts. Priorities, source identities and literal catalogue result states remain unchanged. These are capability decisions and projection candidates, not additional accepted runtime contracts.
 
 | Review result | Source pages |
 |---|---:|
 | `ELIGIBLE_NATIVE` | 26 |
 | `GENERIC_DISPATCH` | 50 |
 | `HOST_SERVICE_REVIEW` | 42 |
-| `NATIVE_SUBSET` | 444 |
-| `NO_NATIVE_CAPABILITY` | 323 |
+| `NATIVE_SUBSET` | 443 |
+| `NO_NATIVE_CAPABILITY` | 304 |
 
 Native-subset rows have related state or effects but still lack a named part of the Excel contract; they are not all eligible members. Host-service rows require an existing usable host seam. Exclusions are source-inspection judgments; checked anchors prove evidence freshness, not mathematical absence of every possible implementation.
 
@@ -53,7 +53,7 @@ The [checked ledger](vba-object-model-high-extension-review.json) lists every ex
 | `application-formula-bar` | `ELIGIBLE_NATIVE` | 1 | view.formulaBar already reads/writes Session.prefs.formula_bar without requiring a workbook. Project the same preference; preserve headless operation and do not create a second VBA setting. |
 | `application-unit-conversions` | `ELIGIBLE_NATIVE` | 2 | The print/page-setup boundary already uses points at 72 points per inch. Pure scalar unit conversion needs no new product service. Validate finite numeric inputs and VBA coercion/overflow. Reuse the existing point/inch convention. |
 | `application-custom-lists` | `NATIVE_SUBSET` | 5 | Workbook.custom_lists is consumed by native fill. Storage is workbook-scoped, unlike Excel application-wide custom lists. Define scope, built-in list numbering and mutation ownership before selecting a projection. |
-| `application-calculation-context` | `NATIVE_SUBSET` | 8 | The calculator, reference formatter and worksheet UDF provider exist. No automatic equivalence for busy-state enums, save policies, build versions, caller context or volatility registration. Select exact existing read contexts; do not add compatibility-only global flags. |
+| `application-calculation-context` | `NATIVE_SUBSET` | 7 | The calculator, reference formatter and worksheet UDF provider exist. No automatic equivalence for busy-state enums, save policies, build versions, caller context or volatility registration. Select exact existing read contexts; do not add compatibility-only global flags. |
 | `application-native-commands` | `NATIVE_SUBSET` | 4 | Session owns undo/redo and native commands. Excel custom undo/repeat procedure registration and macro-group interaction are not provided by ordinary engine history. Only bounded native-history behavior is a candidate. |
 | `application-native-window-context` | `NATIVE_SUBSET` | 8 | Native charts, documents, windows and close continuations exist. Chart sheets, Application aliases, application-wide visibility/quit and unsaved-document orchestration need exact receiver/host contracts. Existing worksheet chart ownership is not an Excel Charts collection. |
 | `application-ui-services` | `HOST_SERVICE_REVIEW` | 18 | The desktop UI owns rendering, formula completion, window geometry and user preferences; these are not all Session host services. Inspect the specific UI capability and add an owned host-neutral query/continuation only when it already exists. Geometry, recent-file state and UI-only preferences must not be fabricated headlessly. |
@@ -113,7 +113,7 @@ The [checked ledger](vba-object-model-high-extension-review.json) lists every ex
 | `pivot-formula-and-model-extra` | `NATIVE_SUBSET` | 20 | Local pivot calculated fields have formula/source records and native calculation. OLAP calculated members/items, model measures, queries, PivotFormulas export/listing and standard-language conversion are broader graphs and are not inferred from calculated fields. Provider/model contracts stay excluded; inspect local formula subsets first. |
 | `office-recovery-and-export-converters` | `NO_NATIVE_CAPABILITY` | 17 | Native format import/export is a fixed FileKind service; workbook recovery scheduling and plugin converter catalogs are not those services. Do not generate fake converter entries or recovery settings from ordinary file save. |
 | `recent-file-host-graph` | `HOST_SERVICE_REVIEW` | 15 | Recent-document presentation belongs to the desktop host, outside the workbook graph. Verify actual recent-list persistence/ownership, filesystem consent, browser availability and callback cancellation before selecting a host service. No per-bridge synthetic list. |
-| `office-drawing-and-control-graphs` | `NO_NATIVE_CAPABILITY` | 47 | Native ShapeFormat and object collections do not provide the named Office forms-control, WordArt, linked OLE or used-object memory-accounting graphs. Cell checkboxes, plain text shapes and static images retain their existing projections independently. |
+| `office-drawing-and-control-graphs` | `NO_NATIVE_CAPABILITY` | 28 | Native ShapeFormat and object collections do not provide the named Office forms-control, WordArt, linked OLE or used-object memory-accounting graphs. Cell checkboxes, plain text shapes and static images retain their existing projections independently. |
 | `validation-ime-mode` | `NO_NATIVE_CAPABILITY` | 1 | Native validation stores rules/messages but has no input-method mode state or host IME-control service. Do not substitute list validation or text entry for IMEMode. |
 | `application-author-preference` | `ELIGIBLE_NATIVE` | 1 | Session.prefs.user_name actually supplies authors for new workbooks, notes and comment replies. Project the real preference for subsequent operations; do not rewrite existing authors or emulate an Office account identity. |
 | `application-new-sheet-count` | `ELIGIBLE_NATIVE` | 1 | Session.new_workbook uses prefs.sheets_in_new_workbook with native 1..255 bounds. Preserve native limits and affect newly created workbooks only; do not mutate existing sheet collections. |

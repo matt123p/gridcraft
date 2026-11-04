@@ -1,10 +1,10 @@
 # Supported VBA functions and features
 
-M7A start (2026-11-04): XLSX now decodes a bounded, read-only snapshot of native
-worksheet Button metadata (shape identity/name, caption text, raw anchor/style and
-macro assignment) from preserved control/VML/property parts. This is internal format
-decoding; native controls are not yet rendered or activated.
-[Inventory and remaining work](../../../tiny-vba/docs/m7a-inventory.md).
+M7A.3 (2026-11-04): native worksheet Button, CheckBox, OptionButton, DropDown,
+ListBox, ScrollBar, Spinner, Label and GroupBox controls share the workbook Shape
+store. Import, widgets, trusted assignments, live cell/list bindings, selected
+Shapes/ControlFormat APIs and native save/reopen are implemented for the
+[bounded worksheet profile](worksheet-controls.md).
 
 Updated 2026-11-04: M7's authored `.xlsm` workflows preserve original VBA
 project bytes, code names and supported related payload/relationship graphs
@@ -34,7 +34,8 @@ arguments and implementation/test references.
 | Modules | Standard, class and document-module source; workbook/sheet context binding and read-only member completion |
 | Control flow | Conditions, loops, procedure calls and VBA error handlers within the runtime's resource limits |
 | Debugging | Compile diagnostics, breakpoints, pause/resume, step into/over/out, locals and output |
-| Forms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for immediate Label/TextBox/CommandButton controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
+| Worksheet Form Controls | Nine native families, selected ControlFormat APIs, linked data, trusted assignments and native OOXML/VML persistence; [limits](worksheet-controls.md) |
+| UserForms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for immediate Label/TextBox/CommandButton controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
 
 Public no-argument Subs appear in the macro picker. Public Functions become
 worksheet functions after source is applied. Private procedures and `Option
@@ -212,7 +213,7 @@ A listed object is a projection of existing native state, not a complete Excel c
 | `AboveAverage` | `AboveBelow`, `Application`, `AppliesTo`, `Delete`, `Font`, `Interior`, `ModifyAppliesToRange`, `NumStdDev`, `NumberFormat`, `Parent`, `Priority`, `SetFirstPriority`, `SetLastPriority`, `StopIfTrue`, `Type` |
 | `AllowEditRange` | `ChangePassword`, `Delete`, `Range`, `Title`, `Unprotect` |
 | `AllowEditRanges` | `Add`, `Count`, `Item` |
-| `Application` | `ActiveCell`, `ActivePrinter`, `ActiveSheet`, `ActiveWindow`, `ActiveWorkbook`, `Application`, `Calculate`, `CalculateFull`, `CalculateFullRebuild`, `Calculation`, `Cells`, `Columns`, `CutCopyMode`, `Dialogs`, `DisplayStatusBar`, `EnableEvents`, `Evaluate`, `FindFile`, `GetOpenFilename`, `GetSaveAsFilename`, `Goto`, `Intersect`, `Iteration`, `MaxChange`, `MaxIterations`, `Name`, `Names`, `OperatingSystem`, `Parent`, `PreviousSelections`, `Range`, `Rows`, `Run`, `Selection`, `Sheets`, `ThisWorkbook`, `Union`, `Version`, `Watches`, `Windows`, `Workbooks`, `WorksheetFunction`, `Worksheets` |
+| `Application` | `ActiveCell`, `ActivePrinter`, `ActiveSheet`, `ActiveWindow`, `ActiveWorkbook`, `Application`, `Calculate`, `CalculateFull`, `CalculateFullRebuild`, `Calculation`, `Caller`, `Cells`, `Columns`, `CutCopyMode`, `Dialogs`, `DisplayStatusBar`, `EnableEvents`, `Evaluate`, `FindFile`, `GetOpenFilename`, `GetSaveAsFilename`, `Goto`, `Intersect`, `Iteration`, `MaxChange`, `MaxIterations`, `Name`, `Names`, `OperatingSystem`, `Parent`, `PreviousSelections`, `Range`, `Rows`, `Run`, `Selection`, `Sheets`, `ThisWorkbook`, `Union`, `Version`, `Watches`, `Windows`, `Workbooks`, `WorksheetFunction`, `Worksheets` |
 | `Areas` | `Application`, `Count`, `Item`, `Parent` |
 | `Author` | `Application`, `Name` |
 | `AutoFilter` | `Application`, `ApplyFilter`, `FilterMode`, `Filters`, `Parent`, `Range`, `ShowAllData` |
@@ -239,6 +240,7 @@ A listed object is a projection of existing native state, not a complete Excel c
 | `Comments` | `Application`, `Count`, `Item`, `Parent` |
 | `CommentsThreaded` | `Application`, `Count`, `Item`, `Parent` |
 | `ConditionValue` | `Application`, `Modify`, `Parent`, `Type`, `Value` |
+| `ControlFormat` | `AddItem`, `Application`, `DropDownLines`, `Enabled`, `LargeChange`, `LinkedCell`, `List`, `ListCount`, `ListFillRange`, `ListIndex`, `Max`, `Min`, `MultiSelect`, `Parent`, `PrintObject`, `RemoveAllItems`, `RemoveItem`, `SmallChange`, `Value` |
 | `CustomView` | `Application`, `Delete`, `Name`, `Parent`, `PrintSettings`, `RowColSettings`, `Show` |
 | `CustomViews` | `Add`, `Application`, `Count`, `Item`, `Parent` |
 | `DataLabel` | `Application`, `Caption`, `Parent`, `ShowValue`, `Text` |
@@ -299,9 +301,9 @@ A listed object is a projection of existing native state, not a complete Excel c
 | `Scenarios` | `Add`, `Application`, `Count`, `CreateSummary`, `Item`, `Parent` |
 | `Series` | `Application`, `ApplyDataLabels`, `AxisGroup`, `BubbleSizes`, `ChartType`, `DataLabels`, `Delete`, `Format`, `Formula`, `HasDataLabels`, `Name`, `Parent`, `PlotOrder`, `QuartileCalculationInclusiveMedian`, `Smooth`, `Trendlines`, `Values`, `XValues` |
 | `SeriesCollection` | `Add`, `Application`, `Count`, `Item`, `Parent` |
-| `Shape` | `AlternativeText`, `Application`, `AutoShapeType`, `BottomRightCell`, `Chart`, `Delete`, `Fill`, `HasChart`, `Height`, `ID`, `IncrementLeft`, `IncrementTop`, `Left`, `Line`, `Name`, `OnAction`, `Parent`, `Placement`, `TextFrame`, `TextFrame2`, `Top`, `TopLeftCell`, `Type`, `Width`, `ZOrder`, `ZOrderPosition` |
+| `Shape` | `AlternativeText`, `Application`, `AutoShapeType`, `BottomRightCell`, `Chart`, `ControlFormat`, `Delete`, `Fill`, `FormControlType`, `HasChart`, `Height`, `ID`, `IncrementLeft`, `IncrementTop`, `Left`, `Line`, `Name`, `OnAction`, `Parent`, `Placement`, `TextFrame`, `TextFrame2`, `Top`, `TopLeftCell`, `Type`, `Visible`, `Width`, `ZOrder`, `ZOrderPosition` |
 | `ShapeRange` | `Align`, `Application`, `AutoShapeType`, `Count`, `Delete`, `Fill`, `Height`, `Item`, `Left`, `Line`, `Name`, `Parent`, `TextFrame`, `TextFrame2`, `Top`, `Type`, `Width`, `ZOrder`, `ZOrderPosition` |
-| `Shapes` | `AddLine`, `AddPicture`, `AddShape`, `AddTextbox`, `Application`, `Count`, `Item`, `Parent`, `Range` |
+| `Shapes` | `AddFormControl`, `AddLine`, `AddPicture`, `AddShape`, `AddTextbox`, `Application`, `Count`, `Item`, `Parent`, `Range` |
 | `Sheets` | `Add`, `Application`, `Count`, `Item`, `Parent`, `PrintOut`, `PrintPreview` |
 | `Slicer` | `Application`, `Caption`, `Delete`, `Height`, `Left`, `Name`, `NumberOfColumns`, `Shape`, `SlicerCache`, `Top`, `Width` |
 | `SlicerCache` | `Application`, `ClearAllFilters`, `ClearManualFilter`, `Delete`, `FilterCleared`, `Index`, `ListObject`, `Name`, `OLAP`, `Parent`, `SlicerCacheType`, `SlicerItems`, `Slicers`, `SourceName`, `SourceType` |
@@ -343,3 +345,7 @@ remaining native form/control gaps; no interactive control or edited-save claim.
 
 M7A.1/M7A.2 revision — 2026-11-04: native package UserForms attach inertly via
 the shared decoder; explicit consent precedes execution. [Profile and contracts](../../../tiny-vba/docs/m7a-control-contracts.md).
+
+M7A.3 revision — 2026-11-04: native worksheet controls supersede the earlier
+metadata-only slice; reference catalogue regenerated against the existing shared
+87a862a9 pin. Fresh Office comparisons remain NOT_RUN.

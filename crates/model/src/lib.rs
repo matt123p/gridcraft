@@ -8,6 +8,8 @@ mod b64;
 pub mod cell;
 mod cellmap;
 pub mod features;
+pub mod form_controls;
+pub use form_controls::{FormControl, FormControlKind};
 pub mod macros;
 pub mod password;
 pub mod preserved;

@@ -582,3 +582,20 @@ fn checkbox_cells_print_as_boxes_not_true_false() {
     assert!(contains(&pdf, "0.063 0.486 0.255 rg"), "the checked box is not filled");
     assert!(contains(&pdf, "0.431 0.431 0.431 RG"), "the unchecked box is not outlined");
 }
+
+#[test]
+fn native_controls_print_live_state_and_obey_visible_and_print_object() {
+    let mut s = s();
+    let a = s.execute("control.add", json!({"type":0,"caption":"IncludedControl","left":10,"top":30})).unwrap()["shape"].clone();
+    let b = s.execute("control.add", json!({"type":0,"caption":"ExcludedControl","left":10,"top":60})).unwrap()["shape"].clone();
+    let l = s.execute("control.add", json!({"type":2,"left":10,"top":90})).unwrap()["shape"].clone();
+    s.execute("control.set", json!({"id":b,"printObject":false})).unwrap();
+    s.execute("control.set", json!({"id":l,"items":["SelectedControlValue"],"value":1})).unwrap();
+    let (pdf, _) = pdf_of(&mut s, json!({}));
+    assert!(contains(&pdf, "IncludedControl"));
+    assert!(!contains(&pdf, "ExcludedControl"));
+    assert!(contains(&pdf, "SelectedControlValue"));
+    s.execute("control.set", json!({"id":a,"visible":false})).unwrap();
+    let (pdf, _) = pdf_of(&mut s, json!({}));
+    assert!(!contains(&pdf, "IncludedControl"));
+}

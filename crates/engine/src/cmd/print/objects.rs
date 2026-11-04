@@ -79,7 +79,16 @@ pub(super) fn draw_objects(pg: &mut Page, wb: &Workbook, si: usize, sh: &Sheet, 
             continue;
         }
         let (x, y, w, h) = place(r);
-        draw_shape(pg, wb, shp, b, (x, y, w, h));
+        if shp.format.form_control.is_some() {
+            if let Ok(c) = gridcraft_model::form_controls::effective_control(wb, si, shp)
+                && c.visible
+                && c.print_object
+            {
+                draw_control(pg, shp, &c, b, (x, y, w, h));
+            }
+        } else {
+            draw_shape(pg, wb, shp, b, (x, y, w, h));
+        }
     }
     for ch in &sh.charts {
         let r = anchor_rect(sh, &ch.anchor);
@@ -167,4 +176,84 @@ fn draw_shape(pg: &mut Page, wb: &Workbook, shp: &gridcraft_model::Shape, b: &Bl
         pg.text(lx, yy, size, font, color, l);
         yy += size * 1.2;
     }
+}
+
+/// Print native control state, independent of the interactive egui surface.
+fn draw_control(pg: &mut Page, shape: &gridcraft_model::Shape, c: &gridcraft_model::FormControl, b: &Block, (x, y, w, h): (f32, f32, f32, f32)) {
+    use gridcraft_model::FormControlKind as K;
+    let k = b.k;
+    let size = 11. * b.scale;
+    let ink = if c.enabled { [0, 0, 0] } else { [128, 128, 128] };
+    let font = Font::styled(Font::family_for(shape.format.font.as_deref().unwrap_or("")), shape.format.bold, shape.format.italic);
+    let rect = |pg: &mut Page, x: f32, y: f32, w: f32, h: f32, fill: Option<[u8; 3]>| {
+        pg.polygon(&[[x, y], [x + w, y], [x + w, y + h], [x, y + h]], fill, Some((ink, 0.5)))
+    };
+    pg.save();
+    pg.clip_rect(x, y, w, h);
+    match c.kind {
+        K::Label => pg.text(x, y + size, size, font, ink, &shape.text),
+        K::CheckBox | K::OptionButton => {
+            let d = (12. * k).min(h);
+            let cy = y + (h - d) / 2.;
+            if c.kind == K::CheckBox {
+                rect(pg, x, cy, d, d, None);
+            } else {
+                let pts = (0..24)
+                    .map(|i| {
+                        let a = i as f32 * std::f32::consts::TAU / 24.;
+                        [x + d / 2. + d / 2. * a.cos(), cy + d / 2. + d / 2. * a.sin()]
+                    })
+                    .collect::<Vec<_>>();
+                pg.polygon(&pts, None, Some((ink, 0.5)));
+            }
+            if c.value == 1 {
+                pg.stroke_line(x + 2. * k, cy + 2. * k, x + d - 2. * k, cy + d - 2. * k, 1., ink);
+                pg.stroke_line(x + d - 2. * k, cy + 2. * k, x + 2. * k, cy + d - 2. * k, 1., ink);
+            } else if c.value == 2 {
+                rect(pg, x + 2. * k, cy + 2. * k, (d - 4. * k).max(0.), (d - 4. * k).max(0.), Some(ink));
+            }
+            pg.text(x + d + 4. * k, y + h / 2. + size * 0.3, size, font, ink, &shape.text);
+        }
+        K::ListBox | K::DropDown => {
+            rect(pg, x, y, w, h, Some([255, 255, 255]));
+            if c.kind == K::DropDown {
+                if let Some(item) = c.value.checked_sub(1).and_then(|n| usize::try_from(n).ok()).and_then(|n| c.items.get(n)) {
+                    pg.text(x + 2. * k, y + size, size, font, ink, item);
+                }
+                pg.polygon(&[[x + w - 12. * k, y + h / 3.], [x + w - 4. * k, y + h / 3.], [x + w - 8. * k, y + h * 2. / 3.]], Some(ink), None);
+            } else {
+                for (i, item) in c.items.iter().take(1024).enumerate() {
+                    let yy = y + i as f32 * size * 1.2;
+                    if yy >= y + h {
+                        break;
+                    }
+                    let selected = if c.multi_select { c.selected.contains(&((i + 1) as u32)) } else { c.value == (i + 1) as i32 };
+                    if selected {
+                        rect(pg, x, yy, w, size * 1.2, Some([220, 230, 245]));
+                    }
+                    pg.text(x + 2. * k, yy + size, size, font, ink, item);
+                }
+            }
+        }
+        K::ScrollBar | K::Spinner => {
+            rect(pg, x, y, w, h, Some([240, 240, 240]));
+            let fraction = if c.max > c.min { (c.value - c.min) as f32 / (c.max - c.min) as f32 } else { 0. };
+            if c.kind == K::ScrollBar {
+                if c.horizontal {
+                    rect(pg, x + fraction * (w - 8. * k).max(0.), y, 8. * k, h, Some([150, 150, 150]));
+                } else {
+                    rect(pg, x, y + fraction * (h - 8. * k).max(0.), w, 8. * k, Some([150, 150, 150]));
+                }
+            } else {
+                pg.stroke_line(x, y + h / 2., x + w, y + h / 2., 0.5, ink);
+                pg.polygon(&[[x + w / 4., y + h * 0.35], [x + w * 0.75, y + h * 0.35], [x + w / 2., y + h * 0.15]], Some(ink), None);
+                pg.polygon(&[[x + w / 4., y + h * 0.65], [x + w * 0.75, y + h * 0.65], [x + w / 2., y + h * 0.85]], Some(ink), None);
+            }
+        }
+        K::Button | K::GroupBox => {
+            rect(pg, x, y, w, h, if c.kind == K::Button { Some([240, 240, 240]) } else { None });
+            pg.text(x + 4. * k, if c.kind == K::Button { y + h / 2. + size * 0.3 } else { y + size }, size, font, ink, &shape.text);
+        }
+    }
+    pg.restore();
 }
