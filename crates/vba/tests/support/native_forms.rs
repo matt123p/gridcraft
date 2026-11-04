@@ -158,3 +158,31 @@ pub fn boolean_companion() -> Vec<u8> {
     companion.extend(bytes);
     companion
 }
+
+/// Original MorphData TextBox packet; no Office-produced resource is adopted.
+pub fn text_companion(flags: u32, password: u16) -> Vec<u8> {
+    let mut controls = controls();
+    let mut body = u32s(&[0x80400301, 0, flags]);
+    body.extend(password.to_le_bytes());
+    body.extend([0, 0]);
+    body.extend(u32s(&[0x80000007, 2540, 635]));
+    body.extend(string("initial"));
+    let mut text = record(0x200, &body);
+    text.extend(record(0x200, &[0; 4]));
+    controls[1] = text;
+    let mut streams = streams();
+    let root = &mut streams[0].1;
+    let block_end = 4 + u16::from_le_bytes([root[2], root[3]]) as usize;
+    let first = block_end + 2 + 4 + 4 + 4;
+    let entry = first + 4 + u16::from_le_bytes([root[first + 2], root[first + 3]]) as usize;
+    root[entry + 20..entry + 24].copy_from_slice(&(controls[1].len() as u32).to_le_bytes());
+    streams[1].1 = controls.concat();
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    for (name, bytes) in streams {
+        file.create_stream(format!("/{name}")).unwrap().write_all(&bytes).unwrap();
+    }
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}

@@ -56,9 +56,11 @@ fn native_forms_attach_from_xlsm_inertly_run_after_trust_and_retain_original_res
 }
 
 fn boolean_project(project: Vec<u8>) -> Vec<u8> {
+    form_project(project, fixture::boolean_companion())
+}
+fn form_project(project: Vec<u8>, resource: Vec<u8>) -> Vec<u8> {
     use std::io::{Cursor, Read, Write};
     let mut file = cfb::CompoundFile::open(Cursor::new(fixture::add_designer(project))).unwrap();
-    let resource = fixture::boolean_companion();
     let mut resource = cfb::CompoundFile::open(Cursor::new(resource[4..].to_vec())).unwrap();
     for name in ["f", "o"] {
         let mut bytes = Vec::new();
@@ -98,6 +100,43 @@ fn native_boolean_instances_run_through_the_workbook_bridge_and_keep_package_byt
     settle(&mut session, &mut bridge, &mut ide)?;
     assert_eq!(ide.form_instance_field(instance, Some(14), "Value")?, vba_values::Value::Boolean(false));
     assert_eq!(ide.form_instance_field(instance, None, "VbaActiveControl")?, ide.form_instance_field(instance, None, "VbaCheck1")?);
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,t As MSForms.TextBox\nSet t=f.Entry\nt.Text=\"abcde\"\nt.SelStart=1\nt.SelLength=2\nt.SelText=\"X\"\nf.Show 0\nDebug.Print t.MultiLine\nDebug.Print t.PasswordChar\nDebug.Print t.Text\nDebug.Print t.SelStart\nEnd Sub",
+            ),
+        ]),
+        fixture::text_companion(0xacf0481b, 42),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Text.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output(), vec!["initialized", "True", "*", "aXde", "2"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("z")?, (1, 0), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaSelStart")?, vba_values::Value::Long(1));
     let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
     let (back, _) = read_xlsx(&saved)?;
     assert_eq!(back.vba_project.as_deref(), Some(&original));
