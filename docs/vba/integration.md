@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `3688113be57d5413d7e96c29f0798d08c0d3506a`.
+The host/editor now pin shared revision `5cda307d4f9233175c915f6296b25896b12b0ffe`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -550,3 +550,16 @@ Node 22 WASM package cases, strict optional VBA/UI Clippy and the optional VBA
 web build PASS. Whole-array reads,
 additional loading/list/binding semantics and broader M7A.4 remain open; these
 are authored expectations, with fresh Office comparisons NOT_RUN under M8.5.
+
+M7A.4 readback/metadata follow-up (2026-11-04): shared revision `5cda307d4f9233175c915f6296b25896b12b0ffe`
+adds detached zero-based List/Column array snapshots for the current unbound
+ten-column packet, documented named parameters, native Tag/ControlTipText/
+HelpContextID and runtime control tips (ADR 0054/0055). The list/ComboBox package
+cases round-trip snapshots and mutate detached copies; a seventh package case
+checks decoded metadata, ordinary MSForms.Control access, runtime writes,
+authorized text input and exact original project/resource save/reopen. These
+are authored expectations. All ten full-CI gates, seven native and seven actual
+Node 22 WASM package cases, strict optional VBA/UI Clippy and the optional VBA
+web build PASS. Further list/binding and
+container/image/platform work, actual Help/F1 routing, native edited saving and
+.tvform removal remain open. Fresh Office comparison remains NOT_RUN under M8.5.

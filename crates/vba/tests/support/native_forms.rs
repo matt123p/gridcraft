@@ -287,3 +287,36 @@ pub fn combo_companion(style: u8, matching: u8) -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Original native site metadata; no Office-produced resources.
+pub fn metadata_companion() -> Vec<u8> {
+    let controls = controls();
+    let (_, mut f) = streams().remove(0);
+    let header = 4 + usize::from(u16::from_le_bytes([f[2], f[3]])) + 2;
+    f.truncate(header);
+    f.extend(3u32.to_le_bytes());
+    let mut sites = vec![0, 0x83, 1, 0];
+    for (index, (id, name, class)) in [(11, "Heading", 21), (12, "Entry", 23), (13, "Apply", 17)].into_iter().enumerate() {
+        let tag = format!("tag-{id}");
+        let tip = format!("tip-{id}");
+        let mut b = u32s(&[0x9ff, 0x80000000 | name.len() as u32, 0x80000000 | tag.len() as u32, id, 100 + id, 0x13, controls[index].len() as u32]);
+        b.extend((index as u16).to_le_bytes());
+        b.extend((class as u16).to_le_bytes());
+        b.extend((0x80000000 | tip.len() as u32).to_le_bytes());
+        b.extend(string(name));
+        b.extend(string(&tag));
+        b.extend(u32s(&[423, 635 + (id - 11) * 1000]));
+        b.extend(string(&tip));
+        sites.extend(record(0, &b));
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    for (name, bytes) in [("f", f), ("o", controls.concat())] {
+        file.create_stream(format!("/{name}")).unwrap().write_all(&bytes).unwrap();
+    }
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}

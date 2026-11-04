@@ -192,7 +192,7 @@ fn native_listbox_rows_and_authorized_input_preserve_xlsm_project_bytes() -> R {
             (
                 "Launch",
                 "Module",
-                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ListBox\nSet l=f.List1\nDim rows(-1 To 0,3 To 4) As String\nrows(-1,3)=\"alpha\"\nrows(-1,4)=\"A\"\nrows(0,3)=\"beta\"\nrows(0,4)=\"B\"\nl.List=rows\nrows(-1,4)=\"changed source\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Column(1)\nEnd Sub",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ListBox\nSet l=f.List1\nDim rows(-1 To 0,3 To 4) As String\nrows(-1,3)=\"alpha\"\nrows(-1,4)=\"A\"\nrows(0,3)=\"beta\"\nrows(0,4)=\"B\"\nl.List=rows\nrows(-1,4)=\"changed source\"\nDim snapshot As Variant\nsnapshot=l.List\nl.List=snapshot\nsnapshot(0,1)=\"detached snapshot\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Column(1)\nEnd Sub",
             ),
         ]),
         fixture::list_companion(),
@@ -230,7 +230,7 @@ fn native_combobox_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
             (
                 "Launch",
                 "Module",
-                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ComboBox\nSet l=f.Combo1\nDim columns(3 To 4,-1 To 0) As String\ncolumns(3,-1)=\"alpha\"\ncolumns(4,-1)=\"A\"\ncolumns(3,0)=\"beta\"\ncolumns(4,0)=\"B\"\nl.Column=columns\ncolumns(4,-1)=\"changed source\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Column(1)\nEnd Sub",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ComboBox\nSet l=f.Combo1\nDim columns(3 To 4,-1 To 0) As String\ncolumns(3,-1)=\"alpha\"\ncolumns(4,-1)=\"A\"\ncolumns(3,0)=\"beta\"\ncolumns(4,0)=\"B\"\nl.Column=columns\ncolumns(4,-1)=\"changed source\"\nDim snapshot As Variant\nsnapshot=l.Column\nl.Column=snapshot\nsnapshot(1,0)=\"detached snapshot\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Column(1)\nEnd Sub",
             ),
         ]),
         fixture::combo_companion(3, 2),
@@ -258,6 +258,58 @@ fn native_combobox_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
     assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
     assert_eq!(ide.form_instance_field(f, Some(14), "ListIndex")?, vba_values::Value::Long(-1));
     assert_eq!(ide.form_instance_field(f, Some(14), "Value")?, vba_values::Value::String(vba_values::VbaString::from_utf8("free😀")?));
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_metadata_and_control_tips_keep_original_xlsm_resources() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                r#"Attribute VB_Name = "Launch"
+Sub Main()
+Dim f As New NativeForm,c As MSForms.Control
+Set c=f.Entry
+Debug.Print c.Tag,c.ControlTipText,c.HelpContextID
+c.Tag="runtime tag"
+c.ControlTipText="Runtime help"
+c.HelpContextID=42
+f.Tag="form tag"
+f.HelpContextID=43
+Debug.Print f.Tag,f.HelpContextID,c.Tag,c.ControlTipText,c.HelpContextID
+f.Show 0
+End Sub"#,
+            ),
+        ]),
+        fixture::metadata_companion(),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Metadata.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output(), vec!["initialized", "tag-12\ttip-12\t112", "form tag\t43\truntime tag\tRuntime help\t42"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    assert_eq!(ide.form_instance_field(f, None, "HelpContextID")?, vba_values::Value::Long(43));
+    assert_eq!(ide.form_instance_field(f, Some(12), "ControlTipText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("Runtime help")?));
+    let native = ide.native_form(f.source).ok_or("native")?.clone();
+    ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("edited")?, (6, 0), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.native_form(f.source), Some(&native));
     let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
     let (back, _) = read_xlsx(&saved)?;
     assert_eq!(back.vba_project.as_deref(), Some(&original));

@@ -165,12 +165,18 @@ full focus/validation and list/container/scroll/image/binding/platform packets
 remain unsupported; native edited saving and .tvform removal stay later tasks.
 
 M7A.4 runtime follow-up — 2026-11-04: selected native SpinButton/ScrollBar and
-TextBox selection/input behavior are implemented. Further ComboBox/ListBox array reads/loading cases, multiple selection/bindings, Frame/pages/
+TextBox selection/input behavior are implemented. Further ComboBox/ListBox array-shape/loading cases, multiple selection/bindings, Frame/pages/
 tabs, Image/RefEdit, broader properties/bindings/input and worksheet ActiveX remain
 unsupported or incomplete; full M7A.4 acceptance is still open.
 
 M7A.4 list array follow-up — 2026-11-04: selected 2D List/Column loading and
-indexed/current-row Column access are implemented. Whole-array reads, empty/1D
+indexed/current-row Column access are implemented. Further array-shape parity, empty/1D
 loading, column-vector assignment, further coercion/list/binding behavior and the
 broader milestone remain incomplete. Native edited save/.tvform removal remain
 later M7A tasks.
+
+M7A.4 readback/metadata follow-up — 2026-11-04: selected array readback and native
+Tag/ControlTipText/HelpContextID are implemented. Help-file association/F1 routing,
+further list/binding semantics, containers/pages/images/RefEdit and applicable
+platform controls remain incomplete, along with native edited persistence and
+.tvform removal. No full M7A sign-off is claimed.

@@ -374,3 +374,8 @@ M7A.4 list array follow-up — 2026-11-04: native ListBox/ComboBox support bound
 2D List loading, transposed Column loading and indexed/current-row Column access.
 Source arrays remain independent; validation precedes row/selection replacement
 and ordinary Change continuations. See [integration evidence](integration.md).
+
+M7A.4 readback/metadata follow-up — 2026-11-04: native ListBox/ComboBox expose
+detached 2D List/Column snapshots for the current ten-column unbound packet.
+Native Tag/ControlTipText/HelpContextID use ordinary per-instance state; actual
+control-tip hover is read-only and theme-injected. See [integration](integration.md).
