@@ -14,6 +14,8 @@ mod automate;
 mod contextual;
 mod controls;
 mod data;
+#[cfg(feature = "vba")]
+mod developer;
 mod formulas;
 mod galleries;
 mod home;
@@ -156,7 +158,7 @@ pub fn show(app: &mut SheetApp, ui: &mut Ui) {
                             "View" => view(app, ui),
                             "Automate" => automate(app, ui),
                             #[cfg(feature = "vba")]
-                            "Developer" => crate::vba::developer(app, ui),
+                            "Developer" => developer::developer(app, ui),
                             "Table Design" => table_design(app, ui),
                             "Chart Design" => chart_design(app, ui),
                             crate::paper_view::TAB => crate::paper_view::ribbon_tab(app, ui),

@@ -1121,46 +1121,6 @@ pub fn assigned(app: &SheetApp, shape: u32) -> Option<String> {
     (entry.len() <= 256).then(|| entry.to_string())
 }
 
-pub fn developer(app: &mut SheetApp, ui: &mut egui::Ui) {
-    use crate::{icons::Icon, widgets::big_button};
-    ui.vertical(|ui| {
-        ui.horizontal(|ui| {
-            let visual = big_button(ui, Icon::Script, "Visual\nBasic", "Visual Basic (Alt+F11)", false);
-            visual.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Visual Basic"));
-            if visual.clicked() {
-                app.run_or_alert("vba.open", json!({}));
-            }
-            let macros = big_button(ui, Icon::Script, "Macros", "Macros (Alt+F8)", false);
-            macros.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Macros (Alt+F8)"));
-            if macros.clicked() {
-                app.open_dialog("macros", json!({}));
-            }
-        });
-        ui.label(egui::RichText::new("Code").small());
-    });
-    ui.separator();
-    ui.vertical(|ui| {
-        ui.horizontal(|ui| {
-            let insert = big_button(ui, Icon::Shapes, "Insert", "Insert worksheet button", true);
-            insert.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Insert worksheet button"));
-            egui::Popup::menu(&insert).show(|ui| {
-                if ui.button("Button (Assign Macro?)").clicked() {
-                    app.open_dialog("macros", json!({"assign":true}));
-                    ui.close();
-                }
-            });
-            let on = app.vba.as_ref().is_some_and(|e| e.design_mode);
-            ui.vertical(|ui| {
-                if crate::widgets::toggle_button(ui, Icon::Shapes, on, "Design Mode").clicked() {
-                    app.run_or_alert("vba.designMode", json!({"on":!on}));
-                }
-                ui.label("Design Mode");
-            });
-        });
-        ui.label(egui::RichText::new("Controls").small());
-    });
-}
-
 pub fn toolbar(app: &mut SheetApp, ui: &mut egui::Ui) {
     let pins = app.session.doc().ok().and_then(|d| Project::read(&d.wb).ok().flatten()).map(|p| p.toolbar).unwrap_or_default();
     for entry in pins {

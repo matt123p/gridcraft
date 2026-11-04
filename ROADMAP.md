@@ -1,5 +1,8 @@
 # GridCraft roadmap
 
+Developer ribbon polish (2026-11-04): consistent button row and separators, with a
+full-size Design Mode toggle. Readiness estimates unchanged.
+
 M7A.3 (2026-11-04): all nine standard native worksheet Form Controls now support
 reconciled import, widgets, trusted assignments, live bindings, selected VBA APIs
 and native edit/save/reopen. [Profile and limits](docs/vba/worksheet-controls.md).

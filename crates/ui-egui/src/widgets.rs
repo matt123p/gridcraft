@@ -98,11 +98,21 @@ pub fn toggle_button(ui: &mut Ui, icon: Icon, on: bool, tip: &str) -> Response {
 
 /// Large ribbon button: 32px icon over a one- or two-line label.
 pub fn big_button(ui: &mut Ui, icon: Icon, label: &str, tip: &str, dropdown: bool) -> Response {
+    big_button_state(ui, icon, label, tip, dropdown, None)
+}
+
+/// A large ribbon toggle with the same icon and label geometry as a large button.
+#[cfg(feature = "vba")]
+pub fn big_toggle_button(ui: &mut Ui, icon: Icon, label: &str, tip: &str, on: bool) -> Response {
+    big_button_state(ui, icon, label, tip, false, Some(on))
+}
+
+fn big_button_state(ui: &mut Ui, icon: Icon, label: &str, tip: &str, dropdown: bool, checked: Option<bool>) -> Response {
     let t = Tokens::get(ui.ctx());
     let label = tr(ui, label);
     let (lines, w) = big_label(ui, label, dropdown);
     let (rect, resp) = ui.allocate_exact_size(vec2(w, 72.0), Sense::click());
-    if resp.is_pointer_button_down_on() {
+    if checked == Some(true) || resp.is_pointer_button_down_on() {
         ui.painter().rect_filled(rect, 5.0, t.pressed);
     } else if resp.hovered() {
         ui.painter().rect_filled(rect, 5.0, t.hover);
@@ -111,7 +121,10 @@ pub fn big_button(ui: &mut Ui, icon: Icon, label: &str, tip: &str, dropdown: boo
     paint_big_label(ui, rect, &lines, dropdown);
     let name = label.replace('\n', " ");
     let enabled = ui.is_enabled();
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, &name));
+    resp.widget_info(|| match checked {
+        Some(on) => egui::WidgetInfo::selected(egui::Role::Button, enabled, on, &name),
+        None => egui::WidgetInfo::labeled(egui::Role::Button, enabled, &name),
+    });
     resp.on_hover_text(tip_text(ui, tip))
 }
 
