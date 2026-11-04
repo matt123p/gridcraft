@@ -369,3 +369,8 @@ M7A.4 ComboBox follow-up — 2026-11-04: selected native unbound editable/drop-l
 ComboBox text/selection/matching, rows/columns and drop input/events use the shared
 canonical runtime. Locale limits, further list/binding/resource and lifecycle
 work remain in the shared implementation plan.
+
+M7A.4 list array follow-up — 2026-11-04: native ListBox/ComboBox support bounded
+2D List loading, transposed Column loading and indexed/current-row Column access.
+Source arrays remain independent; validation precedes row/selection replacement
+and ordinary Change continuations. See [integration evidence](integration.md).

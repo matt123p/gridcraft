@@ -192,7 +192,7 @@ fn native_listbox_rows_and_authorized_input_preserve_xlsm_project_bytes() -> R {
             (
                 "Launch",
                 "Module",
-                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ListBox\nSet l=f.List1\nl.AddItem \"alpha\"\nl.AddItem \"beta\"\nl.List(0,1)=\"A\"\nl.List(1,1)=\"B\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Value\nEnd Sub",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ListBox\nSet l=f.List1\nDim rows(-1 To 0,3 To 4) As String\nrows(-1,3)=\"alpha\"\nrows(-1,4)=\"A\"\nrows(0,3)=\"beta\"\nrows(0,4)=\"B\"\nl.List=rows\nrows(-1,4)=\"changed source\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Column(1)\nEnd Sub",
             ),
         ]),
         fixture::list_companion(),
@@ -230,7 +230,7 @@ fn native_combobox_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
             (
                 "Launch",
                 "Module",
-                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ComboBox\nSet l=f.Combo1\nl.AddItem \"alpha\"\nl.AddItem \"beta\"\nl.List(0,1)=\"A\"\nl.List(1,1)=\"B\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Value\nEnd Sub",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,l As MSForms.ComboBox\nSet l=f.Combo1\nDim columns(3 To 4,-1 To 0) As String\ncolumns(3,-1)=\"alpha\"\ncolumns(4,-1)=\"A\"\ncolumns(3,0)=\"beta\"\ncolumns(4,0)=\"B\"\nl.Column=columns\ncolumns(4,-1)=\"changed source\"\nl.ListIndex=0\nf.Show 0\nDebug.Print l.ListCount\nDebug.Print l.Column(1)\nEnd Sub",
             ),
         ]),
         fixture::combo_companion(3, 2),
