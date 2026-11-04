@@ -1,8 +1,10 @@
 # Unsupported VBA functions and features
 
 M7A status (2026-11-04): native worksheet Button metadata decoding has started.
-Interactive worksheet Form Controls, native `.frm`/`.frx` or embedded UserForm
-import, edited native form persistence and `.tvform` removal are still open.
+Selected native `.frm`/`.frx` and embedded UserForm import/attachment are now
+implemented for immediate Label/TextBox/CommandButton controls. Interactive
+worksheet controls, broader native variants, edited native persistence and
+`.tvform` removal are still open.
 The metadata reader does not authorize or execute macros.
 [Native forms ledger](../../../tiny-vba/docs/m7a-inventory.md).
 
@@ -11,7 +13,8 @@ signature verification/re-signing remain unsupported. Save Source exports raw
 source separately; document save retains the original binary project. Replacing
 a captured binary project while reusing its original signature/data graph refuses.
 Package-wide signatures are invalidated by package rewrite. Native worksheet
-Form Controls and binary UserForm import remain deferred. See the
+Form Controls remain interactive-support work; native UserForm import now has
+a selected three-control profile. See the
 [writeback/signature contract](../../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md).
 
 GridCraft exposes its existing workbook capabilities through a bounded VBA
@@ -73,7 +76,7 @@ interchangeable in arguments, coercion or error behavior.
 | Sharing and Office services | Coauthoring, legacy shared-workbook change tracking, workflows, publishing, mail, cloud users and external identity are unavailable |
 | Office security services | IRM, resolved user ACLs, Protected View, independent write reservation, digital signing and encryption writing have no matching backend; code consent is a separate policy |
 | Recovery and converter graphs | Excel AutoRecover scheduling and plugin FileConverter objects are not native file Open/Save or GridCraft's host AutoSave preference |
-| Forms and controls | ActiveX, Office binary UserForm resources, arbitrary Office forms-control graphs, WordArt and SmartArt are not provided by native cell checkboxes/plain-source forms |
+| Forms and controls | Worksheet ActiveX, UserForm resources/control types outside the declared three-control import profile, arbitrary Office forms-control graphs, WordArt and SmartArt remain unsupported |
 | Advanced rendering/state | Editable gradient-stop collections, arbitrary chart effects, indexed Office palettes and independent settings not represented in the native model cannot be added as inert VBA flags |
 | Search and proofing options | Persistent Excel FindFormat/ReplaceFormat criteria, AutoCorrect graphs and full Office dictionary/options behavior are broader than native search/basic spelling |
 
@@ -149,3 +152,7 @@ roll them back automatically.
 
 M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
 remaining native form/control gaps; no interactive control or edited-save claim.
+
+M7A.1/M7A.2 revision — 2026-11-04: selected native UserForm import/attachment
+through shared designer/runtime/debugger; source/resource import remains inert.
+Native edited form saving remains unsupported.

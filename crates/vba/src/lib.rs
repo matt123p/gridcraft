@@ -568,6 +568,9 @@ impl Bridge {
         ide.title = format!("{} — VBA source", doc.title);
         for module in project.modules {
             match module.kind {
+                vba_project::ModuleKind::UserForm => {
+                    ide.attach_native_form(module.form.ok_or_else(|| diagnostic("native form resource missing"))?)?;
+                }
                 vba_project::ModuleKind::Standard => {
                     ide.add_module(&format!("{}.bas", module.name), &module.source)?;
                 }

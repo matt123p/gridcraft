@@ -1309,9 +1309,20 @@ fn import_source(app: &SheetApp, ide: &mut Ide) -> Result<bool> {
     let Some(pick) = &app.services.pick_open else { return Err("Use vba.open with source text to import VBA in this host.".into()) };
     let Some(path) = pick() else { return Ok(false) };
     let bytes = read_source(&path)?;
-    let text = String::from_utf8(bytes).map_err(error)?;
     let name = std::path::Path::new(&path).file_name().and_then(|n| n.to_str()).ok_or("invalid module name")?;
-    ide.import_source_file(name, &text).map_err(error)?;
+    let mut files = vec![gridcraft_vba::vba_ide::NativeFormResource { name: name.into(), bytes }];
+    if name.to_ascii_lowercase().ends_with(".frm") {
+        let file = files.first().ok_or("source missing")?;
+        let companion =
+            gridcraft_vba::vba_ide::native_form_companion_name(&file.bytes, 1252, &gridcraft_vba::vba_ide::ProjectImportLimits::default())
+                .map_err(error)?;
+        if let Some(name) = companion {
+            let companion_path = std::path::Path::new(&path).with_file_name(&name);
+            let bytes = read_source(companion_path.to_str().ok_or("invalid companion filename")?)?;
+            files.push(gridcraft_vba::vba_ide::NativeFormResource { name, bytes });
+        }
+    }
+    ide.import_source_bundle(&files, 1252).map_err(error)?;
     Ok(true)
 }
 

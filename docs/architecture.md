@@ -189,3 +189,9 @@ See the linked shared M7 acceptance record for exact tests and limitations.
 
 M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
 remaining native form/control gaps; no interactive control or edited-save claim.
+
+M7A.1/M7A.2 update — 2026-11-04: selected native UserForm export-format and
+embedded import now attach to the shared designer/code/debugger/runtime. Original
+source/resources remain separate; package load stays inert, explicit consent
+precedes run, and unchanged saving retains original project bytes. Native edited
+form persistence, broader native semantics and custom-format removal remain open.

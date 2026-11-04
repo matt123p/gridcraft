@@ -34,7 +34,7 @@ arguments and implementation/test references.
 | Modules | Standard, class and document-module source; workbook/sheet context binding and read-only member completion |
 | Control flow | Conditions, loops, procedure calls and VBA error handlers within the runtime's resource limits |
 | Debugging | Compile diagnostics, breakpoints, pause/resume, step into/over/out, locals and output |
-| Forms | Plain-source `.tvform` designer/runtime with the selected Label, TextBox and CommandButton controls |
+| Forms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for immediate Label/TextBox/CommandButton controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
 
 Public no-argument Subs appear in the macro picker. Public Functions become
 worksheet functions after source is applied. Private procedures and `Option
@@ -340,3 +340,6 @@ A listed object is a projection of existing native state, not a complete Excel c
 
 M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
 remaining native form/control gaps; no interactive control or edited-save claim.
+
+M7A.1/M7A.2 revision — 2026-11-04: native package UserForms attach inertly via
+the shared decoder; explicit consent precedes execution. [Profile and contracts](../../../tiny-vba/docs/m7a-control-contracts.md).
