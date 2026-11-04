@@ -142,3 +142,43 @@ fn native_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
     assert_eq!(back.vba_project.as_deref(), Some(&original));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_numeric_controls_keep_xlsm_identity_and_canonical_input() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,s As MSForms.SpinButton\nSet s=f.Spin1\ns.Value=7\nf.Show 0\nDebug.Print s.Value\nDebug.Print f.Scroll1.Min\nEnd Sub",
+            ),
+        ]),
+        fixture::numeric_companion(),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Numbers.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output(), vec!["initialized", "7", "10"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    ide.form_instance_numeric(f, 14, vba_ide::FormNumericInput::Step { up: true, large: false }, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    ide.form_instance_numeric(f, 15, vba_ide::FormNumericInput::Step { up: true, large: true }, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, Some(14), "Value")?, vba_values::Value::Long(9));
+    assert_eq!(ide.form_instance_field(f, Some(15), "Value")?, vba_values::Value::Long(-5));
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}

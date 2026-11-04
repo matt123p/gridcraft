@@ -35,7 +35,7 @@ arguments and implementation/test references.
 | Control flow | Conditions, loops, procedure calls and VBA error handlers within the runtime's resource limits |
 | Debugging | Compile diagnostics, breakpoints, pause/resume, step into/over/out, locals and output |
 | Worksheet Form Controls | Nine native families, selected ControlFormat APIs, linked data, trusted assignments and native OOXML/VML persistence; [limits](worksheet-controls.md) |
-| UserForms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for flat Label/TextBox/CommandButton/CheckBox/OptionButton/ToggleButton controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
+| UserForms | Selected native `.frm`/`.frx` and embedded UserForm import/attachment for flat Label/TextBox/CommandButton/CheckBox/OptionButton/ToggleButton/SpinButton/ScrollBar controls; shared designer/runtime/debugger. Native saving remains unsupported; legacy `.tvform` removal is separate M7A.6 work |
 
 Public no-argument Subs appear in the macro picker. Public Functions become
 worksheet functions after source is applied. Private procedures and `Option
@@ -354,3 +354,8 @@ M7A.4 increment — 2026-11-04: the pinned shared runtime adds explicit instance
 selected boolean/group/input/property semantics, Controls/UserForms lookup and
 separate window/code lifetime. See [the shared scope and remaining work](../../../tiny-vba/docs/m7a4-native-runtime.md).
 This is not full M7A.4 or native edited-save acceptance.
+
+M7A.4 runtime follow-up — 2026-11-04: native text selection, multiline/password
+and input behavior plus selected SpinButton/ScrollBar properties/events now use
+the shared canonical runtime and trusted input path. Further native control,
+property, binding and platform work remains in the shared implementation plan.
