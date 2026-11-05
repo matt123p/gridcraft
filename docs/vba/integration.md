@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `fe86257c80c178baaa5701b5cf87597e4bc72daa`.
+The host/editor now pin shared revision `18e412caa8d9dfd1a1ba984ea49c42bc490ef8da`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -595,3 +595,22 @@ PASS. Full CI (ten gates), strict optional VBA/UI Clippy, the optional VBA web
 build and both embedded-form UI/consent regressions PASS. The new package case
 checks distinct tab identity/defaults, disabled input refusal, authorized selection,
 unchanged source/resources and exact XLSM project bytes after reopen.
+
+M7A.4 native MultiPage/Page follow-up — 2026-11-05: shared revision
+`18e412caa8d9dfd1a1ba984ea49c42bc490ef8da` adds bounded native f/o/x joins,
+canonical Page/Pages identity and child Controls/Parent, indexed/named lookup,
+enumeration, Value/SelectedItem and selected-page input/focus/rendering. Internal
+tabs remain private. Physical selection respects dirty-field cancellation and
+Stop/resume. TabStrip/MultiPage Click now carries its Long index and selecting
+the current page/tab raises no selection event. Native source/resources remain
+inert and separate; original project bytes survive package save/reopen. Dynamic
+Pages/Tabs mutation, further page/Frame/property/resource/event/lifecycle cases,
+Image/RefEdit, bindings and applicable platform controls remain M7A.4 requirements.
+Native edited saving/.tvform removal remain M7A.5/.6; no full milestone sign-off
+or fresh Office observations are claimed.
+
+Validation for the MultiPage pin: full GridCraft CI (10 steps), ten native and
+ten actual Node/WASM package cases, strict optional VBA/UI Clippy and optional
+VBA web check PASS. Both embedded-form UI/consent regressions PASS. The new
+package case verifies inert import, nominal Page ownership, selected-page input
+and exact original XLSM project resources after save/reopen.

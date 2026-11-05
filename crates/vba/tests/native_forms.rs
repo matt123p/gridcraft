@@ -418,3 +418,57 @@ End Sub"#,
     assert_eq!(back.vba_project.as_deref(), Some(&original));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_multipage_objects_and_input_preserve_xlsm_resources() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                r#"Attribute VB_Name = "Launch"
+Sub Main()
+Dim f As New NativeForm,s As MSForms.MultiPage
+Set s=f.Multi1
+Debug.Print f.Controls.Count,s.Pages.Count,s.SelectedItem Is s.FirstTab
+s.Value=1
+Debug.Print s.SelectedItem.Caption
+f.Show 0
+End Sub"#,
+            ),
+        ]),
+        fixture::multipage_companion(0),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Tabs.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(ide.form_instances()?.is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["initialized", "4\t3\tTrue", "Second😀"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    let native = ide.native_form(f.source).ok_or("native")?.clone();
+    assert!(ide.form_instance_tab(f, 20, 2, &mut bridge.host(&mut session)).is_err());
+    ide.form_instance_tab(f, 20, 0, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, Some(20), "Value")?, vba_values::Value::Long(0));
+    assert!(ide.form_instance_text(f, 41, vba_values::VbaString::from_utf8("hidden")?, (6, 0), &mut bridge.host(&mut session)).is_err());
+    ide.form_instance_text(f, 40, vba_values::VbaString::from_utf8("selected")?, (8, 0), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, Some(40), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("selected")?));
+    assert_eq!(ide.native_form(f.source), Some(&native));
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}

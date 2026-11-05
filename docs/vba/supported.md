@@ -396,3 +396,16 @@ metadata and authorized pointer/arrow input in the shared runtime. Nearby contro
 stay on their original form/Frame. Dynamic tab mutation, writable Index/Name,
 further presentation/events and the remaining M7A.4 scope remain open. Native
 edited saving and .tvform removal remain separate milestones.
+
+M7A.4 native MultiPage/Page follow-up — 2026-11-05: shared revision
+`18e412caa8d9dfd1a1ba984ea49c42bc490ef8da` adds bounded native f/o/x joins,
+canonical Page/Pages identity and child Controls/Parent, indexed/named lookup,
+enumeration, Value/SelectedItem and selected-page input/focus/rendering. Internal
+tabs remain private. Physical selection respects dirty-field cancellation and
+Stop/resume. TabStrip/MultiPage Click now carries its Long index and selecting
+the current page/tab raises no selection event. Native source/resources remain
+inert and separate; original project bytes survive package save/reopen. Dynamic
+Pages/Tabs mutation, further page/Frame/property/resource/event/lifecycle cases,
+Image/RefEdit, bindings and applicable platform controls remain M7A.4 requirements.
+Native edited saving/.tvform removal remain M7A.5/.6; no full milestone sign-off
+or fresh Office observations are claimed.

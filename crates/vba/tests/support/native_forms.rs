@@ -450,3 +450,80 @@ pub fn tab_companion(selected: i32) -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Independently authored MultiPage: internal TabStrip and three Page storages.
+pub fn multipage_companion(selected: i32) -> Vec<u8> {
+    use std::io::Read;
+    fn parent(sites: Vec<Vec<u8>>, objects: Vec<u8>, width: u32, height: u32) -> (Vec<u8>, Vec<u8>) {
+        let body = u32s(&[(1 << 10) | (1 << 27), 32000, width, height]);
+        let mut form = record(0x400, &body);
+        form.extend(0u16.to_le_bytes());
+        form.extend((sites.len() as u32).to_le_bytes());
+        let mut data = vec![0, 0x80 | sites.len() as u8, 1, 0];
+        data.extend(sites.concat());
+        form.extend((data.len() as u32).to_le_bytes());
+        form.extend(data);
+        (form, objects)
+    }
+    fn placed(mut site: Vec<u8>, left: u32, top: u32, parent: bool) -> Vec<u8> {
+        if parent {
+            site[16..20].copy_from_slice(&0x42003u32.to_le_bytes());
+        }
+        let n = site.len();
+        site[n - 8..n - 4].copy_from_slice(&left.to_le_bytes());
+        site[n - 4..].copy_from_slice(&top.to_le_bytes());
+        site
+    }
+    let basic = controls();
+    let bytes = tab_companion(selected);
+    let mut tabs_file = cfb::CompoundFile::open(Cursor::new(bytes[4..].to_vec())).unwrap();
+    let mut objects = Vec::new();
+    tabs_file.open_stream("/o").unwrap().read_to_end(&mut objects).unwrap();
+    let strip = objects[basic.concat().len()..].to_vec();
+    let (f, o) = parent(
+        vec![
+            site(11, "Heading", 21, 0, basic[0].len()),
+            site(12, "Entry", 23, 1, basic[1].len()),
+            site(13, "Apply", 17, 2, basic[2].len()),
+            placed(site(20, "Multi1", 57, 3, 0), 3600, 600, true),
+        ],
+        basic.concat(),
+        10583,
+        7056,
+    );
+    let mut streams = vec![("f".to_string(), f), ("o".to_string(), o)];
+    let names = ["FirstTab", "SecondTab", "BlockedTab"];
+    let mut sites = vec![placed(site(21, "InternalTabs", 18, 0, strip.len()), 0, 0, false)];
+    for (i, name) in names.into_iter().enumerate() {
+        sites.push(placed(site(31 + i as u32, name, 7, i as u16, 0), 0, 500, true));
+        let (f, o) = parent(
+            vec![placed(site(40 + i as u32, &format!("PageEntry{}", i + 1), 23, 0, basic[1].len()), 300, 300, false)],
+            basic[1].clone(),
+            6900,
+            3400,
+        );
+        streams.push((format!("i20/i{}/f", 31 + i), f));
+        streams.push((format!("i20/i{}/o", 31 + i), o));
+    }
+    let (f, o) = parent(sites, strip, 7000, 4000);
+    streams.push(("i20/f".into(), f));
+    streams.push(("i20/o".into(), o));
+    let mut x = Vec::new();
+    for _ in 0..4 {
+        x.extend(record(0x200, &u32s(&[0])));
+    }
+    x.extend(record(0x200, &u32s(&[6, 3, 21])));
+    x.extend(u32s(&[31, 32, 33]));
+    streams.push(("i20/x".into(), x));
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    for (name, bytes) in streams {
+        if let Some((storage, _)) = name.rsplit_once('/') {
+            file.create_storage_all(storage).unwrap();
+        }
+        file.create_stream(name).unwrap().write_all(&bytes).unwrap();
+    }
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}
