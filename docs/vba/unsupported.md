@@ -7,7 +7,7 @@ styling and unlisted control members remain outside it. Protected controls refus
 edits/input. Selected native UserForm import remains separate; broader UserForm
 semantics, edited resources and .tvform removal are still M7A.4–M7A.7.
 
-Updated 2026-11-04: edited-source binary VBA project writeback and cryptographic
+Updated 2026-11-05: edited-source binary VBA project writeback and cryptographic
 signature verification/re-signing remain unsupported. Save Source exports raw
 source separately; document save retains the original binary project. Replacing
 a captured binary project while reusing its original signature/data graph refuses.
@@ -246,3 +246,14 @@ and .tvform removal remain M7A.5/.6. Integration validation PASS: all 13 native 
 cases, full ten-step CI, strict optional VBA/UI Clippy, three form widget cases
 and the optional VBA web check. The new case checks both Tabs and Pages,
 authorization, retained aliases and unchanged XLSM VBA project bytes.
+
+
+M7A.4 runtime controls/selection/bindings — 2026-11-05: selected native runtime
+Controls mutation, multiple selection and single-cell/row bindings are now
+implemented. Bound rows refuse manual mutation; RowSource currently supports one
+contiguous range of at most 1,024 rows and ten columns. Nonempty sources require
+an explicit embedding Range capability. Broader binding value/update timing,
+property/event/lifecycle/platform cases remain open. The approved static
+permission table holds at most 4,096 sites; executed host calls remain limited to
+1,024 per session. Native edited saving/.tvform removal and fresh Office evidence
+remain separate requirements; this does not close M7A.4.

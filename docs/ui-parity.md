@@ -1,6 +1,6 @@
 # UI parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-04 · **Change:** minor (checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured
@@ -278,3 +278,10 @@ GridCraft tabs. Design Mode uses a full-size ribbon icon and retains its selecte
 | 2026-10-11 | major | Sequential Alt keytips: full-tab table (364 sequences), badges on every control, dropdowns open for typing/arrow editing, colour-palette arrows, real-Excel corrections (issues #33, #49) |
 | 2026-10-10 | minor | Chart resize bug (#190) |
 | 2026-10-10 | major | Created: chrome, grid, keyboard, dialogs, accessibility; key tips, Page Layout view and accessibility tree flagged |
+
+Native UserForm binding update (2026-11-05): actual text entry/list selection
+write linked worksheet cells and normal sheet commands/recalculation refresh the
+shared widgets. Source inspection/rendering stay inert; callbacks retain trust
+and debugger ownership. The authored render was inspected; selected UI and
+package/Node-WASM tests pass. Full M7A.4 and fresh Office comparisons remain open;
+readiness estimates are unchanged. See [the integration contract](vba/integration.md).

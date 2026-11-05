@@ -666,3 +666,30 @@ and .tvform removal remain M7A.5/.6. Integration validation PASS: all 13 native 
 cases, full ten-step CI, strict optional VBA/UI Clippy, three form widget cases
 and the optional VBA web check. The new case checks both Tabs and Pages,
 authorization, retained aliases and unchanged XLSM VBA project bytes.
+
+
+M7A.4 runtime controls, selection and bindings — 2026-11-05 (shared revision
+`91b0c7870b76c2c71dbcc5964563195f6f39498d`): the shared runtime
+adds native Controls.Add/Remove/Clear, ListBox multiple selection and IR 12 native
+TypeName. Native ControlSource/RowSource metadata stays inert at import; ordinary
+binding objects use GridCraft's existing Range bridge and cell commands for
+source reads/writes. Single-cell links and bounded contiguous list ranges retain
+normal validation, protection, undo/recalculation and trust. Bound rows reject
+manual mutation, including inside Change callbacks. Protected writes are checked
+before canonical control mutation. Clearing sources disconnects them; original
+source/resources remain exact and runtime changes are not native edited saving.
+
+GridCraft queues visible, input-owning form refreshes behind existing document
+events after document revisions, immutable workbook replacement or form availability changes. Stop/Reset and trust
+loss retain existing continuation/cancellation policy. Optional generic object
+revision queries validate identity/lifetime and return document epochs only for
+formula-free workbooks; calculated workbooks/spills use uncached reads. Weak
+workbook snapshots detect Calculate Now without retaining document state. Refresh handles are
+bounded scheduling state, not a second control data model. The static permission
+allowlist cap is now 4,096 with owner approval; executed-call/work/memory limits
+are unchanged. Validation PASS: full GridCraft CI (10 steps), strict optional-VBA/UI Clippy,
+all 19 native and 19 actual Node/WASM package cases, four form UI cases and the
+optional VBA web build. Actual bound text/list pointer/keyboard input, worksheet
+refresh and trust revocation pass; the original themed render was inspected. Further binding timing,
+property/event/lifecycle/platform semantics remain M7A.4; native edited saving and
+.tvform removal remain M7A.5/.6. Fresh Office observations remain M8.5 NOT_RUN.

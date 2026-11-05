@@ -6,7 +6,7 @@ store. Import, widgets, trusted assignments, live cell/list bindings, selected
 Shapes/ControlFormat APIs and native save/reopen are implemented for the
 [bounded worksheet profile](worksheet-controls.md).
 
-Updated 2026-11-04: M7's authored `.xlsm` workflows preserve original VBA
+Updated 2026-11-05: M7's authored `.xlsm` workflows preserve original VBA
 project bytes, code names and supported related payload/relationship graphs
 through document edits and save/reopen. Loading and compiling are inert; execution
 requires document permission. See [M7 acceptance](../../../tiny-vba/docs/m7-acceptance.md)
@@ -445,3 +445,13 @@ and .tvform removal remain M7A.5/.6. Integration validation PASS: all 13 native 
 cases, full ten-step CI, strict optional VBA/UI Clippy, three form widget cases
 and the optional VBA web check. The new case checks both Tabs and Pages,
 authorization, retained aliases and unchanged XLSM VBA project bytes.
+
+
+M7A.4 runtime controls/selection/bindings — 2026-11-05: selected native runtime
+Controls.Add/Remove/Clear, ListBox Multi/Extended selection and canonical native
+TypeName are implemented. ControlSource links one worksheet cell; RowSource loads
+bounded contiguous worksheet ranges into ListBox/ComboBox. Imported binding
+metadata attaches during normal trusted form load before Initialize. Programmatic
+and authorized widget changes use existing cell commands; worksheet changes queue
+ordinary form callbacks. Source inspection/rendering remain inert. Original XLSM
+VBA resources remain exact; native edited form persistence remains separate.

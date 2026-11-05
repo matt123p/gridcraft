@@ -1,5 +1,11 @@
 # GridCraft roadmap
 
+M7A.4 runtime update (2026-11-05): selected native dynamic Controls, multiple
+selection, canonical TypeName and ControlSource/RowSource bindings use the shared
+engine and existing workbook commands. Full CI and native/Node-WASM/UI integration
+pass. [Scope, ownership and limits](docs/vba/integration.md). M7A.4 remains in
+progress; readiness estimates are unchanged.
+
 Developer ribbon polish (2026-11-04): consistent button row and separators, with a
 full-size Design Mode toggle. Readiness estimates unchanged.
 

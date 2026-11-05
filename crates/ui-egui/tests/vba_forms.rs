@@ -271,3 +271,85 @@ fn native_refedit_uses_authorized_sheet_selection_and_cancels_on_trust_loss() ->
     assert_eq!(editor.ide.native_form(id), Some(&original));
     Ok(())
 }
+
+#[test]
+fn native_bound_widgets_write_cells_and_refresh_from_sheet_commands() -> R {
+    use egui_kittest::kittest::{By, Queryable};
+    use gridcraft_vba::vba_ide::{NativeFormResource, Value as VbaValue, VbaString};
+    let mut session = Session::new();
+    session.add_document(gridcraft_engine::DocState::new(
+        gridcraft_engine::model::Workbook::new(),
+        None,
+        "Bindings.xlsm".into(),
+        gridcraft_engine::Trust::FromFile,
+    ));
+    for (cell, input) in [("A1", "seed"), ("B1", "first"), ("C1", "A"), ("B2", "second"), ("C2", "B"), ("D1", "A")] {
+        session.execute("cell.set", json!({"cell":cell,"input":input}))?;
+    }
+    let mut app = SheetApp::new(session, Services::default());
+    app.run("vba.open", json!({"source":"Sub Main()\nNativeForm.Show 0\nEnd Sub"})).map_err(std::io::Error::other)?;
+    let editor = app.vba.as_mut().ok_or("editor")?;
+    let id = editor.ide.import_native_form_export(
+        "NativeForm.frm",
+        &native_fixture::export(),
+        1252,
+        &[NativeFormResource { name: "NativeForm.frx".into(), bytes: native_fixture::binding_companion() }],
+    )?;
+    let original = editor.ide.native_form(id).ok_or("native")?.clone();
+    app.run("vba.trust", json!({"allow":true})).map_err(std::io::Error::other)?;
+    app.run("vba.run", json!({"entry":"Main"})).map_err(std::io::Error::other)?;
+    settle(&mut app)?;
+    let f = *app.vba.as_ref().ok_or("editor")?.ide.form_instances()?.first().ok_or("instance")?;
+    app.run("vba.return", json!({})).map_err(std::io::Error::other)?;
+    app.use_prepared_fonts();
+    let snapshot = std::env::var("GRIDCRAFT_BINDING_SNAPSHOT").ok();
+    let builder = egui_kittest::Harness::builder().with_size(egui::vec2(1300., 900.)).with_context_setup(|ctx| {
+        ctx.set_fonts(gridcraft_ui_egui::theme::pinned_font_definitions());
+        gridcraft_ui_egui::theme::apply(ctx, false);
+    });
+    let builder = if snapshot.is_some() { builder.wgpu() } else { builder };
+    let mut h = builder.build_ui_state(
+        |ui, a: &mut SheetApp| {
+            a.logic(ui.ctx());
+            a.ui(ui);
+        },
+        app,
+    );
+    h.run_steps(12);
+    h.get(By::new().label("Entry").role(egui::accesskit::Role::TextInput)).click();
+    h.run_steps(8);
+    for pressed in [true, false] {
+        h.event(egui::Event::Key {
+            key: egui::Key::A,
+            physical_key: None,
+            pressed,
+            repeat: false,
+            modifiers: egui::Modifiers { ctrl: true, command: true, ..Default::default() },
+        });
+    }
+    h.run_steps(2);
+    h.event(egui::Event::Text("typed".into()));
+    h.run_steps(40);
+    assert_eq!(h.state().session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::new(0, 0)), Value::Text("typed".into()));
+    h.get_by_label("List1 row 1: second | B").click();
+    h.run_steps(40);
+    assert_eq!(h.state().session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::new(0, 3)), Value::Text("B".into()));
+    h.state_mut().run("cell.set", json!({"cell":"A1","input":"external"})).map_err(std::io::Error::other)?;
+    h.state_mut().run("cell.set", json!({"cell":"B2","input":"updated"})).map_err(std::io::Error::other)?;
+    h.run_steps(60);
+    let editor = h.state().vba.as_ref().ok_or("editor")?;
+    assert_eq!(editor.ide.form_instance_field(f, Some(12), "VbaText")?, VbaValue::String(VbaString::from_utf8("external")?));
+    assert_eq!(editor.ide.native_form(id), Some(&original));
+    assert!(h.query_by_label("List1 row 1: updated | B").is_some());
+    if let Some(path) = snapshot {
+        h.render()?.save(path)?;
+    }
+    h.state_mut().run("vba.trust", json!({"allow":false})).map_err(std::io::Error::other)?;
+    h.state_mut().run("cell.set", json!({"cell":"A1","input":"deferred"})).map_err(std::io::Error::other)?;
+    h.run_steps(10);
+    assert_eq!(
+        h.state().vba.as_ref().ok_or("editor")?.ide.form_instance_field(f, Some(12), "VbaText")?,
+        VbaValue::String(VbaString::from_utf8("external")?)
+    );
+    Ok(())
+}

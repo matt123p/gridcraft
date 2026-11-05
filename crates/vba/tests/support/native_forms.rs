@@ -626,3 +626,58 @@ pub fn refedit_companion() -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Original OleSiteConcreteControl binding fields; no macro or data source is executed.
+pub fn binding_companion() -> Vec<u8> {
+    use std::io::Read;
+    let original = list_companion();
+    let mut file = cfb::CompoundFile::open(Cursor::new(original[4..].to_vec())).unwrap();
+    let mut form = Vec::new();
+    file.open_stream("/f").unwrap().read_to_end(&mut form).unwrap();
+    let header = 4 + usize::from(u16::from_le_bytes([form[2], form[3]])) + 2;
+    let mut objects = Vec::new();
+    file.open_stream("/o").unwrap().read_to_end(&mut objects).unwrap();
+    let mut sizes = controls().iter().map(Vec::len).collect::<Vec<_>>();
+    sizes.push(objects.len() - sizes.iter().sum::<usize>());
+    form.truncate(header);
+    form.extend(4u32.to_le_bytes());
+    let mut sites = vec![0, 0x84, 1, 0];
+    for (index, (id, name, class, source, rows)) in
+        [(11, "Heading", 21, "", ""), (12, "Entry", 23, "$A$1", ""), (13, "Apply", 17, "", ""), (14, "List1", 24, "$D$1", "$B$1:$C$2")]
+            .into_iter()
+            .enumerate()
+    {
+        let mut mask = 0x1f5;
+        if !source.is_empty() {
+            mask |= 1 << 13;
+        }
+        if !rows.is_empty() {
+            mask |= 1 << 14;
+        }
+        let mut body = u32s(&[mask, 0x80000000 | name.len() as u32, id, 0x13, sizes[index] as u32]);
+        body.extend((index as u16).to_le_bytes());
+        body.extend((class as u16).to_le_bytes());
+        if !source.is_empty() {
+            body.extend((0x80000000 | source.len() as u32).to_le_bytes());
+        }
+        if !rows.is_empty() {
+            body.extend((0x80000000 | rows.len() as u32).to_le_bytes());
+        }
+        body.extend(string(name));
+        body.extend(u32s(&[423, 635 + (id - 11) * 1000]));
+        if !source.is_empty() {
+            body.extend(string(source));
+        }
+        if !rows.is_empty() {
+            body.extend(string(rows));
+        }
+        sites.extend(record(0, &body));
+    }
+    form.extend((sites.len() as u32).to_le_bytes());
+    form.extend(sites);
+    file.create_stream("/f").unwrap().write_all(&form).unwrap();
+    let data = file.into_inner().into_inner();
+    let mut bytes = (data.len() as u32).to_le_bytes().to_vec();
+    bytes.extend(data);
+    bytes
+}

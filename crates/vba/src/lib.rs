@@ -152,6 +152,9 @@ pub struct Bridge {
     enable_events: bool,
     pending_events: VecDeque<PendingEvent>,
     event_work: usize,
+    binding_refresh_revisions: Vec<(u64, u64, std::sync::Weak<gridcraft_model::Workbook>)>,
+    binding_refresh_forms: Vec<vba_ide::FormInstance>,
+    binding_refresh_queue: VecDeque<vba_ide::FormInstance>,
     pub(crate) event_owner_sheet: Option<usize>,
     pub(crate) control_caller: Option<String>,
     document_code_names: Arc<RwLock<std::collections::BTreeSet<String>>>,
@@ -182,6 +185,9 @@ impl Bridge {
             enable_events: true,
             pending_events: VecDeque::new(),
             event_work: 0,
+            binding_refresh_revisions: Vec::new(),
+            binding_refresh_forms: Vec::new(),
+            binding_refresh_queue: VecDeque::new(),
             event_owner_sheet: None,
             control_caller: None,
             document_code_names: Arc::new(RwLock::new(std::collections::BTreeSet::new())),
@@ -418,6 +424,9 @@ impl Bridge {
         Ok(())
     }
     fn cancel_pending_events(&mut self) {
+        self.binding_refresh_revisions.clear();
+        self.binding_refresh_forms.clear();
+        self.binding_refresh_queue.clear();
         self.operations.pending.clear();
         self.pending_events.clear();
         self.event_work = 0;
@@ -681,6 +690,9 @@ impl Bridge {
                 return Err(error);
             }
         }
+        if result.is_ok() && deliver_events && self.permitted(session) && matches!(ide.mode(), Mode::Completed | Mode::Waiting) {
+            self.refresh_form_bindings(session, ide)?;
+        }
         if result.is_err() || matches!(ide.mode(), Mode::Failed) {
             self.cancel_pending_events();
         }
@@ -694,6 +706,34 @@ impl Bridge {
             self.finish(session)?;
         }
         result
+    }
+    fn refresh_form_bindings(&mut self, session: &mut Session, ide: &mut Ide) -> Result<()> {
+        let revisions = session.documents().iter().take(1025).map(|doc| (doc.uid, doc.revision, Arc::downgrade(&doc.wb))).collect::<Vec<_>>();
+        if revisions.len() > 1024 {
+            return Err(diagnostic("binding document revision budget"));
+        }
+        let available = ide.form_instances()?.into_iter().filter(|instance| ide.form_instance_can_deliver(*instance)).take(1025).collect::<Vec<_>>();
+        if available.len() > 1024 {
+            return Err(diagnostic("form binding refresh budget"));
+        }
+        let same_documents = self.binding_refresh_revisions.len() == revisions.len()
+            && self.binding_refresh_revisions.iter().zip(&revisions).all(|((old_id, old_revision, old_wb), (id, revision, wb))| {
+                old_id == id && old_revision == revision && std::sync::Weak::ptr_eq(old_wb, wb)
+            });
+        if !same_documents || self.binding_refresh_forms != available {
+            self.binding_refresh_revisions = revisions;
+            self.binding_refresh_forms = available.clone();
+            self.binding_refresh_queue = available.into();
+        }
+        while let Some(instance) = self.binding_refresh_queue.pop_front() {
+            if !ide.form_instance_can_deliver(instance) {
+                continue;
+            }
+            if ide.refresh_form_bindings(instance, &mut self.host(session))? {
+                break;
+            }
+        }
+        Ok(())
     }
     /// Retain successful writes on failure/stop and make them one ordinary undo step.
     pub fn finish(&mut self, session: &mut Session) -> Result<()> {
@@ -726,6 +766,37 @@ impl Drop for Bridge {
 impl Host for WorkbookHost<'_> {
     fn identity(&self) -> u64 {
         self.bridge.identity
+    }
+    fn object_revision(&mut self, target: ObjectRef) -> HostResult<Option<u64>> {
+        self.bridge.check(self.session)?;
+        self.bridge.sync_sheets(self.session)?;
+        let (document, object) = match self.bridge.objects.get(target)? {
+            Object::Document(document, object) => (document, *object),
+            _ => return Ok(None),
+        };
+        let Object::Range(sheet, range) = object else {
+            return Ok(None);
+        };
+        let rectangle = range.rectangle()?;
+        if rectangle.count() > 10240 {
+            return Ok(None);
+        }
+        let document = self.session.document(document).ok_or_else(|| failure(91, "binding workbook closed"))?;
+        let sheet = document.wb.sheets.get(sheet).ok_or_else(|| failure(91, "binding worksheet closed"))?;
+        // Recalculation can change formulas, spill children or expand a spill into
+        // a previously empty source without changing the content revision. Only
+        // formula-free workbooks have a complete document-revision data epoch.
+        if !document.calc.graph.is_empty() || !sheet.spill.is_empty() {
+            return Ok(None);
+        }
+        for row in rectangle.start.row..=rectangle.end.row {
+            for col in rectangle.start.col..=rectangle.end.col {
+                if sheet.cells.get(gridcraft_engine::core::CellRef::new(row, col)).is_some_and(|cell| cell.formula.is_some()) {
+                    return Ok(None);
+                }
+            }
+        }
+        Ok(Some(document.revision))
     }
     fn invoke(&mut self, mut call: HostCall) -> Reply {
         let mut suspended = None;

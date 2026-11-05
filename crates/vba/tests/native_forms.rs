@@ -7,7 +7,7 @@ use gridcraft_vba::{Action, Bridge, Ide, Mode};
 use gridcraft_xlsx::{XlsxKind, read_xlsx, write_xlsx_as};
 type R = Result<(), Box<dyn std::error::Error>>;
 fn settle(s: &mut Session, b: &mut Bridge, ide: &mut Ide) -> R {
-    for _ in 0..500 {
+    for _ in 0..5000 {
         if ide.mode() != Mode::Running {
             return Ok(());
         }
@@ -616,5 +616,329 @@ fn native_dynamic_tabs_and_pages_keep_aliases_trust_and_xlsm_resources() -> R {
         bridge.consent(false);
         assert!(bridge.begin(&mut session).is_err());
     }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_excel_cell_and_row_bindings_use_the_existing_range_bridge_and_keep_package_bytes() -> R {
+    let source = r#"Attribute VB_Name = "Launch"
+Sub Main()
+Range("A1").Value="bound"
+Range("B1").Value="alpha"
+Range("C1").Value="A"
+Range("B2").Value="beta"
+Range("C2").Value="B"
+Range("D1").Value="B"
+Dim f As New NativeForm,l As MSForms.ListBox
+Set l=f.List1
+f.Entry.ControlSource="A1"
+l.RowSource="B1:C2"
+l.ControlSource="D1"
+Debug.Print f.Entry.Value,l.ListCount,l.ListIndex,l.Value
+f.Entry.Value="written"
+Debug.Print Range("A1").Value
+Range("A1").Value="outside"
+Debug.Print f.Entry.Value
+Range("C2").Value="B2"
+Debug.Print l.Value,l.List(1,1),Range("D1").Value
+Range("D1").Value="A"
+Debug.Print l.ListIndex,l.Value,Range("D1").Value
+On Error Resume Next
+l.AddItem "blocked"
+Debug.Print Err.Number,l.ListCount
+Err.Clear
+l.List(0,0)="blocked"
+Debug.Print Err.Number,l.List(0,0)
+Err.Clear
+f.Entry.ControlSource="A1:A2"
+Debug.Print Err.Number,f.Entry.ControlSource,f.Entry.Value
+Err.Clear
+l.RowSource="A1:K2"
+Debug.Print Err.Number,l.RowSource,l.ListCount
+Err.Clear
+l.RowSource=""
+Debug.Print l.ListCount,IsNull(l.Value)
+f.Entry.ControlSource=""
+f.Entry.Value="detached"
+Debug.Print Range("A1").Value,f.Entry.Value
+f.Show 0
+End Sub"#;
+    let original =
+        form_project(support::project(&[("NativeForm", "BaseClass", fixture::SOURCE), ("Launch", "Module", source)]), fixture::list_companion());
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Bindings.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.form_instances()?.is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(
+        ide.output(),
+        vec![
+            "initialized",
+            "bound\t2\t1\tB",
+            "written",
+            "outside",
+            "B2\tB2\tB2",
+            "0\tA\tA",
+            "70\t2",
+            "70\talpha",
+            "380\tA1\toutside",
+            "7\tB1:C2\t2",
+            "0\tTrue",
+            "outside\tdetached"
+        ]
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_bound_text_refreshes_from_engine_edits_and_keeps_stopped_input_exactly_once() -> R {
+    let source = fixture::SOURCE.to_owned()
+        + r#"
+Private Sub Entry_Change()
+If Not Me.Visible Then Exit Sub
+Debug.Print "changed",Entry.Value,Range("A1").Value
+If Entry.Value="physical" Then
+Stop
+Debug.Print "resumed"
+End If
+End Sub
+"#;
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", &source),
+        (
+            "Launch",
+            "Module",
+            "Attribute VB_Name = \"Launch\"\nSub Main()\nRange(\"A1\").Value=\"seed\"\nNativeForm.Entry.ControlSource=\"A1\"\nNativeForm.Show 0\nEnd Sub",
+        ),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "BoundInput.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    let f = *ide.form_instances()?.first().ok_or("form")?;
+    let native = ide.native_form(f.source).ok_or("native")?.clone();
+    assert_eq!(ide.form_instance_field(f, Some(12), "ControlSource")?, vba_values::Value::String(vba_values::VbaString::from_utf8("A1")?));
+    session.execute("cell.set", serde_json::json!({"cell":"A1","input":"external"}))?;
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("seed")?));
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output(), vec!["initialized", "changed\texternal\texternal"]);
+    ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("physical")?, (8, 0), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output().last().map(String::as_str), Some("changed\tphysical\tphysical"));
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output(), vec!["initialized", "changed\texternal\texternal", "changed\tphysical\tphysical", "resumed"]);
+    let output = ide.output().to_vec();
+    for _ in 0..20 {
+        bridge.tick(&mut session, &mut ide)?;
+    }
+    assert_eq!(ide.output(), output);
+    bridge.consent(false);
+    session.execute("cell.set", serde_json::json!({"cell":"A1","input":"deferred"}))?;
+    bridge.tick(&mut session, &mut ide)?;
+    assert_eq!(ide.output(), output);
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("physical")?));
+    bridge.consent(true);
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output().last().map(String::as_str), Some("changed\tdeferred\tdeferred"));
+    assert_eq!(ide.native_form(f.source), Some(&native));
+    assert_eq!(read_xlsx(&write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?)?.0.vba_project.as_deref(), Some(&original));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_bound_row_refresh_stays_read_only_inside_change_and_large_lists_reuse_epochs() -> R {
+    let form = fixture::SOURCE.to_owned()
+        + r#"
+Private Sub List1_Change()
+On Error Resume Next
+List1.AddItem "illegal"
+Debug.Print "guard",Err.Number,List1.ListCount
+Err.Clear
+List1.Clear
+Debug.Print "clear",Err.Number,List1.ListCount
+End Sub
+"#;
+    let source = r#"Attribute VB_Name = "Launch"
+Sub Main()
+Dim data(0 To 127,0 To 1) As Variant,i As Long,n As Long
+For i=0 To 127
+data(i,0)="row " & i
+data(i,1)="key " & i
+Next i
+Range("B1:C128").Value=data
+NativeForm.List1.RowSource="B1:C128"
+NativeForm.List1.ListIndex=127
+For i=0 To 39
+n=n+NativeForm.List1.ListCount
+If NativeForm.List1.List(127,1)<>"key 127" Then Err.Raise 5
+Next i
+Debug.Print n
+Range("C128").Value="updated"
+Debug.Print NativeForm.List1.Value,NativeForm.List1.ListCount
+NativeForm.Show 0
+End Sub"#;
+    let original = form_project(support::project(&[("NativeForm", "BaseClass", &form), ("Launch", "Module", source)]), fixture::list_companion());
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "BoundRows.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["initialized", "guard\t70\t128", "clear\t70\t128", "5120", "guard\t70\t128", "clear\t70\t128", "updated\t128"]);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_bound_protected_cell_failures_preserve_control_state_and_sources() -> R {
+    let source = r#"Attribute VB_Name = "Launch"
+Sub Main()
+Range("A1").Value="seed"
+Range("A2").Value=10
+Dim spin As MSForms.SpinButton
+Set spin=NativeForm.Controls.Add("Forms.SpinButton.1","BoundSpin")
+spin.ControlSource="A2"
+Range("D1").Value="beta"
+NativeForm.Entry.ControlSource="A1"
+NativeForm.List1.BoundColumn=1
+NativeForm.List1.AddItem "alpha"
+NativeForm.List1.AddItem "beta"
+NativeForm.List1.ControlSource="D1"
+ActiveSheet.Protect
+On Error Resume Next
+spin.Min=20
+Debug.Print Err.Number,spin.Min,spin.Value
+Err.Clear
+NativeForm.Entry.VbaSetTextSelection "blocked",2,1
+Debug.Print Err.Number,NativeForm.Entry.Value,Range("A1").Value,NativeForm.Entry.VbaDirty
+Err.Clear
+NativeForm.List1.ListIndex=0
+Debug.Print Err.Number,NativeForm.List1.ListIndex,NativeForm.List1.Value
+Err.Clear
+NativeForm.List1.RemoveItem 1
+Debug.Print Err.Number,NativeForm.List1.ListCount,NativeForm.List1.ListIndex,NativeForm.List1.Value
+Err.Clear
+NativeForm.List1.Clear
+Debug.Print Err.Number,NativeForm.List1.ListCount,NativeForm.List1.Value
+Err.Clear
+NativeForm.Entry.ControlSource="A1:A2"
+Debug.Print Err.Number,NativeForm.Entry.ControlSource,NativeForm.Entry.Value
+NativeForm.Show 0
+End Sub"#;
+    let original =
+        form_project(support::project(&[("NativeForm", "BaseClass", fixture::SOURCE), ("Launch", "Module", source)]), fixture::list_companion());
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "ProtectedBindings.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(
+        ide.output(),
+        vec!["initialized", "1004\t0\t10", "1004\tseed\tseed\tFalse", "1004\t1\tbeta", "1004\t2\t1\tbeta", "1004\t2\tbeta", "380\tA1\tseed"]
+    );
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_persisted_bindings_attach_before_initialize_and_keep_xlsm_resources_exact() -> R {
+    let form = fixture::SOURCE
+        .replace("Debug.Print \"initialized\"", "Debug.Print Entry.Value,List1.ListCount,List1.Value,Entry.ControlSource,List1.RowSource");
+    let source = "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Show 0\nEnd Sub";
+    let original = form_project(support::project(&[("NativeForm", "BaseClass", &form), ("Launch", "Module", source)]), fixture::binding_companion());
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let package = write_xlsx_as(&wb, XlsxKind::MacroWorkbook)?;
+    let (wb, _) = read_xlsx(&package)?;
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "NativeSources.xlsm".into(), Trust::FromFile));
+    for (cell, input) in [("A1", "from cell"), ("B1", "first"), ("C1", "A"), ("B2", "second"), ("C2", "B"), ("D1", "B")] {
+        session.execute("cell.set", serde_json::json!({"cell":cell,"input":input}))?;
+    }
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.form_instances()?.is_empty());
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["from cell\t2\tB\t$A$1\t$B$1:$C$2"]);
+    bridge.dispatch(&mut session, &mut ide, Action::Reset)?;
+    assert!(ide.form_instances()?.is_empty());
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_spilled_cell_binding_refreshes_after_recalculation_without_content_revision() -> R {
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", fixture::SOURCE),
+        ("Launch", "Module", "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Entry.ControlSource=\"B1\"\nNativeForm.Show 0\nEnd Sub"),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "CalculatedBinding.xlsm".into(), Trust::FromFile));
+    session.doc_mut()?.calc.fixed_now = Some(45000.);
+    session.execute("cell.set", serde_json::json!({"cell":"A1","input":"=SEQUENCE(1,2,NOW(),1)"}))?;
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    bridge.consent(true);
+    ide.entry = "Main".into();
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let f = *ide.form_instances()?.first().ok_or("form")?;
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("45001")?));
+    let revision = session.doc()?.revision;
+    session.doc_mut()?.calc.fixed_now = Some(45010.);
+    session.execute("formulas.calculateNow", serde_json::json!({}))?;
+    assert_eq!(session.doc()?.revision, revision);
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("45011")?));
+    assert_eq!(read_xlsx(&write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?)?.0.vba_project.as_deref(), Some(&original));
     Ok(())
 }

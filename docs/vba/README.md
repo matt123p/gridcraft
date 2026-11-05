@@ -14,3 +14,8 @@ worksheet function.
 The [design decisions](integration.md#design-decisions-and-trade-offs) explain why
 commands, object identity, callbacks, source storage and editor execution use
 these boundaries, and how the integration evolved.
+
+Native UserForm runtime now includes selected dynamic Controls, multiple selection
+and worksheet ControlSource/RowSource bindings. See the [support](supported.md),
+[limits](unsupported.md) and [ownership](integration.md) references for their current
+scope; M7A.4 remains in progress.
