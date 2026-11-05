@@ -429,5 +429,5 @@ continuations. Original source/resources remain separate. The Excel host owns
 worksheet range selection; no DLL/OCX/COM activation is introduced. Broader
 RefEdit/platform/property/event semantics, bindings, dynamic collections and the
 remaining M7A.4 ledger stay open. Native edited saving/removal stay M7A.5/.6;
-fresh Office observations remain NOT_RUN under M8.5. Integration validation is
-in progress.
+fresh Office observations remain NOT_RUN under M8.5. Integration checks PASS;
+see the RefEdit validation record in [integration](integration.md).
