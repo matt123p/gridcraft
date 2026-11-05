@@ -70,6 +70,10 @@ pub(super) fn keyboard(app: &mut SheetApp, ctx: &egui::Context, resp: &egui::Res
             }
             egui::Event::Key { key, physical_key, pressed: true, modifiers: m, .. } => {
                 use egui::Key;
+                #[cfg(feature = "vba")]
+                if crate::vba::selecting_range(app) && matches!(key, Key::Enter | Key::Escape) {
+                    continue;
+                }
                 if crate::keymap::dispatch(app, ctx, key, physical_key, m, geo, sh) {
                     shortcut_ran = true;
                     continue;

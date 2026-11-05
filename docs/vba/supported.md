@@ -421,3 +421,13 @@ Vector/platform picture services and the full image event/presentation matrix,
 RefEdit, bindings, dynamic collections, platform controls and remaining lifecycle/
 property semantics stay in M7A.4. Native edited saving/.tvform removal remain
 M7A.5/.6; fresh Office observations remain NOT_RUN under M8.5.
+
+M7A.4 native RefEdit follow-up — 2026-11-05: the shared implementation adds
+bounded inert class-table/CLSID resolution, ordinary RefEdit reference metadata,
+canonical text/drop state and selected focus/validation/Change/DropButtonClick
+continuations. Original source/resources remain separate. The Excel host owns
+worksheet range selection; no DLL/OCX/COM activation is introduced. Broader
+RefEdit/platform/property/event semantics, bindings, dynamic collections and the
+remaining M7A.4 ledger stay open. Native edited saving/removal stay M7A.5/.6;
+fresh Office observations remain NOT_RUN under M8.5. Integration validation is
+in progress.

@@ -165,3 +165,109 @@ fn form_launch_and_instance_callbacks_require_workbook_execution_consent() -> R 
     assert!(editor.ide.form_instance_visible(instance));
     Ok(())
 }
+
+#[path = "../../vba/tests/support/native_forms.rs"]
+mod native_fixture;
+
+#[test]
+fn native_refedit_uses_authorized_sheet_selection_and_cancels_on_trust_loss() -> R {
+    use gridcraft_vba::vba_ide::{NativeFormResource, Value as VbaValue, VbaString};
+    let mut session = Session::new();
+    session.add_document(gridcraft_engine::DocState::new(
+        gridcraft_engine::model::Workbook::new(),
+        None,
+        "RefEdit.xlsm".into(),
+        gridcraft_engine::Trust::FromFile,
+    ));
+    let mut app = SheetApp::new(session, Services::default());
+    app.run("vba.open", json!({"source":"Sub Main()\nNativeForm.Show\nEnd Sub"})).map_err(std::io::Error::other)?;
+    let source = native_fixture::SOURCE.replace(
+        "Private Sub Apply_Click()",
+        "Private Sub Entry_Change()\nRange(\"A1\").Value2=Len(Entry.Text)\nDebug.Print Entry.Text\nEnd Sub\nPrivate Sub Apply_Click()",
+    );
+    let export = String::from_utf8(native_fixture::export())?.replace(native_fixture::SOURCE, &source);
+    let editor = app.vba.as_mut().ok_or("editor")?;
+    let id = editor.ide.import_native_form_export(
+        "NativeForm.frm",
+        export.as_bytes(),
+        1252,
+        &[NativeFormResource { name: "NativeForm.frx".into(), bytes: native_fixture::refedit_companion() }],
+    )?;
+    let original = editor.ide.native_form(id).ok_or("native")?.clone();
+    app.run("vba.trust", json!({"allow":true})).map_err(std::io::Error::other)?;
+    app.run("vba.run", json!({"entry":"Main"})).map_err(std::io::Error::other)?;
+    settle(&mut app)?;
+    let f = *app.vba.as_ref().ok_or("editor")?.ide.form_instances()?.first().ok_or("instance")?;
+    {
+        let editor = app.vba.as_mut().ok_or("editor")?;
+        gridcraft_ui_egui::vba::dispatch_editor_command(editor, &mut app.session, Command::Form(FormCommand::InstanceDrop(f, 12, true)))?;
+    }
+    settle(&mut app)?;
+    let ctx = egui::Context::default();
+    app.logic(&ctx);
+    app.run("selection.set", json!({"range":"B2:C4"})).map_err(std::io::Error::other)?;
+    app.logic(&ctx);
+    settle(&mut app)?;
+    let editor = app.vba.as_ref().ok_or("editor")?;
+    assert_eq!(editor.ide.form_instance_field(f, Some(12), "VbaText")?, VbaValue::String(VbaString::from_utf8("Sheet1!$B$2:$C$4")?));
+    assert_eq!(editor.ide.output(), vec!["initialized", "Sheet1!$B$2:$C$4"]);
+    assert_eq!(editor.ide.form_range_selection()?, Some((f, 12)));
+    assert_eq!(editor.ide.native_form(id), Some(&original));
+    assert!(app.run("cell.set", json!({"cell":"B1","input":"99"})).is_err());
+    assert_eq!(app.session.doc()?.wb.sheet(0).ok_or("sheet")?.value(CellRef::new(0, 0)), Value::Number(16.));
+    app.run("selection.set", json!({"range":"D5,E6"})).map_err(std::io::Error::other)?;
+    app.logic(&ctx);
+    settle(&mut app)?;
+    assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.output().last().map(String::as_str), Some("Sheet1!$D$5,Sheet1!$E$6"));
+    use egui_kittest::kittest::Queryable;
+    app.run("vba.return", json!({})).map_err(std::io::Error::other)?;
+    app.use_prepared_fonts();
+    let snapshot = std::env::var("GRIDCRAFT_REFEDIT_SNAPSHOT").ok();
+    let builder = egui_kittest::Harness::builder().with_size(egui::vec2(1300., 900.)).with_context_setup(|ctx| {
+        ctx.set_fonts(gridcraft_ui_egui::theme::pinned_font_definitions());
+        gridcraft_ui_egui::theme::apply(ctx, false);
+    });
+    let builder = if snapshot.is_some() { builder.wgpu() } else { builder };
+    let mut h = builder.build_ui_state(
+        |ui, a: &mut SheetApp| {
+            a.logic(ui.ctx());
+            a.ui(ui);
+        },
+        app,
+    );
+    h.run_steps(6);
+    h.get_by_label("Restore dialog").click();
+    h.run_steps(8);
+    assert_eq!(h.state().vba.as_ref().ok_or("editor")?.ide.form_range_selection()?, None);
+    h.get_by_label("Select range").click();
+    h.run_steps(8);
+    assert_eq!(h.state().vba.as_ref().ok_or("editor")?.ide.form_range_selection()?, Some((f, 12)));
+    // Real worksheet pointer input must reach the same canonical RefEdit value.
+    let a = h.state();
+    let sh = a.session.doc()?.wb.active().ok_or("sheet")?;
+    let position = gridcraft_ui_egui::grid::Geo::new(sh, a.grid.rect.ok_or("grid")?, a.view().scroll).cell_rect(sh, CellRef::new(7, 5)).center();
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerMoved(position));
+        h.event(egui::Event::PointerButton { pos: position, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE });
+        h.run_steps(4);
+    }
+    assert_eq!(
+        h.state().vba.as_ref().ok_or("editor")?.ide.form_instance_field(f, Some(12), "VbaText")?,
+        VbaValue::String(VbaString::from_utf8("Sheet1!$F$8")?)
+    );
+    h.key_press(egui::Key::F2);
+    h.run_steps(3);
+    h.event(egui::Event::Text("99".into()));
+    h.run_steps(3);
+    assert!(h.state().editor.is_none(), "Range selection must not enter cell editing");
+    assert_eq!(h.state().session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::new(7, 5)), Value::Empty);
+    if let Some(path) = snapshot {
+        h.render()?.save(path)?;
+    }
+    h.state_mut().run("vba.trust", json!({"allow":false})).map_err(std::io::Error::other)?;
+    h.run_steps(4);
+    let editor = h.state().vba.as_ref().ok_or("editor")?;
+    assert_eq!(editor.ide.form_range_selection()?, None);
+    assert_eq!(editor.ide.native_form(id), Some(&original));
+    Ok(())
+}

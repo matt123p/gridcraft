@@ -591,3 +591,38 @@ pub fn image_companion_with_picture(picture: &[u8]) -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Original RefEdit fixture using the published non-cached class-table contract.
+pub fn refedit_companion() -> Vec<u8> {
+    let mut controls = controls();
+    let mut body = u32s(&[0x80540100, 0]); // size, show-drop, drop-style, value
+    body.extend([2, 3, 0, 0]); // Always / Reduce; aligned value count follows
+    body.extend(u32s(&[0x80000007, 2540, 635]));
+    body.extend(string("initial"));
+    controls[1] = record(0x200, &body);
+    controls[1].extend(record(0x200, &[0; 4]));
+    let mut streams = streams();
+    let f = &mut streams[0].1;
+    let offset = 4 + usize::from(u16::from_le_bytes([f[2], f[3]]));
+    f.truncate(offset);
+    f.extend(1u16.to_le_bytes());
+    let mut class = u32s(&[0x4b, 0]); // class, events, interface, bind DispID
+    class.extend([0x12, 0x45, 2, 0, 0, 0, 0, 0, 0xc0, 0, 0, 0, 0, 0, 0, 0x46]);
+    class.extend([0x12, 0x1d, 0xd2, 0x8b, 0x42, 0xec, 0xce, 0x11, 0x9e, 0x0d, 0, 0xaa, 0, 0x60, 2, 0xf3]);
+    class.extend([0x18, 0x45, 2, 0, 0, 0, 0, 0, 0xc0, 0, 0, 0, 0, 0, 0, 0x46]);
+    f.extend(record(0, &class));
+    f.extend(3u32.to_le_bytes());
+    let mut sites = vec![0, 0x83, 1, 0];
+    for (i, (id, name, class)) in [(11, "Heading", 21), (12, "Entry", 0x8000), (13, "Apply", 17)].into_iter().enumerate() {
+        sites.extend(site(id, name, class, i as u16, controls[i].len()));
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    file.create_stream("/f").unwrap().write_all(f).unwrap();
+    file.create_stream("/o").unwrap().write_all(&controls.concat()).unwrap();
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}

@@ -1,6 +1,8 @@
 //! Optional shell glue; the editor/debugger itself is rendered by tiny-vba.
 #[path = "vba_interaction.rs"]
 mod interaction;
+#[path = "vba_refedit.rs"]
+mod refedit;
 use crate::{SheetApp, theme};
 use gridcraft_vba::worksheet::{Functions, Project};
 use gridcraft_vba::{
@@ -20,6 +22,7 @@ pub struct Editor {
     pub(crate) pending_prompt: Option<PromptRequest>,
     pending_print: Option<PendingPrint>,
     pending_interaction: Option<interaction::Pending>,
+    refedit_picker: Option<refedit::Picker>,
     external_lifecycle: Option<ExternalLifecycle>,
     lifecycle_commit: bool,
     approved_close: Option<u64>,
@@ -74,7 +77,13 @@ fn navigate(editor: &mut Editor, entry: &str) -> Result<()> {
 /// Execution still advances only in the parent SheetApp::logic; no second VM or host is created.
 #[cfg(all(feature = "vba-window", not(target_arch = "wasm32")))]
 pub fn show_desktop(app: &mut SheetApp, ctx: &egui::Context, owner: egui::ViewportId) {
-    let Some(editor) = app.vba.as_mut().filter(|e| e.visible && e.separate_window) else { return };
+    let Some(editor) = app.vba.as_mut().filter(|e| {
+        e.visible
+            && e.separate_window
+            && (e.ide.form_range_selection().ok().flatten().is_none() || matches!(e.ide.mode(), Mode::Break | Mode::Stale | Mode::Failed))
+    }) else {
+        return;
+    };
     let id = egui::ViewportId::from_hash_of(("gridcraft-vba-editor", editor.bridge.document()));
     let focus = editor.focus_window;
     if focus {
@@ -178,6 +187,7 @@ pub fn before_command(app: &mut SheetApp, id: &str, params: &Json) -> Result<boo
     if editor.lifecycle_commit {
         return Ok(true);
     }
+    refedit::before_command(editor, id)?;
     if id == "ui.dialog.cancel" && editor.pending_prompt.as_ref().is_some_and(|p| matches!(p.prompt, LifecyclePrompt::SaveChanges { .. })) {
         let token = editor.pending_prompt.as_ref().map(|p| p.token).ok_or("missing save prompt")?;
         editor.bridge.respond_to_prompt(token, PromptResponse::Cancel).map_err(|e| e.description)?;
@@ -424,6 +434,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             pending_prompt: None,
             pending_print: None,
             pending_interaction: None,
+            refedit_picker: None,
             external_lifecycle: None,
             lifecycle_commit: false,
             approved_close: None,
@@ -557,6 +568,7 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
             }
             if matches!(action, Action::Reset) {
                 editor.external_lifecycle = None;
+                editor.refedit_picker = None;
                 editor.approved_close = None;
                 editor.close_after_save = None;
                 editor.saved_events.clear();
@@ -650,6 +662,9 @@ pub fn tick(app: &mut SheetApp, ctx: &egui::Context) {
             after: true,
             save: false,
         });
+    }
+    if let Err(e) = refedit::poll(editor, &mut app.session) {
+        editor.ide.message(e);
     }
     let commit = poll_external_lifecycle(editor, &mut app.session);
     if let Some((doc, id, params, save)) = commit {
@@ -1234,6 +1249,7 @@ pub fn dispatch_editor_command(editor: &mut Editor, session: &mut gridcraft_engi
         Command::Action(a) => {
             if a == Action::Reset {
                 editor.external_lifecycle = None;
+                editor.refedit_picker = None;
                 editor.saved_events.clear();
                 editor.pending_prompt = None;
                 editor.approved_close = None;
@@ -1292,6 +1308,7 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
             });
         }
     });
+    editor.view.range_selection_enabled = editor.bridge.permitted(&app.session) && editor.bridge.current(&app.session);
     commands.extend(editor.view.show(ui, &editor.ide, host_theme(theme::Tokens::get(ui.ctx()))));
     for command in commands {
         let result = dispatch_editor_command(&mut editor, &mut app.session, command);
@@ -1505,4 +1522,26 @@ pub fn answer_save_prompt(app: &mut SheetApp, answer: crate::SaveAnswer) -> bool
 
 pub(crate) fn interaction_dialog_closed(app: &mut SheetApp, token: u64, accepted: bool) -> Result<()> {
     interaction::complete(app, token, accepted)
+}
+
+/// Render form windows over the workbook while VBE is hidden or RefEdit is collapsed.
+pub fn show_form_windows(app: &mut SheetApp, ctx: &egui::Context) {
+    let Some(editor) = app.vba.as_mut() else {
+        return;
+    };
+    if editor.visible && editor.ide.form_range_selection().ok().flatten().is_none() {
+        return;
+    }
+    editor.view.range_selection_enabled = editor.bridge.permitted(&app.session) && editor.bridge.current(&app.session);
+    let commands = editor.view.show_forms(ctx, &editor.ide, host_theme(theme::Tokens::get(ctx)));
+    for command in commands {
+        if let Err(e) = dispatch_editor_command(editor, &mut app.session, command) {
+            editor.ide.message(e.to_string());
+        }
+    }
+}
+
+/// RefEdit temporarily lends worksheet selection input while retaining modal ownership.
+pub(crate) fn selecting_range(app: &SheetApp) -> bool {
+    app.vba.as_ref().is_some_and(|e| e.ide.form_range_selection().ok().flatten().is_some())
 }

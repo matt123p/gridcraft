@@ -221,7 +221,12 @@ impl SheetApp {
             ribbon::title_bar(self, ui);
         }
         #[cfg(feature = "vba")]
-        let vba_visible = self.vba.as_ref().is_some_and(|v| v.visible && !v.separate_window);
+        let vba_visible = self.vba.as_ref().is_some_and(|v| {
+            v.visible
+                && !v.separate_window
+                && (v.ide.form_range_selection().ok().flatten().is_none()
+                    || matches!(v.ide.mode(), gridcraft_vba::Mode::Break | gridcraft_vba::Mode::Stale | gridcraft_vba::Mode::Failed))
+        });
         #[cfg(not(feature = "vba"))]
         let vba_visible = false;
         if vba_visible {
@@ -248,6 +253,8 @@ impl SheetApp {
                 self.perf.grid_ms = now_ms() - g0;
             });
         }
+        #[cfg(feature = "vba")]
+        crate::vba::show_form_windows(self, &ctx);
         dialogs::show(self, &ctx);
         macro_ui::forget_closed_editor(self);
         macro_ui::question_box(self, &ctx);

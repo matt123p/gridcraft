@@ -526,3 +526,52 @@ End Sub"#,
     assert_eq!(back.vba_project.as_deref(), Some(&original));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_refedit_text_preserves_xlsm_resources() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                r#"Attribute VB_Name = "Launch"
+Sub Main()
+Dim f As New NativeForm,r As RefEdit.RefEdit
+Set r=f.Entry
+Debug.Print r.Value,r.Parent Is f
+f.Show 0
+End Sub"#,
+            ),
+        ]),
+        fixture::refedit_companion(),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "RefEdit.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.form_instances()?.is_empty());
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["initialized", "initial\tTrue"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    let native = ide.native_form(f.source).ok_or("native")?.clone();
+    assert!(ide.form_instance_drop(f, 12, true, &mut bridge.host(&mut session)).is_err());
+    ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("Sheet1!$B$2:$C$4")?, (0, 0), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaText")?, gridcraft_vba::Value::String(vba_values::VbaString::from_utf8("Sheet1!$B$2:$C$4")?));
+    assert_eq!(ide.form_range_selection()?, None);
+    assert_eq!(ide.native_form(f.source), Some(&native));
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}

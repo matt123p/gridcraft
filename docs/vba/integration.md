@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `4455df4082430d3d0d56412df73defd92c26c1df`.
+The host/editor now pin shared revision `21898dced2dfed4649142a5cc84f8792acda896b`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -633,3 +633,22 @@ check PASS. Both embedded-form UI/consent regressions PASS. The new package
 case verifies inert import, nominal Image/stdole picture access, shared immutable
 resource identity, nonfocusable authorized clicks and exact original XLSM project
 bytes after save/reopen.
+
+M7A.4 native RefEdit follow-up — 2026-11-05 (shared revision `21898dced2dfed4649142a5cc84f8792acda896b`): the shared implementation adds
+bounded inert class-table/CLSID resolution, ordinary RefEdit reference metadata,
+canonical text/drop state and selected focus/validation/Change/DropButtonClick
+continuations. Original source/resources remain separate. The Excel host owns
+worksheet range selection; no DLL/OCX/COM activation is introduced. Broader
+RefEdit/platform/property/event semantics, bindings, dynamic collections and the
+remaining M7A.4 ledger stay open. Native edited saving/removal stay M7A.5/.6;
+fresh Office observations remain NOT_RUN under M8.5.
+
+RefEdit validation: full GridCraft CI (10 steps), twelve native and twelve actual
+Node/WASM package cases, strict optional VBA/UI Clippy and optional VBA web
+check PASS. All three embedded-form UI/consent cases PASS. The new UI case
+exercises real reduce/restore and worksheet pointer input with VBE hidden,
+canonical multi-area references, an authored workbook callback, prevention of
+cell editing while picking, consent revocation and unchanged source/resources.
+The collapsed picker/worksheet capture was inspected. UserForm windows now render
+over the workbook independently of VBE visibility; callback Stop reveals VBE.
+The existing host lifecycle-commit authorization path remains authoritative.

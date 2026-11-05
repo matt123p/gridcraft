@@ -3,6 +3,10 @@ use super::{SheetApp, clean_error, editor, formula_bar, formula_locale, json, no
 impl SheetApp {
     /// Starts editing the active cell. `text` replaces the content (typing) or pre-fills it.
     pub fn begin_edit(&mut self, text: Option<String>, from_formula_bar: bool) {
+        #[cfg(feature = "vba")]
+        if crate::vba::selecting_range(self) {
+            return;
+        }
         // The source formula is display-only on spill children. Grid replacement keeps its
         // existing behavior, but no formula-bar entry path may edit that displayed formula.
         if from_formula_bar && formula_bar::active_spill_anchor(self).is_some() {
