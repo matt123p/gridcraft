@@ -652,3 +652,17 @@ cell editing while picking, consent revocation and unchanged source/resources.
 The collapsed picker/worksheet capture was inspected. UserForm windows now render
 over the workbook independently of VBE visibility; callback Stop reveals VBE.
 The existing host lifecycle-commit authorization path remains authoritative.
+
+M7A.4 native Tabs/Pages mutation — 2026-11-05 (shared revision
+`422c5c2338a05276e353b27018a531bf23231af4`): native collections support
+Add/Remove/Clear, writable Integer Index and runtime-created member Name.
+Reordering preserves aliases and selected identity; collection changes commit
+before ordinary Change/Stop continuations. Added empty Pages and reordered
+native children use the shared renderer; removed Page children reject widget
+input. Original project/source/resource bytes remain separate. Fresh Office
+comparison remains NOT_RUN under M8.5; Controls.Add/Remove, multiple selection,
+bindings and the remaining M7A.4 semantic ledger stay open. Native edited saving
+and .tvform removal remain M7A.5/.6. Integration validation PASS: all 13 native and 13 actual Node/WASM package
+cases, full ten-step CI, strict optional VBA/UI Clippy, three form widget cases
+and the optional VBA web check. The new case checks both Tabs and Pages,
+authorization, retained aliases and unchanged XLSM VBA project bytes.
