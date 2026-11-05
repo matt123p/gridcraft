@@ -34,6 +34,7 @@ fn imported_tvform_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R
                 visible: true,
                 tab_stop: true,
                 group: None,
+                parent: None,
             },
             Control {
                 id: 2,
@@ -46,6 +47,7 @@ fn imported_tvform_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R
                 visible: true,
                 tab_stop: true,
                 group: None,
+                parent: None,
             },
         ],
         tab_order: vec![1, 2],

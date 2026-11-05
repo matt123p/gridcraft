@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `5cda307d4f9233175c915f6296b25896b12b0ffe`.
+The host/editor now pin shared revision `e246411ff33bf04d43a8c0e8d159c3679db257e9`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -563,3 +563,18 @@ Node 22 WASM package cases, strict optional VBA/UI Clippy and the optional VBA
 web build PASS. Further list/binding and
 container/image/platform work, actual Help/F1 routing, native edited saving and
 .tvform removal remain open. Fresh Office comparison remains NOT_RUN under M8.5.
+
+M7A.4 native Frame follow-up (2026-11-05): shared revision `e246411ff33bf04d43a8c0e8d159c3679db257e9` supports
+selected nested native Frame storages, immediate child Controls/Parent identity,
+scoped tab/option groups, nested ActiveControl and cancellable ancestor focus.
+Shared widgets use live relative geometry, clipping and accessible group ancestry.
+The package regression exercises typed Frame access and trusted child text input,
+then verifies exact original project resources after save/reopen. This does not
+implement native edited-source/resource saving. MultiPage/TabStrip/Image/RefEdit,
+further properties/bindings/platform/lifecycle semantics and .tvform removal
+remain open; fresh Office observations remain NOT_RUN under M8.5.
+
+Frame validation: all eight native and eight actual Node/WASM package cases PASS.
+Full CI (ten gates), strict optional VBA/UI Clippy, the optional VBA web build
+and both existing embedded-form UI/consent regressions PASS. The new native
+package case preserves exact original XLSM project/source/resource bytes.

@@ -320,3 +320,69 @@ pub fn metadata_companion() -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+pub fn frame_companion(depth: usize) -> Vec<u8> {
+    fn parent(caption: &str, sites: Vec<Vec<u8>>, objects: Vec<Vec<u8>>, width: u32, height: u32) -> (Vec<u8>, Vec<u8>) {
+        let mut body = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x80000000 | caption.len() as u32, 100, width, height, width, height]);
+        body.extend(string(caption));
+        let mut f = record(0x400, &body);
+        f.extend(0u16.to_le_bytes());
+        f.extend((sites.len() as u32).to_le_bytes());
+        let mut entries = if sites.is_empty() { vec![] } else { vec![0, 0x80 | sites.len() as u8, 1, 0] };
+        for site in sites {
+            entries.extend(site);
+        }
+        f.extend((entries.len() as u32).to_le_bytes());
+        f.extend(entries);
+        (f, objects.concat())
+    }
+    fn positioned(mut site: Vec<u8>, left: u32, top: u32, frame: bool) -> Vec<u8> {
+        if frame {
+            site[16..20].copy_from_slice(&0x42003u32.to_le_bytes());
+        }
+        let at = site.len() - 8;
+        site[at..at + 4].copy_from_slice(&left.to_le_bytes());
+        site[at + 4..].copy_from_slice(&top.to_le_bytes());
+        site
+    }
+    let controls = controls();
+    let mut streams = Vec::new();
+    let mut path = String::new();
+    let mut root_sites = vec![site(11, "Heading", 21, 0, controls[0].len()), site(13, "Apply", 17, 2, controls[2].len())];
+    let mut root_objects = vec![controls[0].clone(), controls[2].clone()];
+    if depth == 0 {
+        root_sites.push(site(12, "Entry", 23, 1, controls[1].len()));
+        root_objects.push(controls[1].clone());
+    } else {
+        root_sites.push(positioned(site(20, "Frame1", 14, 1, 0), 3600, 600, true));
+    }
+    let (f, o) = parent("Native form", root_sites, root_objects, 10583, 7056);
+    streams.push(("/f".to_owned(), f));
+    streams.push(("/o".to_owned(), o));
+    for level in 0..depth {
+        path.push_str(&format!("/i{:02}", 20 + level));
+        let name = format!("Frame{}", level + 1);
+        let (sites, objects) = if level + 1 == depth {
+            (vec![positioned(site(12, "Entry", 23, 0, controls[1].len()), 300, 800, false)], vec![controls[1].clone()])
+        } else {
+            (vec![positioned(site(21 + level as u32, &format!("Frame{}", level + 2), 14, 0, 0), 300, 800, true)], vec![])
+        };
+        let (f, o) =
+            parent(&name, sites, objects, 5300u32.saturating_sub(level as u32 * 500).max(1000), 4300u32.saturating_sub(level as u32 * 900).max(1000));
+        streams.push((format!("{path}/f"), f));
+        streams.push((format!("{path}/o"), o));
+    }
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    for (name, bytes) in streams {
+        if let Some((storage, _)) = name.rsplit_once('/')
+            && !storage.is_empty()
+        {
+            file.create_storage_all(storage).unwrap();
+        }
+        file.create_stream(name).unwrap().write_all(&bytes).unwrap();
+    }
+    let bytes = file.into_inner().into_inner();
+    let mut result = (bytes.len() as u32).to_le_bytes().to_vec();
+    result.extend(bytes);
+    result
+}

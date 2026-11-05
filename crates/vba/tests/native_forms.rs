@@ -62,10 +62,14 @@ fn form_project(project: Vec<u8>, resource: Vec<u8>) -> Vec<u8> {
     use std::io::{Cursor, Read, Write};
     let mut file = cfb::CompoundFile::open(Cursor::new(fixture::add_designer(project))).unwrap();
     let mut resource = cfb::CompoundFile::open(Cursor::new(resource[4..].to_vec())).unwrap();
-    for name in ["f", "o"] {
+    let streams = resource.walk().filter(|entry| entry.is_stream()).map(|entry| entry.path().to_path_buf()).collect::<Vec<_>>();
+    for name in streams {
         let mut bytes = Vec::new();
-        resource.open_stream(format!("/{name}")).unwrap().read_to_end(&mut bytes).unwrap();
-        file.create_stream(format!("/NativeForm/{name}")).unwrap().write_all(&bytes).unwrap();
+        resource.open_stream(&name).unwrap().read_to_end(&mut bytes).unwrap();
+        let target = format!("/NativeForm{}", name.display());
+        let parent = std::path::Path::new(&target).parent().unwrap();
+        file.create_storage_all(parent).unwrap();
+        file.create_stream(&target).unwrap().write_all(&bytes).unwrap();
     }
     file.into_inner().into_inner()
 }
@@ -309,6 +313,55 @@ End Sub"#,
     let native = ide.native_form(f.source).ok_or("native")?.clone();
     ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("edited")?, (6, 0), &mut bridge.host(&mut session))?;
     settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.native_form(f.source), Some(&native));
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_nested_frame_collections_and_input_preserve_xlsm_resources() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                r#"Attribute VB_Name = "Launch"
+Sub Main()
+Dim f As New NativeForm,g As MSForms.Frame
+Set g=f.Frame1
+Debug.Print f.Controls.Count,g.Controls.Count,f.Frame2.Controls.Count
+Debug.Print f.Entry.Parent Is f.Frame2
+f.Show 0
+Debug.Print f.ActiveControl.Name,g.ActiveControl.Name
+End Sub"#,
+            ),
+        ]),
+        fixture::frame_companion(2),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Frames.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(ide.form_instances()?.is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["initialized", "3\t1\t1", "True", "Frame1\tFrame2"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    let native = ide.native_form(f.source).ok_or("native")?.clone();
+    ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("nested😀")?, (8, 0), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, Some(12), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("nested😀")?));
     assert_eq!(ide.native_form(f.source), Some(&native));
     let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
     let (back, _) = read_xlsx(&saved)?;

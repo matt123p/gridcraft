@@ -379,3 +379,13 @@ M7A.4 readback/metadata follow-up — 2026-11-04: native ListBox/ComboBox expose
 detached 2D List/Column snapshots for the current ten-column unbound packet.
 Native Tag/ControlTipText/HelpContextID use ordinary per-instance state; actual
 control-tip hover is read-only and theme-injected. See [integration](integration.md).
+
+M7A.4 native Frame follow-up (2026-11-05): the shared runtime now supports
+selected nested native Frame storages, immediate child Controls/Parent identity,
+scoped tab/option groups, nested ActiveControl and cancellable ancestor focus.
+Shared widgets use live relative geometry, clipping and accessible group ancestry.
+The package regression exercises typed Frame access and trusted child text input,
+then verifies exact original project resources after save/reopen. This does not
+implement native edited-source/resource saving. MultiPage/TabStrip/Image/RefEdit,
+further properties/bindings/platform/lifecycle semantics and .tvform removal
+remain open; fresh Office observations remain NOT_RUN under M8.5.
