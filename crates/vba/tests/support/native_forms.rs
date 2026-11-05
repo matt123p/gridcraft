@@ -386,3 +386,67 @@ pub fn frame_companion(depth: usize) -> Vec<u8> {
     result.extend(bytes);
     result
 }
+
+pub fn tab_companion(selected: i32) -> Vec<u8> {
+    fn array(values: &[&str]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for value in values {
+            let units = value.encode_utf16().collect::<Vec<_>>();
+            out.extend((units.len() as u32).to_le_bytes());
+            out.extend(units.into_iter().flat_map(u16::to_le_bytes));
+            while !out.len().is_multiple_of(4) {
+                out.push(0);
+            }
+        }
+        out
+    }
+    let captions = array(&["First", "Second😀", "Blocked"]);
+    let names = array(&["FirstTab", "SecondTab", "BlockedTab"]);
+    let tags = array(&["one", "two", ""]);
+    let tips = array(&["first tip", "second tip", ""]);
+    let mut body = u32s(&[
+        (1 << 0) | (1 << 4) | (1 << 5) | (1 << 15) | (1 << 17) | (1 << 19) | (1 << 20) | (1 << 21) | (1 << 22),
+        selected as u32,
+        captions.len() as u32,
+        tips.len() as u32,
+        names.len() as u32,
+        3,
+        tags.len() as u32,
+        3,
+        7000,
+        4000,
+    ]);
+    body.extend(captions);
+    body.extend(tips);
+    body.extend(names);
+    body.extend(tags);
+    let mut strip = record(0x200, &body);
+    strip.extend(record(0x200, &[0; 4]));
+    strip.extend(u32s(&[3, 3, 1]));
+    let mut all = controls();
+    all.push(strip);
+    let mut form = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x80000000 | 11, 32000, 10583, 7056, 10583, 7056]);
+    form.extend(string("Native form"));
+    let mut f = record(0x400, &form);
+    f.extend(0u16.to_le_bytes());
+    f.extend(4u32.to_le_bytes());
+    let mut sites = vec![0, 0x84, 1, 0];
+    for (i, (id, name, class)) in [(11, "Heading", 21), (12, "Entry", 23), (13, "Apply", 17), (14, "Tabs1", 18)].into_iter().enumerate() {
+        let mut encoded = site(id, name, class, i as u16, all[i].len());
+        if id == 14 {
+            let at = encoded.len() - 8;
+            encoded[at..at + 4].copy_from_slice(&3600u32.to_le_bytes());
+            encoded[at + 4..].copy_from_slice(&600u32.to_le_bytes());
+        }
+        sites.extend(encoded);
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    file.create_stream("/f").unwrap().write_all(&f).unwrap();
+    file.create_stream("/o").unwrap().write_all(&all.concat()).unwrap();
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}

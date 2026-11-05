@@ -437,7 +437,7 @@ enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contr
 
 ## M7A.4 shared runtime increment (2026-11-04)
 
-The host/editor now pin shared revision `e246411ff33bf04d43a8c0e8d159c3679db257e9`.
+The host/editor now pin shared revision `fe86257c80c178baaa5701b5cf87597e4bc72daa`.
 The flat native profile includes Label, TextBox, CommandButton, CheckBox,
 OptionButton and ToggleButton. Explicit instances have independent fields,
 windows and callbacks. Selected Value/Change/Click/group/Locked, tab ordering,
@@ -578,3 +578,20 @@ Frame validation: all eight native and eight actual Node/WASM package cases PASS
 Full CI (ten gates), strict optional VBA/UI Clippy, the optional VBA web build
 and both existing embedded-form UI/consent regressions PASS. The new native
 package case preserves exact original XLSM project/source/resource bytes.
+
+M7A.4 native TabStrip follow-up (2026-11-05): shared revision `6bb45c6f607ecd2ae881ccdb314ace6e3073b29c` adds selected
+native TabStrip records and distinct Tab/Tabs objects, indexed/named lookup,
+enumeration, selection/default properties and authorized pointer/key callbacks.
+Tabs remain separate from form Controls; source/resources remain independent.
+Full M7A.4 remains open for MultiPage, Image/RefEdit, tab structural mutation and
+writable Index/Name, further lifecycle/property/event/binding/platform cases.
+Native edited persistence and .tvform removal remain M7A.5/.6 requirements.
+
+The final TabStrip pin `fe86257c80c178baaa5701b5cf87597e4bc72daa` also rejects oversized
+uncompressed tab character counts before they can alias the compression flag.
+
+TabStrip validation: all nine native and nine actual Node/WASM package cases
+PASS. Full CI (ten gates), strict optional VBA/UI Clippy, the optional VBA web
+build and both embedded-form UI/consent regressions PASS. The new package case
+checks distinct tab identity/defaults, disabled input refusal, authorized selection,
+unchanged source/resources and exact XLSM project bytes after reopen.

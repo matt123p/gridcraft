@@ -190,3 +190,10 @@ then verifies exact original project resources after save/reopen. This does not
 implement native edited-source/resource saving. MultiPage/TabStrip/Image/RefEdit,
 further properties/bindings/platform/lifecycle semantics and .tvform removal
 remain open; fresh Office observations remain NOT_RUN under M8.5.
+
+M7A.4 native TabStrip follow-up — 2026-11-05: selected native records now have
+separate Tab/Tabs identity, indexed/named lookup, enumeration, Value/SelectedItem,
+metadata and authorized pointer/arrow input in the shared runtime. Nearby controls
+stay on their original form/Frame. Dynamic tab mutation, writable Index/Name,
+further presentation/events and the remaining M7A.4 scope remain open. Native
+edited saving and .tvform removal remain separate milestones.

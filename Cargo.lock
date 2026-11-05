@@ -5521,7 +5521,7 @@ dependencies = [
 [[package]]
 name = "vba-compiler"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
  "vba-foreign",
@@ -5534,7 +5534,7 @@ dependencies = [
 [[package]]
 name = "vba-debug"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
  "vba-vm",
@@ -5543,12 +5543,12 @@ dependencies = [
 [[package]]
 name = "vba-diagnostics"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 
 [[package]]
 name = "vba-foreign"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
  "vba-values",
@@ -5557,7 +5557,7 @@ dependencies = [
 [[package]]
 name = "vba-ide"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-compiler",
  "vba-debug",
@@ -5574,7 +5574,7 @@ dependencies = [
 [[package]]
 name = "vba-ir"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
  "vba-values",
@@ -5583,7 +5583,7 @@ dependencies = [
 [[package]]
 name = "vba-project"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "cfb",
  "encoding_rs",
@@ -5593,7 +5593,7 @@ dependencies = [
 [[package]]
 name = "vba-runtime"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "encoding_rs",
  "vba-diagnostics",
@@ -5603,7 +5603,7 @@ dependencies = [
 [[package]]
 name = "vba-semantics"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
  "vba-foreign",
@@ -5615,7 +5615,7 @@ dependencies = [
 [[package]]
 name = "vba-syntax"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
 ]
@@ -5623,7 +5623,7 @@ dependencies = [
 [[package]]
 name = "vba-ui-egui"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "egui",
  "vba-ide",
@@ -5632,7 +5632,7 @@ dependencies = [
 [[package]]
 name = "vba-values"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
 ]
@@ -5640,7 +5640,7 @@ dependencies = [
 [[package]]
 name = "vba-vm"
 version = "0.1.0"
-source = "git+https://github.com/matt123p/tiny-vba.git?rev=e246411ff33bf04d43a8c0e8d159c3679db257e9#e246411ff33bf04d43a8c0e8d159c3679db257e9"
+source = "git+https://github.com/matt123p/tiny-vba.git?rev=fe86257c80c178baaa5701b5cf87597e4bc72daa#fe86257c80c178baaa5701b5cf87597e4bc72daa"
 dependencies = [
  "vba-diagnostics",
  "vba-foreign",
