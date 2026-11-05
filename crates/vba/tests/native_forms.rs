@@ -472,3 +472,57 @@ End Sub"#,
     assert_eq!(back.vba_project.as_deref(), Some(&original));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_image_objects_and_input_preserve_xlsm_resources() -> R {
+    let original = form_project(
+        support::project(&[
+            ("NativeForm", "BaseClass", fixture::SOURCE),
+            (
+                "Launch",
+                "Module",
+                r#"Attribute VB_Name = "Launch"
+Sub Main()
+Dim f As New NativeForm,s As MSForms.Image
+Set s=f.Image1
+Dim p As stdole.IPictureDisp
+Set p=s.Picture
+Set f.Image2.Picture=p
+Debug.Print f.Controls.Count,p.Width,p.Height,p.Type
+Debug.Print f.Image2.Picture Is p
+f.Show 0
+End Sub"#,
+            ),
+        ]),
+        fixture::image_companion(),
+    );
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Tabs.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(ide.form_instances()?.is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["initialized", "5\t1200\t720\t1", "True"]);
+    let f = *ide.form_instances()?.first().ok_or("instance")?;
+    let native = ide.native_form(f.source).ok_or("native")?.clone();
+    ide.form_instance_event(f, Some(14), None, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_field(f, None, "VbaActiveControl")?, ide.form_instance_field(f, None, "VbaEntry")?);
+    let first = ide.form_instance_picture(f, 14)?.ok_or("picture")?;
+    let second = ide.form_instance_picture(f, 15)?.ok_or("picture")?;
+    assert!(std::sync::Arc::ptr_eq(&first.rgba, &second.rgba));
+    assert_eq!(ide.native_form(f.source), Some(&native));
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&saved)?;
+    assert_eq!(back.vba_project.as_deref(), Some(&original));
+    Ok(())
+}

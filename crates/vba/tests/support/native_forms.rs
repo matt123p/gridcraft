@@ -527,3 +527,67 @@ pub fn multipage_companion(selected: i32) -> Vec<u8> {
     out.extend(bytes);
     out
 }
+
+/// Original two-colour 24-bit BMP; fixed physical resolution, no vendor artwork.
+pub fn picture_bitmap() -> Vec<u8> {
+    picture_bitmap_size(120, 72)
+}
+pub fn picture_bitmap_size(width: u32, height: u32) -> Vec<u8> {
+    let row = (width * 3 + 3) & !3;
+    let mut data = b"BM".to_vec();
+    data.extend((54 + row * height).to_le_bytes());
+    data.extend([0; 4]);
+    data.extend(54u32.to_le_bytes());
+    data.extend(u32s(&[40, width, height]));
+    data.extend(1u16.to_le_bytes());
+    data.extend(24u16.to_le_bytes());
+    data.extend(u32s(&[0, row * height, 10000, 10000, 0, 0]));
+    for y in 0..height {
+        for x in 0..width {
+            data.extend(if (x / 12 + y / 12) % 2 == 0 { [40, 150, 220] } else { [190, 70, 30] });
+        }
+        data.extend(vec![0; (row - width * 3) as usize]);
+    }
+    data
+}
+pub fn image_companion() -> Vec<u8> {
+    image_companion_with_picture(&picture_bitmap())
+}
+pub fn image_companion_with_picture(picture: &[u8]) -> Vec<u8> {
+    let mut all = controls();
+    let mut body = u32s(&[(1 << 7) | (1 << 9) | (1 << 10)]);
+    body.extend([3, 0, 0xff, 0xff]);
+    body.extend(u32s(&[4000, 2500]));
+    let mut image = record(0x200, &body);
+    image.extend([4, 0x52, 0xe3, 0x0b, 0x91, 0x8f, 0xce, 0x11, 0x9d, 0xe3, 0, 0xaa, 0, 0x4b, 0xb8, 0x51]);
+    image.extend(u32s(&[0x746c, picture.len() as u32]));
+    image.extend(picture);
+    all.push(image);
+    all.push(record(0x200, &u32s(&[1 << 9, 4000, 2000])));
+    let mut form = u32s(&[(1 << 10) | (1 << 11) | (1 << 19) | (1 << 27), 0x8000000b, 32000, 10583, 7056, 10583, 7056]);
+    form.extend(string("Native form"));
+    let mut f = record(0x400, &form);
+    f.extend(0u16.to_le_bytes());
+    f.extend(5u32.to_le_bytes());
+    let mut sites = vec![0, 0x85, 1, 0];
+    for (i, (id, name, class)) in
+        [(11, "Heading", 21), (12, "Entry", 23), (13, "Apply", 17), (14, "Image1", 12), (15, "Image2", 12)].into_iter().enumerate()
+    {
+        let mut encoded = site(id, name, class, i as u16, all[i].len());
+        if id >= 14 {
+            let n = encoded.len();
+            encoded[n - 8..n - 4].copy_from_slice(&3600u32.to_le_bytes());
+            encoded[n - 4..].copy_from_slice(&(if id == 14 { 600u32 } else { 3600 }).to_le_bytes());
+        }
+        sites.extend(encoded);
+    }
+    f.extend((sites.len() as u32).to_le_bytes());
+    f.extend(sites);
+    let mut file = cfb::CompoundFile::create(Cursor::new(Vec::new())).unwrap();
+    file.create_stream("/f").unwrap().write_all(&f).unwrap();
+    file.create_stream("/o").unwrap().write_all(&all.concat()).unwrap();
+    let bytes = file.into_inner().into_inner();
+    let mut out = (bytes.len() as u32).to_le_bytes().to_vec();
+    out.extend(bytes);
+    out
+}
