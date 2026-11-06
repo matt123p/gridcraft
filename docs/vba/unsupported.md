@@ -296,3 +296,8 @@ mouse, remaining accelerator cases and the remaining native control contracts st
 ADR 0072 implements selected native Label/button/boolean/Tab/Page accelerators.
 Duplicate matches are explicitly unsupported; non-ASCII/platform shortcut and
 further key/focus/event-order cases remain open. This does not close K03 or M7A.4.
+
+ADR 0073 implements typed mouse callbacks and selected simple-control capture/
+default processing. Text/list/numeric/drop/picker and indexed Tab/Page defaults,
+further capture/geometry/window/event-order and platform cases remain open.
+M01 and M7A.4 stay partial; event-signature metadata compaction raises no limits.

@@ -1,5 +1,17 @@
 # GridCraft roadmap
 
+M7A.4 mouse update (2026-11-06): shared ADR 0073 adds typed native
+MouseDown/MouseMove/MouseUp/DblClick callbacks, indexed arguments, mutable cancel
+and selected simple-control capture/defaults. Stop/Continue, outside release and
+Reset preserve input identity and source. Event signatures omit unused class-field
+metadata while preserving typed arguments, executable method fields and all limits.
+Text/list/numeric/indexed-tab pointer defaults, lifecycle and other checklist rows
+remain open; M7A.4 is incomplete and Office observations remain M8.5 NOT_RUN.
+Pinned shared revision `a33419724803ae2211f4538ddefadf1ffef4641a` passes full
+CI (10 steps), strict optional VBA/UI Clippy, four form UI tests, web and all
+24 native/24 Node-WASM package cases. Indexed MultiPage mouse input, stopped
+callbacks, authority, workbook effects and exact original resources are verified.
+
 M7A.4 accelerator update (2026-11-06): shared ADR 0072 at `7d43f082de4b7827da1e1d93c257ebeb50eca4ae`
 adds persisted native accelerators, canonical Accelerator properties and selected
 Label/button/boolean/Tab/Page Alt actions. Focus validation, Stop/Continue and

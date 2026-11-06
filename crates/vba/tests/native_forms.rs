@@ -422,9 +422,13 @@ End Sub"#,
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn native_multipage_objects_and_input_preserve_xlsm_resources() -> R {
+    let form = format!(
+        "{}\nPrivate Sub Multi1_MouseDown(Index As Long,ByVal Button As Integer,ByVal Shift As Integer,ByVal X As Single,ByVal Y As Single)\nDebug.Print Index,TypeName(X)\nEnd Sub",
+        fixture::SOURCE
+    );
     let original = form_project(
         support::project(&[
-            ("NativeForm", "BaseClass", fixture::SOURCE),
+            ("NativeForm", "BaseClass", &form),
             (
                 "Launch",
                 "Module",
@@ -466,6 +470,16 @@ End Sub"#,
     ide.form_instance_text(f, 40, vba_values::VbaString::from_utf8("selected")?, (8, 0), &mut bridge.host(&mut session))?;
     settle(&mut session, &mut bridge, &mut ide)?;
     assert_eq!(ide.form_instance_field(f, Some(40), "VbaText")?, vba_values::Value::String(vba_values::VbaString::from_utf8("selected")?));
+    bridge.begin(&mut session)?;
+    let epoch = ide.form_instance_mouse(
+        f,
+        Some(20),
+        vba_ide::FormMouseInput { event: vba_ide::FormMouseEvent::Down, button: 1, shift: 0, x: 5., y: 5., index: 0 },
+        &mut bridge.host(&mut session),
+    )?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_mouse_result(f, epoch)?, Some(true));
+    assert_eq!(ide.output().last().map(String::as_str), Some("0\tSingle"));
     assert_eq!(ide.native_form(f.source), Some(&native));
     let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
     let (back, _) = read_xlsx(&saved)?;
@@ -1133,6 +1147,56 @@ fn native_accelerator_click_waits_for_debugger_and_preserves_workbook_resources(
     assert_eq!(
         session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
         gridcraft_engine::core::Value::Text("accelerated".into())
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.begin(&mut session).is_err());
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_mouse_callback_waits_for_debugger_and_preserves_workbook_resources() -> R {
+    let form = format!(
+        "{}\nPrivate Sub Apply_MouseDown(ByVal Button As Integer,ByVal Shift As Integer,ByVal X As Single,ByVal Y As Single)\nStop\nRange(\"A1\").Value=\"mouse\"\nDebug.Print \"down\"\nEnd Sub",
+        fixture::SOURCE
+    );
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", &form),
+        ("Launch", "Module", "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Show 0\nNativeForm.Entry.SetFocus\nEnd Sub"),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Keys.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let f = *ide.form_instances()?.first().ok_or("form")?;
+    bridge.begin(&mut session)?;
+    let epoch = ide.form_instance_mouse(
+        f,
+        Some(13),
+        vba_ide::FormMouseInput { event: vba_ide::FormMouseEvent::Down, button: 1, shift: 3, x: 72., y: 12., index: -1 },
+        &mut bridge.host(&mut session),
+    )?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break);
+    assert!(ide.form_instance_mouse_result(f, epoch)?.is_none());
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()), gridcraft_engine::core::Value::Empty);
+    assert_eq!(ide.output(), vec!["initialized"]);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_mouse_result(f, epoch)?, Some(true));
+    assert_eq!(ide.output(), vec!["initialized", "down"]);
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Text("mouse".into())
     );
     let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
     assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
