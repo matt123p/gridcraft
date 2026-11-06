@@ -942,3 +942,46 @@ fn native_spilled_cell_binding_refreshes_after_recalculation_without_content_rev
     assert_eq!(read_xlsx(&write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?)?.0.vba_project.as_deref(), Some(&original));
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_form_arrays_keep_callback_receivers_trust_and_xlsm_resources() -> R {
+    let launch = "Attribute VB_Name = \"Launch\"\nSub Main()\nDim forms(0 To 1) As New NativeForm,a As NativeForm\nDebug.Print UserForms.Count\nforms(0).Show 0\nforms(0).Entry.Text=\"first\"\nforms(1).Show 0\nforms(1).Entry.Text=\"second\"\nSet a=forms(0)\nSet forms(0)=Nothing\nforms(0).Show 0\nDebug.Print a.Entry.Text,forms(1).Entry.Text,forms(0).Entry.Text\nEnd Sub";
+    let form = fixture::SOURCE.replace("Debug.Print Entry.Text", "Range(\"A1\")=Entry.Text\r\nDebug.Print Entry.Text");
+    let original = fixture::add_designer(support::project(&[("NativeForm", "BaseClass", &form), ("Launch", "Module", launch)]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let package = write_xlsx_as(&wb, XlsxKind::MacroWorkbook)?;
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(read_xlsx(&package)?.0, None, "ArrayForms.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(ide.form_instances()?.is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["0", "initialized", "initialized", "initialized", "first\tsecond\tinitial"]);
+    let instances = ide.form_instances()?;
+    assert_eq!(instances.len(), 3);
+    let expected = vba_values::Value::String(vba_values::VbaString::from_utf8("second")?);
+    let target = instances
+        .into_iter()
+        .find(|instance| ide.form_instance_field(*instance, Some(12), "VbaText").is_ok_and(|value| value == expected))
+        .ok_or("second instance")?;
+    ide.form_instance_event(target, Some(13), None, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.output().last().map(String::as_str), Some("second"));
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Text("second".into())
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    Ok(())
+}

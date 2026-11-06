@@ -475,3 +475,14 @@ Validation PASS: full CI (10 steps), 12 native/12 Node-WASM identity cases,
 strict optional VBA/UI Clippy, four form UI cases and optional web build.
 Explicit empty indexed collection calls retain their missing-argument error;
 VarType treats those collections as objects without invoking Item.
+
+
+As New arrays (2026-11-06, shared ADR 0068/IR 14): fixed/dynamic project-class
+and native-form elements construct lazily through ordinary frames. Element
+identity, Nothing recreation, Preserve/Erase, private/static/restored storage,
+canonical ByRef and Stop/For Each continuations preserve existing budgets.
+A new authored XLSM test checks independent window callbacks, trust revocation
+and exact original project resources. Pinned validation PASS at
+`d3f00127a47f08996bd89968ebb7ec019ed13c8b`: full CI (10 steps), strict optional
+VBA/UI Clippy, four form UI cases, optional web build and all 20 native/20
+Node-WASM package cases. Broader M7A.4 and fresh Office comparisons remain open.

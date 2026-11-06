@@ -266,3 +266,9 @@ authorized execution (Range.Value and Application.Name in this host). Unadapted
 objects retain type 9; additional default/arity cases need M8.5 comparisons.
 Further M7A.4 event/lifecycle/property/
 platform semantics and fresh M8.5 comparisons remain open.
+
+
+As New array update (2026-11-06): the generic project-class/native-form array
+restriction is removed under ADR 0068/IR 14. External activation and object-module
+Public arrays retain their existing refusals. Further alias/reentrant mutation
+comparisons and broader typed-event/lifecycle/control/platform work remain open.
