@@ -306,3 +306,8 @@ ADR 0074 implements selected native TextBox caret/drag/word pointer selection.
 Editable ComboBox/RefEdit, list/numeric/drop/picker/indexed-tab pointer defaults,
 selection margins, drag/drop, auto-scroll, further platform/word/focus cases and
 all other open shared M7A.4 checklist rows remain unsupported or partial.
+
+Shared ADR 0075 adds selected composite/list/numeric/tab-header pointer defaults.
+Further mouse/platform ordering, text/list drag/wheel and mutation/binding cases,
+tab/page background hits, lifecycle/focus/keyboard/IME and the remaining property,
+resource and host checklist remain open. M7A.4 is not fully accepted.
