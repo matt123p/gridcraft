@@ -301,3 +301,8 @@ ADR 0073 implements typed mouse callbacks and selected simple-control capture/
 default processing. Text/list/numeric/drop/picker and indexed Tab/Page defaults,
 further capture/geometry/window/event-order and platform cases remain open.
 M01 and M7A.4 stay partial; event-signature metadata compaction raises no limits.
+
+ADR 0074 implements selected native TextBox caret/drag/word pointer selection.
+Editable ComboBox/RefEdit, list/numeric/drop/picker/indexed-tab pointer defaults,
+selection margins, drag/drop, auto-scroll, further platform/word/focus cases and
+all other open shared M7A.4 checklist rows remain unsupported or partial.

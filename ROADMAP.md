@@ -1,5 +1,15 @@
 # GridCraft roadmap
 
+M7A.4 TextBox pointer update (2026-11-06): shared ADR 0074 adds selected
+caret, captured drag, double-click cancellation/word selection and Shift extension
+after ordinary mouse callbacks. Native AutoWordSelect is decoded with its inverse
+file bit; new dynamic text controls retain their separate default. Canonical
+UTF-16/CRLF, focus redirects, host authorization, Stop/Continue and Reset/source
+identity remain enforced. Modal bounds stay stable while input waits. Editable
+ComboBox/RefEdit, list/numeric/tab pointer defaults, further platform/selection and
+lifecycle cases remain open; M7A.4 is incomplete and fresh Office comparisons
+remain M8.5 NOT_RUN. Validation receipts follow below.
+
 M7A.4 mouse update (2026-11-06): shared ADR 0073 adds typed native
 MouseDown/MouseMove/MouseUp/DblClick callbacks, indexed arguments, mutable cancel
 and selected simple-control capture/defaults. Stop/Continue, outside release and
@@ -394,3 +404,8 @@ separate work, with fresh Office observations still NOT_RUN.
 Mouse command authorization is explicit under shared ADR 0073: form commands
 require host preparation unless they are known inert design operations. The final
 pin passes the same full CI/optional UI/web and 24 native/24 Node-WASM gates.
+
+Accepted shared pin `3e8676cc754f59e06df64d2677c1f64af0216432`: full CI (10 steps), strict optional VBA/UI Clippy,
+25 native and 25 actual Node-WASM package cases, four form UI cases and web checks
+pass. The new selection case preserves authority, stopped continuation and exact
+original workbook/VBA resources. M7A.4 remains incomplete.
