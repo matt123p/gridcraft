@@ -19,3 +19,9 @@ Native UserForm runtime now includes selected dynamic Controls, multiple selecti
 and worksheet ControlSource/RowSource bindings. See the [support](supported.md),
 [limits](unsupported.md) and [ownership](integration.md) references for their current
 scope; M7A.4 remains in progress.
+
+Selected native keyboard callbacks and the debugger-aware default-input barrier
+are integrated from shared ADR 0070. Full CI, strict optional VBA/UI checks,
+four form UI cases, web compilation and all 21 native/21 Node-WASM package
+cases pass at shared revision `9fde04ce9ed8eab15b7f0609160617c774c2fc1b`.
+The [unsupported reference](unsupported.md) retains the remaining M7A.4 gaps.

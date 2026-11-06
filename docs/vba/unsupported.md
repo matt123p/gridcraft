@@ -7,12 +7,13 @@ styling and unlisted control members remain outside it. Protected controls refus
 edits/input. Selected native UserForm import remains separate; broader UserForm
 semantics, edited resources and .tvform removal are still M7A.4–M7A.7.
 
-Updated 2026-11-05: edited-source binary VBA project writeback and cryptographic
+Updated 2026-11-06: edited-source binary VBA project writeback and cryptographic
 signature verification/re-signing remain unsupported. Save Source exports raw
 source separately; document save retains the original binary project. Replacing
 a captured binary project while reusing its original signature/data graph refuses.
 Package-wide signatures are invalidated by package rewrite. Native worksheet ActiveX remains unsupported; native UserForm import has
-a selected three-control profile. See the
+selected control families and runtime packets; full UserForm behavior remains
+in progress. See the
 [writeback/signature contract](../../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md).
 
 GridCraft exposes its existing workbook capabilities through a bounded VBA
@@ -277,3 +278,13 @@ comparisons and broader typed-event/lifecycle/control/platform work remain open.
 Empty-project collection update (2026-11-06): UserForms access no longer
 requires a form component. Remaining collection iteration/mutation and lifecycle
 cases are tracked in the shared M7A.4 completion checklist; the milestone is open.
+
+Native typed keyboard callbacks are partially implemented under shared ADR 0070.
+Remaining physical key/platform mappings, control-character shortcuts, root-window
+focus, IME/locale/focus transitions and accelerators remain open, along with mouse
+events and the other M7A.4 checklist rows. This does not complete M7A.4.
+
+UTF-16 string storage does not supply an ANSI code page. Asc/Chr and connected
+ANSI KeyPress handlers support ASCII in this host context; non-ASCII ANSI
+conversion requires an explicit configured code page. Unicode text without a
+connected KeyPress handler retains its existing text input path.

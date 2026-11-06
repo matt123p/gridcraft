@@ -985,3 +985,49 @@ fn native_form_arrays_keep_callback_receivers_trust_and_xlsm_resources() -> R {
     assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_keyboard_waits_for_debugger_and_preserves_workbook_authority_and_resources() -> R {
+    let form = format!(
+        "{}\nPrivate Sub Entry_KeyPress(ByVal KeyANSI As MSForms.ReturnInteger)\nDebug.Print KeyANSI.Value\nStop\nRange(\"A1\").Value=KeyANSI.Value\nKeyANSI.Value=0\nEnd Sub",
+        fixture::SOURCE
+    );
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", &form),
+        ("Launch", "Module", "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Show 0\nNativeForm.Entry.SetFocus\nEnd Sub"),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Keys.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let f = *ide.form_instances()?.first().ok_or("form")?;
+    bridge.begin(&mut session)?;
+    let epoch =
+        ide.form_instance_key(f, Some(12), vba_ide::FormKeyInput::Text(vba_values::VbaString::from_utf8("a")?), &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break);
+    assert!(ide.form_instance_key_result(f, epoch)?.is_none());
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()), gridcraft_engine::core::Value::Empty);
+    assert_eq!(ide.output(), vec!["initialized", "97"]);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.form_instance_key_result(f, epoch)?.ok_or("receipt")?.code, 0);
+    assert_eq!(ide.output(), vec!["initialized", "97"]);
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Number(97.0)
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.begin(&mut session).is_err());
+    Ok(())
+}

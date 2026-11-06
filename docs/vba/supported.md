@@ -497,3 +497,14 @@ cases check authorization, Stop/resume and unchanged document/undo state.
 Pinned validation PASS at `0e7a3fea4f306a1aac8207e00b0a2deb206f6737`: full CI
 (10 steps), strict optional VBA/UI Clippy, four form UI cases, optional web and
 all 13 native/13 Node-WASM identity cases. Broader M7A.4 remains open.
+
+M7A.4 native keyboard follow-up — 2026-11-06: shared revision
+`9fde04ce9ed8eab15b7f0609160617c774c2fc1b` adds selected typed
+KeyDown/KeyPress/KeyUp, mutable ByVal MSForms.ReturnInteger, Shift flags and
+static/dynamic WithEvents delivery. The shared UI waits before applying default
+input, preserves Stop/Continue and discards stale Reset input. Zero cancels;
+KeyPress replacement uses existing injected ANSI services. Unicode without a
+connected KeyPress handler retains the existing text path. All 21 native and 21 Node-WASM keyboard/package cases pass, alongside full
+CI (10 steps), strict optional VBA/UI Clippy, four form UI cases and optional
+web compilation. Full keyboard/platform/IME and M7A.4 remain partial;
+see [ADR 0070](../../../tiny-vba/docs/decisions/0070-native-keyboard-events.md).
