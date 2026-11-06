@@ -398,3 +398,42 @@ End Sub"#;
     assert_eq!(s.doc()?.undo.len(), history);
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn userforms_without_components_preserve_workbook_trust_pause_and_undo() -> R {
+    let source = r#"Sub Main()
+Dim items As Object,child As Variant,n As Long
+Set items=VBA.UserForms
+Debug.Print items.Count,TypeName(items)
+For Each child In items
+n=n+1
+Next child
+Debug.Print n
+On Error Resume Next
+Set child=UserForms.Add("Missing")
+Debug.Print Err.Number
+Stop
+Debug.Print UserForms.Count
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.doc_mut()?.trust = gridcraft_engine::Trust::FromFile;
+    let before = s.doc()?.wb.clone();
+    let history = s.doc()?.undo.len();
+    b.consent(false);
+    assert!(b.dispatch(&mut s, &mut ide, Action::Run).is_err());
+    assert!(ide.output().is_empty());
+    b.consent(true);
+    b.dispatch(&mut s, &mut ide, Action::Run)?;
+    drain(&mut s, &mut b, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["0\tUserForms", "0", "424"]);
+    b.dispatch(&mut s, &mut ide, Action::Run)?;
+    drain(&mut s, &mut b, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output().last().map(String::as_str), Some("0"));
+    assert!(ide.form_instances()?.is_empty());
+    assert_eq!(*s.doc()?.wb, *before);
+    assert_eq!(s.doc()?.undo.len(), history);
+    Ok(())
+}

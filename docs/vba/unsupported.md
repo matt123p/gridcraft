@@ -272,3 +272,8 @@ As New array update (2026-11-06): the generic project-class/native-form array
 restriction is removed under ADR 0068/IR 14. External activation and object-module
 Public arrays retain their existing refusals. Further alias/reentrant mutation
 comparisons and broader typed-event/lifecycle/control/platform work remain open.
+
+
+Empty-project collection update (2026-11-06): UserForms access no longer
+requires a form component. Remaining collection iteration/mutation and lifecycle
+cases are tracked in the shared M7A.4 completion checklist; the milestone is open.

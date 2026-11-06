@@ -1,5 +1,13 @@
 # GridCraft roadmap
 
+M7A.4 empty-collection update (2026-11-06): UserForms now works without a form
+component through the shared existing provider. Count/Item/Add errors, aliases,
+empty iteration, Stop/resume, trust and document/undo invariance are covered by
+authored regressions. Full CI and optional VBA/UI/web/Node-WASM checks pass.
+Broader M7A.4
+remains open; readiness estimates are unchanged.
+
+
 M7A.4 array update (2026-11-06): shared IR 14 adds lazy project-class/native-form
 array elements with canonical identity, ByRef and constructor continuations.
 Full CI, optional VBA/UI/web and all 20 native/Node-WASM package cases pass.

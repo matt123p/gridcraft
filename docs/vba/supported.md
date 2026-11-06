@@ -486,3 +486,14 @@ and exact original project resources. Pinned validation PASS at
 `d3f00127a47f08996bd89968ebb7ec019ed13c8b`: full CI (10 steps), strict optional
 VBA/UI Clippy, four form UI cases, optional web build and all 20 native/20
 Node-WASM package cases. Broader M7A.4 and fresh Office comparisons remain open.
+
+
+UserForms without form components — 2026-11-06 (shared ADR 0069):
+the existing built-in collection supports zero Count, empty iteration, aliases
+and runtime type names, Item bounds errors and error 424 for Add of a missing
+form. Normal semantic shadowing and qualified VBA.UserForms remain available.
+No control library or form is loaded by the no-component provider. Authored host
+cases check authorization, Stop/resume and unchanged document/undo state.
+Pinned validation PASS at `0e7a3fea4f306a1aac8207e00b0a2deb206f6737`: full CI
+(10 steps), strict optional VBA/UI Clippy, four form UI cases, optional web and
+all 13 native/13 Node-WASM identity cases. Broader M7A.4 remains open.
