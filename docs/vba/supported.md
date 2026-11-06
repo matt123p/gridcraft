@@ -508,3 +508,14 @@ connected KeyPress handler retains the existing text path. All 21 native and 21 
 CI (10 steps), strict optional VBA/UI Clippy, four form UI cases and optional
 web compilation. Full keyboard/platform/IME and M7A.4 remain partial;
 see [ADR 0070](../../../tiny-vba/docs/decisions/0070-native-keyboard-events.md).
+
+M7A.4 keyboard-focus update — 2026-11-06: shared revision
+`38578095ba1fc1ae3695f92a6c2e89cdb29d42f6` adds selected root focus and
+Tab/SetFocus/Space ordering, stopped character/release continuation, native
+function-key ownership and web text/key normalization. Root handlers require
+eligible form focus; setting TabStop=False alone does not grant it. Full shared
+gates, nine runtime keyboard cases, eleven new UI cases, the existing 24 form UI
+cases and Chromium pass. Full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, web and
+all 22 native/22 Node-WASM package cases pass, including root eligibility,
+Stop/Continue, authority and original VBA resources.
+See [ADR 0071](../../../tiny-vba/docs/decisions/0071-native-keyboard-focus-and-default-order.md).

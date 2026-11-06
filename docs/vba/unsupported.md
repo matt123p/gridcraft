@@ -288,3 +288,7 @@ UTF-16 string storage does not supply an ANSI code page. Asc/Chr and connected
 ANSI KeyPress handlers support ASCII in this host context; non-ASCII ANSI
 conversion requires an explicit configured code page. Unicode text without a
 connected KeyPress handler retains its existing text input path.
+
+ADR 0071 implements selected root keyboard focus, Tab/SetFocus and non-text Space
+ordering. Cross-window activation/lifecycle, other keyboard/platform/IME cases,
+mouse, accelerators and the remaining native control contracts stay open.

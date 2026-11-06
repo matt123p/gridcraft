@@ -1031,3 +1031,61 @@ fn native_keyboard_waits_for_debugger_and_preserves_workbook_authority_and_resou
     assert!(bridge.begin(&mut session).is_err());
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_root_keys_distinguish_tabstop_from_disabled_controls_and_keep_xlsm_resources() -> R {
+    for disabled in [false, true] {
+        let form = format!(
+            "{}\nPrivate Sub UserForm_KeyDown(ByVal k As MSForms.ReturnInteger,ByVal s As Integer)\nStop\nRange(\"A1\").Value=\"root\"\nDebug.Print \"root\"\nk.Value=0\nEnd Sub",
+            fixture::SOURCE
+        );
+        let launch = format!(
+            "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Entry.TabStop=False\nNativeForm.Apply.TabStop=False\n{}\nNativeForm.Show 0\nEnd Sub",
+            if disabled { "Dim c As MSForms.Control\nFor Each c In NativeForm.Controls\nc.Enabled=False\nNext c" } else { "" }
+        );
+        let original = fixture::add_designer(support::project(&[("NativeForm", "BaseClass", &form), ("Launch", "Module", &launch)]));
+        let mut wb = Workbook::new();
+        wb.vba_project = Some(original.clone().into());
+        let mut session = Session::new();
+        session.add_document(DocState::from_saved(wb, None, "RootKeys.xlsm".into(), Trust::FromFile));
+        let mut bridge = Bridge::new(&session)?;
+        let mut ide = bridge.import_project(&session)?;
+        ide.entry = "Main".into();
+        bridge.consent(true);
+        bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+        settle(&mut session, &mut bridge, &mut ide)?;
+        let f = *ide.form_instances()?.first().ok_or("form")?;
+        bridge.begin(&mut session)?;
+        let epoch = ide.form_instance_key(
+            f,
+            None,
+            vba_ide::FormKeyInput::Code { event: vba_ide::FormKeyEvent::Down, code: 65, shift: 0 },
+            &mut bridge.host(&mut session),
+        )?;
+        settle(&mut session, &mut bridge, &mut ide)?;
+        assert_eq!(
+            session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+            gridcraft_engine::core::Value::Empty
+        );
+        if disabled {
+            assert_eq!(ide.mode(), Mode::Break);
+            assert!(ide.form_instance_key_result(f, epoch)?.is_none());
+            bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+            settle(&mut session, &mut bridge, &mut ide)?;
+        }
+        assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+        assert_eq!(ide.form_instance_key_result(f, epoch)?.ok_or("receipt")?.code, 0);
+        assert_eq!(ide.output(), if disabled { vec!["initialized", "root"] } else { vec!["initialized"] });
+        if disabled {
+            assert_eq!(
+                session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+                gridcraft_engine::core::Value::Text("root".into())
+            );
+        }
+        assert_eq!(read_xlsx(&write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?)?.0.vba_project.as_deref(), Some(&original));
+        bridge.consent(false);
+        assert!(bridge.begin(&mut session).is_err());
+    }
+    Ok(())
+}

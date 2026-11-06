@@ -1,5 +1,10 @@
 # GridCraft roadmap
 
+M7A.4 keyboard-focus update (2026-11-06): root input eligibility and selected
+Tab/SetFocus/Space ordering are implemented in shared ADR 0071. Full CI, strict
+optional VBA/UI checks, form UI/web and all 22 native/22 Node-WASM package cases
+pass, including trust, debugger and original resources. M7A.4 remains incomplete.
+
 M7A.4 keyboard update (2026-11-06): typed native key callbacks and the shared
 raw-input barrier are pinned. Full CI, strict optional VBA/UI checks, form UI/web
 and all 21 native/21 Node-WASM package cases pass, including trust and debugger

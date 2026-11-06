@@ -25,3 +25,11 @@ are integrated from shared ADR 0070. Full CI, strict optional VBA/UI checks,
 four form UI cases, web compilation and all 21 native/21 Node-WASM package
 cases pass at shared revision `9fde04ce9ed8eab15b7f0609160617c774c2fc1b`.
 The [unsupported reference](unsupported.md) retains the remaining M7A.4 gaps.
+
+M7A.4 keyboard-focus update (2026-11-06): shared ADR 0071 adds root keyboard
+focus, canonical Tab/SetFocus continuation and Space cancellation before button
+or checkbox defaults. Native function keys are isolated from editor shortcuts.
+Full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, web and
+all 22 native/22 Node-WASM package cases pass on shared revision
+`38578095ba1fc1ae3695f92a6c2e89cdb29d42f6`. Full M7A.4
+remains incomplete.
