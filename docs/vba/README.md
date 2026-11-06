@@ -89,3 +89,17 @@ Pinned shared product `f027c5d14f0a57c6a0ebfa0f1cc2fb393cb9c2b7` passes full CI 
 strict optional VBA/UI Clippy, four form UI cases, the VBA web build and all
 26 native/26 actual Node-WASM package cases. The new modal pointer regression
 preserves stopped authority, one-shot workbook effects and original resources.
+
+M7A.4 nested-input update (2026-11-06): shared ADR 0076 services child mouse
+callbacks while a parent mouse/key callback is parked. Raw input scopes share the
+existing 64-event queue; held releases retain their original capture, modal areas
+follow Show order, and open ComboBox popups stay above their owning form. Reset,
+parent unload and owner-local keyboard barriers suppress stale/replayed defaults.
+Canonical VBA state and existing host authority remain unchanged. Selected L02
+cases are covered; M7A.4 and the full lifecycle/control checklist remain partial.
+Fresh Office observations remain M8.5 NOT_RUN.
+Pinned shared product `c99996351a80a234b23f2e81b54e210dae0bd530` passes full CI (10 steps),
+strict optional VBA/UI Clippy, four form UI cases, VBA web and all 27 native/27
+actual Node-WASM package cases. The nested callback regression preserves modal
+ownership, separate child/parent receipts, one-shot workbook effects and original
+resources.
