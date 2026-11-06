@@ -291,4 +291,8 @@ connected KeyPress handler retains its existing text input path.
 
 ADR 0071 implements selected root keyboard focus, Tab/SetFocus and non-text Space
 ordering. Cross-window activation/lifecycle, other keyboard/platform/IME cases,
-mouse, accelerators and the remaining native control contracts stay open.
+mouse, remaining accelerator cases and the remaining native control contracts stay open.
+
+ADR 0072 implements selected native Label/button/boolean/Tab/Page accelerators.
+Duplicate matches are explicitly unsupported; non-ASCII/platform shortcut and
+further key/focus/event-order cases remain open. This does not close K03 or M7A.4.

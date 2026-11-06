@@ -33,3 +33,14 @@ Full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, web and
 all 22 native/22 Node-WASM package cases pass on shared revision
 `38578095ba1fc1ae3695f92a6c2e89cdb29d42f6`. Full M7A.4
 remains incomplete.
+
+M7A.4 accelerator update (2026-11-06): shared ADR 0072 at `7d43f082de4b7827da1e1d93c257ebeb50eca4ae`
+adds persisted native accelerators, canonical Accelerator properties and selected
+Label/button/boolean/Tab/Page Alt actions. Focus validation, Stop/Continue and
+existing authorization apply. Caption underlines use the host theme and fonts.
+Duplicate routing explicitly refuses; non-ASCII/platform ordering, mouse,
+lifecycle and other checklist rows remain open. M7A.4 remains incomplete; fresh
+Office observations remain M8.5 NOT_RUN. Full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, web and
+all 23 native/23 Node-WASM package cases pass. The accelerator case preserves
+authorization, one-shot debugger continuation, workbook effects and original
+VBA resources.
