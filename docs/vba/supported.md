@@ -461,3 +461,17 @@ Runtime type inspection (2026-11-06): TypeName now reports native names from the
 existing workbook object store through Object/Variant/interface aliases without
 reading default properties. TypeName/VarType/IsArray accept varname named arguments.
 The existing authorization and execution/memory limits remain unchanged.
+
+VarType default values (2026-11-06, ADR 0067/IR 13): compatible native control
+and project defaults use ordinary frames; Range.Value and Application.Name use
+the existing authorized host call path. Aliases retain identity, getter errors
+propagate, and Stop/host waits do not repeat evaluation. Typed Date/Currency and
+array element tags are preserved. TypeName/IsObject stay inert reference queries.
+Document and undo invariance are covered by authored host regressions; fresh
+Office comparisons remain M8.5 NOT_RUN. Broader M7A.4 remains open.
+
+Pinned shared revision: `5f93e8140b457de6645327b885b263ab6b472e13`.
+Validation PASS: full CI (10 steps), 12 native/12 Node-WASM identity cases,
+strict optional VBA/UI Clippy, four form UI cases and optional web build.
+Explicit empty indexed collection calls retain their missing-argument error;
+VarType treats those collections as objects without invoking Item.

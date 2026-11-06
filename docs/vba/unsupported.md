@@ -261,6 +261,8 @@ remain separate requirements; this does not close M7A.4.
 
 Runtime type inspection update (2026-11-06): foreign object TypeName no longer
 always falls back to Object when the embedding supplies validated native type
-metadata. VarType still lacks object-default-member evaluation; named varname
-binding alone does not close that gap. Further M7A.4 event/lifecycle/property/
+metadata. VarType now reads one compatible zero-argument default via normal
+authorized execution (Range.Value and Application.Name in this host). Unadapted
+objects retain type 9; additional default/arity cases need M8.5 comparisons.
+Further M7A.4 event/lifecycle/property/
 platform semantics and fresh M8.5 comparisons remain open.

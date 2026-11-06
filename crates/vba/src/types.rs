@@ -514,6 +514,16 @@ impl Objects {
     }
 }
 impl ObjectTypeResolver for Objects {
+    fn has_default_value(&self, reference: ObjectRef) -> HostResult<bool> {
+        let object = match self.get(reference)? {
+            Object::Document(_, object) => *object,
+            object => object,
+        };
+        if matches!(object, Object::Document(..)) {
+            return Err(failure(91, "invalid nested document owner"));
+        }
+        Ok(object.default_value_member().is_some())
+    }
     fn runtime_type_name(&self, reference: ObjectRef) -> HostResult<Option<String>> {
         Ok(Some(self.class_name(reference)?.into()))
     }

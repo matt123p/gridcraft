@@ -21,6 +21,13 @@ pub(crate) enum Object {
 }
 
 impl Object {
+    pub(crate) fn default_value_member(&self) -> Option<&'static str> {
+        match self {
+            Self::Application => Some("Name"),
+            Self::Range(..) | Self::DeletedRange(false) => Some("Value"),
+            _ => None,
+        }
+    }
     pub(crate) fn receiver_name(&self) -> &'static str {
         match self {
             Self::Application => "Application",
@@ -224,10 +231,19 @@ impl Bridge {
         match call.kind {
             InvokeKind::DefaultGet => {
                 call.kind = InvokeKind::Get;
-                call.member = match &object {
-                    Object::Range(..) if call.arguments.is_empty() => "Value",
-                    Object::Range(..) | Object::Areas(..) | Object::Worksheets | Object::Sheets | Object::Workbooks => "Item",
-                    _ => return Err(failure(438, "object has no default property")),
+                call.member = if call.arguments.is_empty() {
+                    match object.default_value_member() {
+                        Some(member) => member,
+                        None => match &object {
+                            Object::Areas(..) | Object::Worksheets | Object::Sheets | Object::Workbooks => "Item",
+                            _ => return Err(failure(438, "object has no default property")),
+                        },
+                    }
+                } else {
+                    match &object {
+                        Object::Range(..) | Object::Areas(..) | Object::Worksheets | Object::Sheets | Object::Workbooks => "Item",
+                        _ => return Err(failure(438, "object has no indexed default property")),
+                    }
                 }
                 .into();
             }

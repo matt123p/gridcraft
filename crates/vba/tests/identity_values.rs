@@ -326,11 +326,13 @@ Range("A4")=Range("B2").Value2
 Range("A5")=Range("B3").Value2
 Range("A6")=VarType(Range("B2").Value)
 Range("A7")=VarType(Range("B3").Value)
+Range("A8")=VarType(Range("B1"))
+Range("A9")=VarType(Range("B2"))
 End Sub"#;
     let (mut s, mut b, mut ide) = setup(source)?;
     std::sync::Arc::make_mut(&mut s.doc_mut()?.wb).date_system = gridcraft_engine::core::date::DateSystem::D1904;
     run(&mut s, &mut b, &mut ide)?;
-    for (a, n) in [("A1", 7.), ("A2", 45000.5), ("A3", 43538.5), ("A4", 1.23), ("A5", 1.2346), ("A6", 6.), ("A7", 5.)] {
+    for (a, n) in [("A1", 7.), ("A2", 45000.5), ("A3", 43538.5), ("A4", 1.23), ("A5", 1.2346), ("A6", 6.), ("A7", 5.), ("A8", 7.), ("A9", 6.)] {
         assert_eq!(cell(&s, a)?, CellValue::Number(n), "{a}");
     }
     Ok(())
@@ -362,6 +364,36 @@ End Sub"#;
     drain(&mut s, &mut b, &mut ide)?;
     assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
     assert_eq!(ide.output().last().map(String::as_str), Some("Range"));
+    assert_eq!(*s.doc()?.wb, *before);
+    assert_eq!(s.doc()?.undo.len(), history);
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn vartype_reads_range_and_application_defaults_without_document_changes() -> R {
+    let source = r#"Sub Main()
+Dim r As Excel.Range,o As Object
+Set r=Range("A1")
+Set o=r
+Debug.Print VarType(r),VBA.VarType(varname:=o),TypeName(r),IsObject(r)
+Debug.Print VarType(Application),VarType(ActiveWorkbook),VarType(ActiveSheet)
+Debug.Print VarType(Range("A2")),VarType(Range("A3")),VarType(Range("A1:A3"))
+Stop
+Debug.Print VarType(o)
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", serde_json::json!({"cell":"A1","input":"sentinel value"}))?;
+    s.execute("cell.set", serde_json::json!({"cell":"A2","input":"42"}))?;
+    let before = s.doc()?.wb.clone();
+    let history = s.doc()?.undo.len();
+    b.dispatch(&mut s, &mut ide, Action::Run)?;
+    drain(&mut s, &mut b, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["8\t8\tRange\tTrue", "8\t9\t9", "5\t0\t8204"]);
+    run(&mut s, &mut b, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output().last().map(String::as_str), Some("8"));
     assert_eq!(*s.doc()?.wb, *before);
     assert_eq!(s.doc()?.undo.len(), history);
     Ok(())
