@@ -7,7 +7,7 @@ Reset preserve input identity and source. Event signatures omit unused class-fie
 metadata while preserving typed arguments, executable method fields and all limits.
 Text/list/numeric/indexed-tab pointer defaults, lifecycle and other checklist rows
 remain open; M7A.4 is incomplete and Office observations remain M8.5 NOT_RUN.
-Pinned shared revision `a33419724803ae2211f4538ddefadf1ffef4641a` passes full
+Pinned shared revision `c9f829824c56397c101ac9228c89db289b788458` passes full
 CI (10 steps), strict optional VBA/UI Clippy, four form UI tests, web and all
 24 native/24 Node-WASM package cases. Indexed MultiPage mouse input, stopped
 callbacks, authority, workbook effects and exact original resources are verified.
@@ -390,3 +390,7 @@ added native boolean form/control integration and enforced execution consent for
 instance input. Authored native package/input/trust regressions accompany the
 change. This is partial M7A.4; native edited persistence and .tvform removal remain
 separate work, with fresh Office observations still NOT_RUN.
+
+Mouse command authorization is explicit under shared ADR 0073: form commands
+require host preparation unless they are known inert design operations. The final
+pin passes the same full CI/optional UI/web and 24 native/24 Node-WASM gates.
