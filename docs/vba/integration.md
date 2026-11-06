@@ -730,7 +730,7 @@ input. Tabs retain identity through reorder and discard removed targets. Existin
 host consent, snapshots, ordinary VBA state and resource preservation remain in
 force; ComboBox AutoWordSelect preserves its inverse native bit. M7A.4 and the
 full runtime checklist remain incomplete. Fresh Office observations are M8.5
-NOT_RUN; native edited persistence/removal remain separate. 
+NOT_RUN; native edited persistence/removal remain separate.
 Pinned shared product `f027c5d14f0a57c6a0ebfa0f1cc2fb393cb9c2b7` passes full CI (10 steps),
 strict optional VBA/UI Clippy, four form UI cases, the VBA web build and all
 26 native/26 actual Node-WASM package cases. The new modal pointer regression
