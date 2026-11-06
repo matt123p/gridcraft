@@ -455,3 +455,9 @@ metadata attaches during normal trusted form load before Initialize. Programmati
 and authorized widget changes use existing cell commands; worksheet changes queue
 ordinary form callbacks. Source inspection/rendering remain inert. Original XLSM
 VBA resources remain exact; native edited form persistence remains separate.
+
+
+Runtime type inspection (2026-11-06): TypeName now reports native names from the
+existing workbook object store through Object/Variant/interface aliases without
+reading default properties. TypeName/VarType/IsArray accept varname named arguments.
+The existing authorization and execution/memory limits remain unchanged.

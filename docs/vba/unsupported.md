@@ -257,3 +257,10 @@ property/event/lifecycle/platform cases remain open. The approved static
 permission table holds at most 4,096 sites; executed host calls remain limited to
 1,024 per session. Native edited saving/.tvform removal and fresh Office evidence
 remain separate requirements; this does not close M7A.4.
+
+
+Runtime type inspection update (2026-11-06): foreign object TypeName no longer
+always falls back to Object when the embedding supplies validated native type
+metadata. VarType still lacks object-default-member evaluation; named varname
+binding alone does not close that gap. Further M7A.4 event/lifecycle/property/
+platform semantics and fresh M8.5 comparisons remain open.

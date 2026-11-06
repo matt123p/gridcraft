@@ -693,3 +693,16 @@ optional VBA web build. Actual bound text/list pointer/keyboard input, worksheet
 refresh and trust revocation pass; the original themed render was inspected. Further binding timing,
 property/event/lifecycle/platform semantics remain M7A.4; native edited saving and
 .tvform removal remain M7A.5/.6. Fresh Office observations remain M8.5 NOT_RUN.
+
+
+M7A.4 runtime object names — 2026-11-06 (shared revision
+`c48e109d95074153b37bb342d3206b50a33ee5fa`): TypeName queries the existing
+identity-checked object store, sharing the projection used for nominal type
+checks. Aliases retain their actual runtime class; Range default values are not
+read. There is no host invocation, object activation or additional object store.
+The core bounds metadata names, lookup work and result allocation. TypeName,
+VarType and IsArray accept their documented varname named argument; VarType
+object-default evaluation is still a separate gap. Validation PASS: full CI
+(10 steps), strict optional-VBA/UI Clippy, four form UI cases, optional VBA web
+build and all 11 actual Node/WASM identity cases, including runtime-name aliases
+and unchanged workbook/undo state. Fresh Office comparisons remain NOT_RUN in M8.5.

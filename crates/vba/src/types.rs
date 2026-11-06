@@ -469,18 +469,15 @@ impl Objects {
         Ok(index)
     }
 }
-impl ObjectTypeResolver for Objects {
-    fn identity(&self) -> u64 {
-        self.identity
-    }
-    fn supports_type(&self, reference: ObjectRef, expected: &NominalType) -> HostResult<bool> {
+impl Objects {
+    fn class_name(&self, reference: ObjectRef) -> HostResult<&'static str> {
         let object = self.get(reference)?;
         let object = match object {
             Object::Document(_, object) => *object,
             object => object,
         };
-        let name = match object {
-            Object::Application => "application",
+        Ok(match object {
+            Object::Application => "Application",
             Object::Feature(ref f) => match f.kind {
                 "WindowSheets" => "Sheets",
                 "ConditionFont" | "ShapeFont" => "Font",
@@ -492,28 +489,39 @@ impl ObjectTypeResolver for Objects {
                 kind => kind,
             },
             Object::Document(..) => return Err(failure(91, "invalid nested document owner")),
-            Object::Workbook => "workbook",
-            Object::Workbooks => "workbooks",
-            Object::Worksheets => "worksheets",
-            Object::Sheets => "sheets",
-            Object::Sheet(_) => "worksheet",
-            Object::Range(..) => "range",
-            Object::Areas(..) => "areas",
+            Object::Workbook => "Workbook",
+            Object::Workbooks => "Workbooks",
+            Object::Worksheets => "Worksheets",
+            Object::Sheets => "Sheets",
+            Object::Sheet(_) => "Worksheet",
+            Object::Range(..) => "Range",
+            Object::Areas(..) => "Areas",
             Object::Format(_, _, font) => {
                 if font {
-                    "font"
+                    "Font"
                 } else {
-                    "interior"
+                    "Interior"
                 }
             }
             Object::DeletedRange(areas) => {
                 if areas {
-                    "areas"
+                    "Areas"
                 } else {
-                    "range"
+                    "Range"
                 }
             }
-        };
+        })
+    }
+}
+impl ObjectTypeResolver for Objects {
+    fn runtime_type_name(&self, reference: ObjectRef) -> HostResult<Option<String>> {
+        Ok(Some(self.class_name(reference)?.into()))
+    }
+    fn identity(&self) -> u64 {
+        self.identity
+    }
+    fn supports_type(&self, reference: ObjectRef, expected: &NominalType) -> HostResult<bool> {
+        let name = self.class_name(reference)?;
         let office = OFFICE_TYPES.iter().any(|n| n.eq_ignore_ascii_case(name));
         let excel = !office || EXCEL_OFFICE_ALIASES.iter().any(|n| n.eq_ignore_ascii_case(name));
         let library = (office && expected.library() == "office" && expected.version() == OFFICE_VERSION)
@@ -536,12 +544,16 @@ mod tests {
         let range = NominalType::new("Excel", EXCEL_TYPES_VERSION, "Range")?;
         assert!(objects.supports_type(sheet, &worksheet).map_err(|e| e.description)?);
         assert!(!objects.supports_type(sheet, &range).map_err(|e| e.description)?);
+        assert_eq!(objects.runtime_type_name(sheet).map_err(|e| e.description)?, Some("Worksheet".into()));
+        assert!(objects.runtime_type_name(ObjectRef { generation: 6, ..sheet }).is_err());
+        assert!(objects.runtime_type_name(ObjectRef { host: 6, ..sheet }).is_err());
         assert!(objects.supports_type(ObjectRef { generation: 6, ..sheet }, &worksheet).is_err());
         assert!(objects.supports_type(ObjectRef { host: 6, ..sheet }, &worksheet).is_err());
         let index =
             objects.intern(Object::Range(0, gridcraft_engine::core::RangeRef::parse("A1").ok_or("range")?.into())).map_err(|e| e.description)?;
         assert!(objects.supports_type(ObjectRef { object: index as u64, ..sheet }, &range).map_err(|e| e.description)?);
         objects.close();
+        assert!(objects.runtime_type_name(sheet).is_err());
         assert!(objects.supports_type(sheet, &worksheet).is_err());
         Ok(())
     }

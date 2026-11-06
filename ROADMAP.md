@@ -1,5 +1,10 @@
 # GridCraft roadmap
 
+M7A.4 runtime type update (2026-11-06): native object TypeName uses the existing
+read-only object/type projection without default-property evaluation. Shared
+CI/WASM/WASI, full fork CI, optional VBA/UI/web and Node/WASM identity checks pass. [Integration profile](docs/vba/integration.md). Readiness estimates and
+the remaining M7A.4 scope are unchanged.
+
 M7A.4 runtime update (2026-11-05): selected native dynamic Controls, multiple
 selection, canonical TypeName and ControlSource/RowSource bindings use the shared
 engine and existing workbook commands. Full CI and native/Node-WASM/UI integration

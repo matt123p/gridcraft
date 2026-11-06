@@ -335,3 +335,34 @@ End Sub"#;
     }
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn runtime_typenames_keep_alias_identity_and_do_not_read_default_values_or_mutate_cells() -> R {
+    let source = r#"Sub Main()
+Dim r As Excel.Range,o As Object,v As Variant
+Set r=Range("A1")
+Set o=r
+Set v=r
+Debug.Print TypeName(r),VBA.TypeName(varname:=o),TypeName(v)
+Debug.Print TypeName(Application),TypeName(ActiveWorkbook),TypeName(ActiveSheet)
+Debug.Print TypeName(r.Font),TypeName(r.Interior),TypeName(r.Areas)
+Stop
+Debug.Print TypeName(o)
+End Sub"#;
+    let (mut s, mut b, mut ide) = setup(source)?;
+    s.execute("cell.set", serde_json::json!({"cell":"A1","input":"sentinel value"}))?;
+    let before = s.doc()?.wb.clone();
+    let history = s.doc()?.undo.len();
+    b.dispatch(&mut s, &mut ide, Action::Run)?;
+    drain(&mut s, &mut b, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output(), vec!["Range\tRange\tRange", "Application\tWorkbook\tWorksheet", "Font\tInterior\tAreas"]);
+    b.dispatch(&mut s, &mut ide, Action::Run)?;
+    drain(&mut s, &mut b, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    assert_eq!(ide.output().last().map(String::as_str), Some("Range"));
+    assert_eq!(*s.doc()?.wb, *before);
+    assert_eq!(s.doc()?.undo.len(), history);
+    Ok(())
+}
