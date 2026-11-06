@@ -1404,3 +1404,52 @@ fn native_nested_modal_pointer_callback_preserves_workbook_resources() -> R {
     assert!(bridge.begin(&mut session).is_err());
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_window_deactivation_preserves_trust_stop_and_workbook_resources() -> R {
+    let form = format!(
+        "{}\nPrivate Sub UserForm_Activate()\nDebug.Print Me.Caption & \" active\"\nEnd Sub\nPrivate Sub UserForm_Deactivate()\nDebug.Print Me.Caption & \" inactive\"\nIf Me.Caption=\"B\" Then\nStop\nRange(\"A1\").Value=\"deactivated\"\nEnd If\nEnd Sub",
+        fixture::SOURCE
+    );
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", &form),
+        (
+            "Launch",
+            "Module",
+            "Attribute VB_Name = \"Launch\"\nPublic a As NativeForm,b As NativeForm\nSub Main()\nSet a=New NativeForm\nSet b=New NativeForm\na.Caption=\"A\"\nb.Caption=\"B\"\na.Show 0\nb.Show 0\nEnd Sub",
+        ),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Windows.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let active = ide.form_active_window().ok_or("active window")?;
+    assert_eq!(ide.output(), vec!["initialized", "initialized", "A active", "A inactive", "B active"]);
+    bridge.begin(&mut session)?;
+    ide.form_instance_window_focus(active, false, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break);
+    assert!(ide.form_active_window().is_none());
+    assert!(!ide.form_instance_can_deliver(active));
+    assert_eq!(session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()), gridcraft_engine::core::Value::Empty);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Text("deactivated".into())
+    );
+    assert_eq!(ide.output().iter().filter(|line| *line == "B inactive").count(), 1);
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.begin(&mut session).is_err());
+    Ok(())
+}

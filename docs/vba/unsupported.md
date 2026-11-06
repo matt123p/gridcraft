@@ -316,3 +316,9 @@ ADR 0076 covers selected nested modal raw-input continuations and stale release
 suppression. Full Activate/Deactivate, document/modeless focus, reentrant binding
 and other remaining lifecycle/platform cases still require implementation and
 acceptance. This does not finish L02 or M7A.4.
+
+ADR 0077 adds selected native Show/Hide/modeless Activate/Deactivate ordering,
+unload retirement without Deactivate, reentrant lifecycle guards and cross-window
+keyboard continuations. Inert inspection and executable window-focus commands
+retain existing trust. Automatic document-canvas input barriers, broader binding/
+collection/platform ordering and full M7A.4 acceptance remain open.

@@ -1,5 +1,14 @@
 # VBA documentation
 
+M7A.4 activation update (2026-11-06): shared ADR 0077 adds canonical native
+Show/Hide/modeless activation, reentrant lifecycle guards and cross-window key
+continuations. Window focus commands execute VBA through existing authorization;
+external application focus and passive hover do not emit lifecycle callbacks.
+The new package regression checks a stopped Deactivate handler before a one-shot
+host edit and preserves original VBA resources. Automatic document-canvas raw
+input buffering/replay remains unimplemented; L01/L02 and full M7A.4 stay open.
+Pinned product and final validation are recorded in ROADMAP.md.
+
 [Getting started](../vba.md) explains how to enable VBA, run a macro and add a
 worksheet function.
 

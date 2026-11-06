@@ -589,3 +589,9 @@ strict optional VBA/UI Clippy, four form UI cases, VBA web and all 27 native/27
 actual Node-WASM package cases. The nested callback regression preserves modal
 ownership, separate child/parent receipts, one-shot workbook effects and original
 resources.
+
+ADR 0077 adds selected native Show/Hide/modeless Activate/Deactivate ordering,
+unload retirement without Deactivate, reentrant lifecycle guards and cross-window
+keyboard continuations. Inert inspection and executable window-focus commands
+retain existing trust. Automatic document-canvas input barriers, broader binding/
+collection/platform ordering and full M7A.4 acceptance remain open.
