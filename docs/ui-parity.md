@@ -1,6 +1,21 @@
 # UI parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+M7A.4 colour update (2026-11-07): shared ADR 0080 retains native BackColor/ForeColor
+bits and file defaults, exposes ordinary typed properties and paints authored RGB
+values through the shared form renderer. Optional platform/client palette lookup
+belongs to the caller's UI theme; missing client entries keep their canonical value
+and show an unavailable-palette message. A runtime-created MultiPage Page-parent
+lookup regression is fixed. Native package tests cover trust refusal, Stop/Continue,
+one-shot document effects and unchanged original VBA resources. Host canvas tests
+exercise authored form/control colours with existing activation/input ordering.
+Pinned shared product `d3c99baab86fad9e33333fd4204066757baec63d` passes full CI
+(10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web and
+29 native/29 actual Node-WASM package cases. The host document view was inspected.
+Fonts, borders/effects, transparency, remaining ambient/platform/default/selection
+and collection/lifecycle requirements stay open. Full M7A.4 remains incomplete;
+fresh Office comparisons remain M8.5 NOT_RUN.
+
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured

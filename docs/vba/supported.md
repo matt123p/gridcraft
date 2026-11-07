@@ -1,5 +1,20 @@
 # Supported VBA functions and features
 
+M7A.4 colour update (2026-11-07): shared ADR 0080 retains native BackColor/ForeColor
+bits and file defaults, exposes ordinary typed properties and paints authored RGB
+values through the shared form renderer. Optional platform/client palette lookup
+belongs to the caller's UI theme; missing client entries keep their canonical value
+and show an unavailable-palette message. A runtime-created MultiPage Page-parent
+lookup regression is fixed. Native package tests cover trust refusal, Stop/Continue,
+one-shot document effects and unchanged original VBA resources. Host canvas tests
+exercise authored form/control colours with existing activation/input ordering.
+Pinned shared product `d3c99baab86fad9e33333fd4204066757baec63d` passes full CI
+(10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web and
+29 native/29 actual Node-WASM package cases. The host document view was inspected.
+Fonts, borders/effects, transparency, remaining ambient/platform/default/selection
+and collection/lifecycle requirements stay open. Full M7A.4 remains incomplete;
+fresh Office comparisons remain M8.5 NOT_RUN.
+
 M7A.4 input-order update (2026-11-07): shared ADR 0079 orders earlier native
 key/text/paste/IME input before document Deactivate. Existing keyboard receipts,
 widget defaults and Change callbacks finish first; spanning composition stays

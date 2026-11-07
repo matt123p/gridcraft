@@ -1453,3 +1453,51 @@ fn native_window_deactivation_preserves_trust_stop_and_workbook_resources() -> R
     assert!(bridge.begin(&mut session).is_err());
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_colours_keep_canonical_bits_trusted_continuations_and_original_workbook_resources() -> R {
+    let form = "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Initialize()\nMe.BackColor=RGB(230,240,250)\nEntry.ForeColor=RGB(80,30,20)\nEnd Sub\nPrivate Sub Apply_Click()\nEntry.BackColor=RGB(250,230,200)\nRange(\"A1\").Value=Entry.BackColor\nStop\nEntry.ForeColor=RGB(1,2,3)\nRange(\"B1\").Value=Entry.ForeColor\nMe.Hide\nEnd Sub";
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", form),
+        ("Launch", "Module", "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Show\nEnd Sub"),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Colours.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let owner = ide.form_active_window().ok_or("form")?;
+    assert_eq!(ide.form_instance_field(owner, None, "BackColor")?, vba_values::Value::Long(16445670));
+    bridge.begin(&mut session)?;
+    ide.form_instance_event(owner, Some(13), None, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break);
+    assert_eq!(ide.form_instance_field(owner, Some(12), "BackColor")?, vba_values::Value::Long(13166330));
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Number(13166330.)
+    );
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed);
+    assert_eq!(ide.form_instance_field(owner, Some(12), "ForeColor")?, vba_values::Value::Long(197121));
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::new(0, 1)),
+        gridcraft_engine::core::Value::Number(197121.)
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.begin(&mut session).is_err());
+    Ok(())
+}
