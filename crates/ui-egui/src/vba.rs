@@ -1545,3 +1545,25 @@ pub fn show_form_windows(app: &mut SheetApp, ctx: &egui::Context) {
 pub(crate) fn selecting_range(app: &SheetApp) -> bool {
     app.vba.as_ref().is_some_and(|e| e.ide.form_range_selection().ok().flatten().is_some())
 }
+
+/// Document gestures cross the authorized VBA boundary before egui sees them.
+pub(crate) fn document_raw_input(app: &mut SheetApp, ctx: &egui::Context, raw: &mut egui::RawInput) {
+    let Some(editor) = app.vba.as_mut() else { return };
+    let document = app.session.active_window().unwrap_or(0);
+    if editor.bridge.permitted(&app.session) && editor.view.document_input_ready(&editor.ide) {
+        editor.visible = false;
+    }
+    let visible = !editor.visible;
+    let area = (editor.bridge.permitted(&app.session)
+        && editor.bridge.current(&app.session)
+        && app.backstage.is_none()
+        && editor.ide.form_range_selection().ok().flatten().is_none())
+    .then_some(app.grid.cells_rect)
+    .flatten();
+    if let Some(command) = editor.view.document_raw_input(ctx, &editor.ide, document, area, visible, raw)
+        && let Err(error) = dispatch_editor_command(editor, &mut app.session, command)
+    {
+        editor.view.cancel_document_input(ctx, raw);
+        editor.ide.message(error.to_string());
+    }
+}

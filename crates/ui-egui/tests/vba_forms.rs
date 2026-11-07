@@ -353,3 +353,94 @@ fn native_bound_widgets_write_cells_and_refresh_from_sheet_commands() -> R {
     );
     Ok(())
 }
+
+#[test]
+fn native_document_click_waits_for_deactivate_continue_and_reset_discards_it() -> R {
+    use gridcraft_vba::vba_ide::NativeFormResource;
+    for reset in [false, true] {
+        let mut session = Session::new();
+        session.new_workbook();
+        let mut app = SheetApp::new(session, Services::default());
+        app.run("vba.open", json!({"source":"Sub Main()\nNativeForm.Show 0\nEnd Sub"})).map_err(std::io::Error::other)?;
+        let code = "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Deactivate()\nDebug.Print \"deactivated\"\nStop\nRange(\"A1\").Value=42\nEnd Sub";
+        let export = String::from_utf8(native_fixture::export())?.replace(native_fixture::SOURCE, code);
+        let editor = app.vba.as_mut().ok_or("editor")?;
+        editor.ide.import_native_form_export(
+            "NativeForm.frm",
+            export.as_bytes(),
+            1252,
+            &[NativeFormResource { name: "NativeForm.frx".into(), bytes: native_fixture::companion() }],
+        )?;
+        app.run("vba.trust", json!({"allow":true})).map_err(std::io::Error::other)?;
+        app.run("vba.run", json!({"entry":"Main"})).map_err(std::io::Error::other)?;
+        settle(&mut app)?;
+        app.run("vba.return", json!({})).map_err(std::io::Error::other)?;
+        app.use_prepared_fonts();
+        let ctx = egui::Context::default();
+        ctx.set_fonts(gridcraft_ui_egui::theme::pinned_font_definitions());
+        gridcraft_ui_egui::theme::apply(&ctx, false);
+        let step = |app: &mut SheetApp, events: Vec<egui::Event>| {
+            let mut raw = egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1300., 900.))),
+                events,
+                ..Default::default()
+            };
+            app.raw_input_hook(&ctx, &mut raw);
+            let mut out = ctx.run_ui(raw, |ui| {
+                app.logic(ui.ctx());
+                app.ui(ui);
+            });
+            out.textures_delta.clear();
+        };
+        for _ in 0..12 {
+            step(&mut app, vec![]);
+        }
+        let rect = app.grid.cells_rect.ok_or("canvas")?;
+        let pos = rect.right_bottom() - egui::vec2(30., 30.);
+        let before = app.session.doc()?.selection.current();
+        step(
+            &mut app,
+            [true, false]
+                .into_iter()
+                .map(|pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE })
+                .collect(),
+        );
+        for _ in 0..40 {
+            step(&mut app, vec![]);
+        }
+        assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.mode(), gridcraft_vba::Mode::Break);
+        assert_eq!(app.session.doc()?.selection.current(), before);
+        assert_eq!(app.session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::default()), Value::Empty);
+        app.run(if reset { "vba.reset" } else { "vba.run" }, json!({})).map_err(std::io::Error::other)?;
+        for _ in 0..90 {
+            step(&mut app, vec![]);
+        }
+        assert!(!app.vba.as_ref().ok_or("editor")?.view.document_input_pending());
+        if reset {
+            assert_eq!(app.session.doc()?.selection.current(), before);
+        } else {
+            assert_ne!(app.session.doc()?.selection.current(), before);
+            assert_eq!(app.session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::default()), Value::Number(42.));
+            assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.output(), vec!["deactivated"]);
+            if let Ok(path) = std::env::var("GRIDCRAFT_DOCUMENT_SNAPSHOT") {
+                let mut h = egui_kittest::Harness::builder()
+                    .with_size(egui::vec2(1300., 900.))
+                    .with_context_setup(|ctx| {
+                        ctx.set_fonts(gridcraft_ui_egui::theme::pinned_font_definitions());
+                        gridcraft_ui_egui::theme::apply(ctx, false);
+                    })
+                    .wgpu()
+                    .build_ui_state(
+                        |ui, a: &mut SheetApp| {
+                            a.logic(ui.ctx());
+                            a.ui(ui);
+                        },
+                        app,
+                    );
+                h.run_steps(5);
+                h.render()?.save(path)?;
+            }
+        }
+    }
+    Ok(())
+}

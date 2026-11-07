@@ -10,6 +10,12 @@ impl SheetApp {
         let geometry = control::CaptureGeometry::from_raw_input(raw, ctx);
         control::note_capture_geometry(self, geometry);
         self.capture_geometry_from_raw = true;
+        self.offer_synthetic_input(ctx, raw);
+        #[cfg(feature = "vba")]
+        crate::vba::document_raw_input(self, ctx, raw);
+    }
+
+    fn offer_synthetic_input(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
         // One unapplied gesture step at a time. eframe retains an unconsumed `RawInput` for the
         // next pass and for a hidden logic-only tick, so the batch is offered once and survives
         // until a `ui` pass applies it (which pops it). Press and release stay distinct batches.

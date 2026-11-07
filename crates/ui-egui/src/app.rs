@@ -174,7 +174,11 @@ impl SheetApp {
     /// This is a shared eframe web follow-up, not a GridCraft-local workaround, and the control
     /// protocol documents the limitation.
     fn request_hidden_paint(&self, ctx: &egui::Context) {
-        if !(self.shots.needs_hidden_paint() || self.synthetic_pending || !self.synthetic.is_empty()) {
+        #[cfg(feature = "vba")]
+        let form_input = self.vba.as_ref().is_some_and(|editor| editor.view.document_input_pending());
+        #[cfg(not(feature = "vba"))]
+        let form_input = false;
+        if !(form_input || self.shots.needs_hidden_paint() || self.synthetic_pending || !self.synthetic.is_empty()) {
             return;
         }
         // The web runner has no `RequestPaintWhileHidden`; sending it there only logs an
@@ -281,6 +285,12 @@ impl SheetApp {
         // provenance is the injected pass number, so only a pass that missed input handling is
         // re-offered by `raw_input_hook`.
         // Synthetic input reaches the root viewport only (`raw_input_hook`), so its pass consumes it.
+        #[cfg(feature = "vba")]
+        if let Some(editor) = self.vba.as_mut()
+            && !editor.visible
+        {
+            editor.view.document_input_applied(&ctx);
+        }
         if self.synthetic_pending && ctx.viewport_id() == egui::ViewportId::ROOT {
             self.synthetic.pop_front();
             self.synthetic_pending = false;

@@ -1,5 +1,16 @@
 # Unsupported VBA functions and features
 
+M7A.4 document-focus update (2026-11-07): ADR 0078 adds a bounded raw-input
+barrier before document canvas input. Native modeless Deactivate runs through
+existing authorization; Stop retains the original gesture, Continue restores and
+repaints the document before replay, and Reset/source/document/trust/geometry
+changes discard stale input. Reentrant activation also cancels a partially
+replayed pointer capture. RefEdit retains its explicit worksheet-selection path.
+Pinned shared product `ce6482640332cb67ccfe3372886a4039c832437e` passes full CI (10 steps), strict
+optional VBA/UI Clippy, all five form UI cases, VBA web and 28 native/28 actual
+Node-WASM package cases. Broader M7A.4 remains incomplete; fresh
+Office observations stay M8.5 NOT_RUN.
+
 M7A.3 (2026-11-04): the nine standard worksheet Form Controls now have an
 [implemented bounded profile](worksheet-controls.md). Worksheet ActiveX, label
 text binding, editable combo styles, external/multicolumn bindings, broader native
