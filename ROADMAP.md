@@ -1,5 +1,17 @@
 # GridCraft roadmap
 
+M7A.4 Font-assignment update (2026-11-07): shared ADR 0082 adds ordinary typed
+Font setters on native UserForms and Font-capable controls. Explicit assignment
+shares an object reference; old aliases survive replacement and unload, and new
+controls still copy independent container defaults. Root setters retain lazy
+load/reload and unrelated objects fail nominal validation before mutation.
+Package cases cover assignment across Stop/Continue, trust and original-resource
+preservation; canvas input tests now use an assigned Font. Shared revision
+`38dacbd178dd8f25c98b4da8338f575e85df8171` passes full CI (10 steps), strict
+optional VBA/UI Clippy, five form UI cases, VBA web and 31 native/31 actual
+Node-WASM package cases. The host render was inspected. Nothing/external/other-assignment, ambient/platform, appearance and the
+full remaining M7A.4 checklist stay open; fresh Office comparisons are NOT_RUN.
+
 M7A.4 Font update (2026-11-07): shared ADR 0081 retains native StdFont/TextProps
 and VBFrame Font blocks with exact fractional sizes and original resources.
 Ordinary Font objects expose typed attributes, independent instance state and
@@ -177,7 +189,7 @@ real signature verification and fresh Office comparison remain explicit limits.
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native Font assignment; earlier: native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -421,6 +433,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 typed native Font assignment, reference lifetime and host regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 native Font metadata, typed objects and local rendering; pinned shared runtime and host regression evidence; full milestone remains open |
 | 2026-10-25 | minor | Progress log: AutoSum over a selected row, and a selection's empty last row and column |
 | 2026-10-24 | minor | Macro interface on the Automate tab; progress log row |
