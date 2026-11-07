@@ -1,5 +1,22 @@
 # Supported VBA functions and features
 
+M7A.4 TextAlign (2026-11-07): shared ADR 0086 implements selected native
+Label/TextBox/ListBox/ComboBox alignment with ordinary Long state and published
+fmTextAlign constants. Native ParagraphAlign and public centre/right values are
+translated explicitly. Font assignment, text/selection and events stay independent;
+local glyph/caret positions agree, including UTF-16 pointer selection. ComboBox
+popup rows keep their own alignment. Package regressions exercise typed alignment
+through trusted Stop/Continue, retain document edits/undo and original VBA resources,
+and keep denied execution inert. Canvas fixtures include aligned native controls.
+Shared revision `77465858e83c5e59790296b5d2fb1ed3c3b39374`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, VBA web, and 33 native/33 actual Node 22-WASM package cases pass. The
+updated document/form render was inspected. Boolean/RefEdit and remaining property/default,
+wrap/AutoSize, input/lifecycle/binding and ActiveX/platform cases stay open.
+Full M7A.4 remains IN PROGRESS; native edited saving remains M7A.5 and fresh
+Office observations remain M8.5 NOT_RUN. No VM/protocol/global style/font or
+execution/memory/permission budget changes are included.
+
 M7A.4 appearance audit (2026-11-07): shared ADRs 0083–0085 remove the
 non-Office Page Font/colour exposure; Page children and client painting use the
 owning MultiPage. Native records retain applicable BorderColor, BorderStyle,

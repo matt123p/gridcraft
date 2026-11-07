@@ -1,5 +1,22 @@
 # GridCraft roadmap
 
+M7A.4 TextAlign (2026-11-07): shared ADR 0086 implements selected native
+Label/TextBox/ListBox/ComboBox alignment with ordinary Long state and published
+fmTextAlign constants. Native ParagraphAlign and public centre/right values are
+translated explicitly. Font assignment, text/selection and events stay independent;
+local glyph/caret positions agree, including UTF-16 pointer selection. ComboBox
+popup rows keep their own alignment. Package regressions exercise typed alignment
+through trusted Stop/Continue, retain document edits/undo and original VBA resources,
+and keep denied execution inert. Canvas fixtures include aligned native controls.
+Shared revision `77465858e83c5e59790296b5d2fb1ed3c3b39374`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, VBA web, and 33 native/33 actual Node 22-WASM package cases pass. The
+updated document/form render was inspected. Boolean/RefEdit and remaining property/default,
+wrap/AutoSize, input/lifecycle/binding and ActiveX/platform cases stay open.
+Full M7A.4 remains IN PROGRESS; native edited saving remains M7A.5 and fresh
+Office observations remain M8.5 NOT_RUN. No VM/protocol/global style/font or
+execution/memory/permission budget changes are included.
+
 M7A.4 appearance audit (2026-11-07): shared ADRs 0083–0085 remove the
 non-Office Page Font/colour exposure; Page children and client painting use the
 owning MultiPage. Native records retain applicable BorderColor, BorderStyle,
@@ -209,7 +226,7 @@ real signature verification and fresh Office comparison remain explicit limits.
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native ListBox border correction); earlier: minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native TextAlign and caret geometry); earlier: minor (native ListBox border correction); earlier: minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -453,6 +470,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 selected native TextAlign, canonical typed values and matching caret geometry; refreshed shared pin and host regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 ListBox follows canonical border/effect state; refreshed shared pin, canvas fixture and host acceptance; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 native appearance, corrected Page ownership and published Font aliases; pinned shared runtime and host acceptance; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 typed native Font assignment, reference lifetime and host regressions; full milestone remains open |
