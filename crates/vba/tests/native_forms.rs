@@ -81,7 +81,7 @@ fn native_boolean_instances_run_through_the_workbook_bridge_and_keep_package_byt
         (
             "Launch",
             "Module",
-            "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,c As MSForms.Control,u As MSForms.UserForm,n As Long\nDebug.Print VBA.UserForms.Count\nf.Check1.Value=True\nf.ChoiceA.Value=True\nf.ChoiceB.Value=True\nDebug.Print f.ChoiceA.Value\nDebug.Print f.ChoiceB.Value\nf.Show 0\nDebug.Print f.ActiveControl Is f.Entry\nFor Each c In f.Controls\nn=n+1\nNext c\nDebug.Print n\nn=0\nFor Each u In VBA.UserForms\nIf u Is f Then n=n+1\nNext u\nDebug.Print n\nEnd Sub",
+            "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,c As MSForms.Control,u As MSForms.UserForm,n As Long\nDebug.Print VBA.UserForms.Count\nf.Check1.Value=True\nf.Check1.WordWrap=False\nf.ChoiceA.WordWrap=False\nf.Toggle1.WordWrap=False\nDebug.Print VarType(f.Check1.WordWrap),f.ChoiceA.WordWrap,f.Toggle1.WordWrap\nStop\nf.ChoiceA.Value=True\nf.ChoiceB.Value=True\nDebug.Print f.ChoiceA.Value\nDebug.Print f.ChoiceB.Value\nf.Show 0\nDebug.Print f.ActiveControl Is f.Entry\nFor Each c In f.Controls\nn=n+1\nNext c\nDebug.Print n\nn=0\nFor Each u In VBA.UserForms\nIf u Is f Then n=n+1\nNext u\nDebug.Print n\nEnd Sub",
         ),
     ]));
     let mut wb = Workbook::new();
@@ -96,8 +96,13 @@ fn native_boolean_instances_run_through_the_workbook_bridge_and_keep_package_byt
     bridge.consent(true);
     bridge.dispatch(&mut session, &mut ide, Action::Run)?;
     settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break, "{:?}", ide.diagnostics);
+    let stopped = *ide.form_instances()?.first().ok_or("form")?;
+    assert_eq!(ide.form_instance_field(stopped, Some(14), "WordWrap")?, vba_values::Value::Boolean(false));
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
     assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
-    assert_eq!(ide.output(), vec!["0", "initialized", "False", "True", "True", "7", "1"]);
+    assert_eq!(ide.output(), vec!["0", "initialized", "11\tFalse\tFalse", "False", "True", "True", "7", "1"]);
     let instance = *ide.form_instances()?.first().ok_or("instance")?;
     assert_eq!(ide.form_instance_field(instance, Some(14), "Value")?, vba_values::Value::Boolean(true));
     ide.form_instance_event(instance, Some(14), None, &mut bridge.host(&mut session))?;

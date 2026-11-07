@@ -1,5 +1,24 @@
 # VBA documentation
 
+M7A.4 Boolean captions (2026-11-07): shared ADR 0088 implements native
+CheckBox/OptionButton/ToggleButton WordWrap flags, True defaults and ordinary
+Boolean state. Value, Null/TripleState, option groups, events and original
+resources remain independent. Local caption layout retains widget input, full
+accessible labels/state and authored bounds; ToggleButton captions stay centred.
+Package regressions verify trust refusal, typed wrapping, stopped inspection,
+one-time resume and unchanged original VBA bytes. Canvas fixtures include a
+runtime-created wrapped CheckBox. ADR 0089 stabilizes the restricted WASI test
+runner through value-preserving callback forwarding, with no stack/VM/capability
+budget increase or added arguments, environment or preopened directories.
+Shared revision `b7010bd2738bbcac87a018b94bd261c2d8533f24`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
+cases pass. The light host canvas was rendered and inspected. All 13 shared
+packages changed by revision only in the lockfile. Alignment/TextAlign and remaining
+properties/defaults, AutoSize/scrolling, lifecycle/input, bindings and image/
+RefEdit/ActiveX/platform cases remain open. Full M7A.4 stays IN PROGRESS; native
+edited saving is M7A.5 and fresh Office observations remain M8.5 NOT_RUN.
+
 M7A.4 caption WordWrap (2026-11-07): shared ADR 0087 decodes applicable
 Label/CommandButton flags and exposes ordinary Boolean state with distinct file/
 runtime defaults. Dynamic TextBox starts with WordWrap=True. Local caption
