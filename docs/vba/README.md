@@ -1,5 +1,18 @@
 # VBA documentation
 
+M7A.4 input-order update (2026-11-07): shared ADR 0079 orders earlier native
+key/text/paste/IME input before document Deactivate. Existing keyboard receipts,
+widget defaults and Change callbacks finish first; spanning composition stays
+with the form through Stop. Reset/context/trust invalidation discards unapplied
+input. Modal redirection cancels the later document gesture while preserving the
+original keyboard receipt. No host API, authorization or budget is changed.
+Canvas regressions now also pause in the preceding form Change callback.
+Pinned shared product `231818a4179a6b096bcc66b1d8922ad0282ac7ce` passes full CI
+(10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web and
+28 native/28 actual Node-WASM package cases. The canvas case covers stopped key
+replacement/Change, Continue/Reset and one document replay; the host view was
+inspected. Full M7A.4 remains incomplete; fresh Office comparisons stay M8.5 NOT_RUN.
+
 M7A.4 document-focus update (2026-11-07): ADR 0078 adds a bounded raw-input
 barrier before document canvas input. Native modeless Deactivate runs through
 existing authorization; Stop retains the original gesture, Continue restores and

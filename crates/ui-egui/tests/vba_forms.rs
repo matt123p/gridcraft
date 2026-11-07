@@ -357,13 +357,21 @@ fn native_bound_widgets_write_cells_and_refresh_from_sheet_commands() -> R {
 #[test]
 fn native_document_click_waits_for_deactivate_continue_and_reset_discards_it() -> R {
     use gridcraft_vba::vba_ide::NativeFormResource;
-    for reset in [false, true] {
+    for (reset, prefix) in [(false, false), (true, false), (false, true), (true, true)] {
         let mut session = Session::new();
         session.new_workbook();
         let mut app = SheetApp::new(session, Services::default());
         app.run("vba.open", json!({"source":"Sub Main()\nNativeForm.Show 0\nEnd Sub"})).map_err(std::io::Error::other)?;
-        let code = "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Deactivate()\nDebug.Print \"deactivated\"\nStop\nRange(\"A1\").Value=42\nEnd Sub";
-        let export = String::from_utf8(native_fixture::export())?.replace(native_fixture::SOURCE, code);
+        let pause = if prefix { "Debug.Print Entry.Text" } else { "Stop" };
+        let code = format!(
+            "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Deactivate()\nDebug.Print \"deactivated\"\n{pause}\nRange(\"A1\").Value=42\nEnd Sub{}",
+            if prefix {
+                "\nPrivate Sub Entry_KeyPress(ByVal k As MSForms.ReturnInteger)\nDebug.Print \"press\"\nk.Value=122\nEnd Sub\nPrivate Sub Entry_Change()\nDebug.Print \"change\"\nStop\nEnd Sub"
+            } else {
+                ""
+            }
+        );
+        let export = String::from_utf8(native_fixture::export())?.replace(native_fixture::SOURCE, &code);
         let editor = app.vba.as_mut().ok_or("editor")?;
         editor.ide.import_native_form_export(
             "NativeForm.frm",
@@ -398,19 +406,41 @@ fn native_document_click_waits_for_deactivate_continue_and_reset_discards_it() -
         let rect = app.grid.cells_rect.ok_or("canvas")?;
         let pos = rect.right_bottom() - egui::vec2(30., 30.);
         let before = app.session.doc()?.selection.current();
-        step(
-            &mut app,
-            [true, false]
-                .into_iter()
-                .map(|pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE })
-                .collect(),
-        );
+        let mut events = if prefix {
+            vec![
+                egui::Event::Key {
+                    key: egui::Key::A,
+                    physical_key: Some(egui::Key::A),
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+                egui::Event::Text("a".into()),
+                egui::Event::Key {
+                    key: egui::Key::A,
+                    physical_key: Some(egui::Key::A),
+                    pressed: false,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ]
+        } else {
+            vec![]
+        };
+        events.extend([true, false].into_iter().map(|pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        }));
+        step(&mut app, events);
         for _ in 0..40 {
             step(&mut app, vec![]);
         }
         assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.mode(), gridcraft_vba::Mode::Break);
         assert_eq!(app.session.doc()?.selection.current(), before);
         assert_eq!(app.session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::default()), Value::Empty);
+        assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.output(), if prefix { vec!["press", "change"] } else { vec!["deactivated"] });
         app.run(if reset { "vba.reset" } else { "vba.run" }, json!({})).map_err(std::io::Error::other)?;
         for _ in 0..90 {
             step(&mut app, vec![]);
@@ -421,7 +451,10 @@ fn native_document_click_waits_for_deactivate_continue_and_reset_discards_it() -
         } else {
             assert_ne!(app.session.doc()?.selection.current(), before);
             assert_eq!(app.session.doc()?.wb.active().ok_or("sheet")?.value(CellRef::default()), Value::Number(42.));
-            assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.output(), vec!["deactivated"]);
+            assert_eq!(
+                app.vba.as_ref().ok_or("editor")?.ide.output(),
+                if prefix { vec!["press", "change", "deactivated", "z"] } else { vec!["deactivated"] }
+            );
             if let Ok(path) = std::env::var("GRIDCRAFT_DOCUMENT_SNAPSHOT") {
                 let mut h = egui_kittest::Harness::builder()
                     .with_size(egui::vec2(1300., 900.))

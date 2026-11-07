@@ -1,6 +1,6 @@
 # UI parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured
@@ -328,3 +328,16 @@ strict optional VBA/UI Clippy, four form UI cases, VBA web and all 27 native/27
 actual Node-WASM package cases. The nested callback regression preserves modal
 ownership, separate child/parent receipts, one-shot workbook effects and original
 resources.
+
+M7A.4 input-order update (2026-11-07): shared ADR 0079 orders earlier native
+key/text/paste/IME input before document Deactivate. Existing keyboard receipts,
+widget defaults and Change callbacks finish first; spanning composition stays
+with the form through Stop. Reset/context/trust invalidation discards unapplied
+input. Modal redirection cancels the later document gesture while preserving the
+original keyboard receipt. No host API, authorization or budget is changed.
+Canvas regressions now also pause in the preceding form Change callback.
+Pinned shared product `231818a4179a6b096bcc66b1d8922ad0282ac7ce` passes full CI
+(10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web and
+28 native/28 actual Node-WASM package cases. The canvas case covers stopped key
+replacement/Change, Continue/Reset and one document replay; the host view was
+inspected. Full M7A.4 remains incomplete; fresh Office comparisons stay M8.5 NOT_RUN.
