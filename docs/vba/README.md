@@ -9,7 +9,10 @@ canonical Font with exact Currency/Integer/String/Boolean values. Local painting
 uses those fields and clips fixed-size controls to authored bounds. Package
 cases cover Page ownership, typed appearance, trust refusal, Stop/Continue and
 unchanged original VBA resources; canvas fixtures use aliases and appearance.
-Shared revision `23dab09fec89767c040693391f25647102ffdf1e`.
+The follow-up list renderer removes its unconditional outside outline; canonical
+BorderStyle/SpecialEffect own ListBox edges, while ComboBox popups keep their
+separate frame. Canvas fixtures include runtime-created flat lists.
+Shared revision `0bc169c5dd38f57634a77515a45a58370b1220b3`.
 Full CI (10 steps), strict optional VBA/UI Clippy, five form UI cases,
 VBA web and all 33 native/33 actual Node-WASM package cases pass. The host
 render was inspected. Remaining member/default/selection, lifecycle/focus, binding,

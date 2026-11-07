@@ -9,7 +9,10 @@ canonical Font with exact Currency/Integer/String/Boolean values. Local painting
 uses those fields and clips fixed-size controls to authored bounds. Package
 cases cover Page ownership, typed appearance, trust refusal, Stop/Continue and
 unchanged original VBA resources; canvas fixtures use aliases and appearance.
-Shared revision `23dab09fec89767c040693391f25647102ffdf1e`.
+The follow-up list renderer removes its unconditional outside outline; canonical
+BorderStyle/SpecialEffect own ListBox edges, while ComboBox popups keep their
+separate frame. Canvas fixtures include runtime-created flat lists.
+Shared revision `0bc169c5dd38f57634a77515a45a58370b1220b3`.
 Full CI (10 steps), strict optional VBA/UI Clippy, five form UI cases,
 VBA web and all 33 native/33 actual Node-WASM package cases pass. The host
 render was inspected. Remaining member/default/selection, lifecycle/focus, binding,
@@ -60,7 +63,7 @@ Fonts, borders/effects, transparency, remaining ambient/platform/default/selecti
 and collection/lifecycle requirements stay open. Full M7A.4 remains incomplete;
 fresh Office comparisons remain M8.5 NOT_RUN.
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native ListBox border correction); earlier: minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured
@@ -259,6 +262,7 @@ GridCraft tabs. Design Mode uses a full-size ribbon icon and retains its selecte
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 ListBox follows canonical border/effect state; refreshed shared pin, canvas fixture and host acceptance; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 native appearance, corrected Page ownership and published Font aliases; pinned shared runtime and host acceptance; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 typed native Font assignment, reference lifetime and host regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 native Font metadata, typed objects and local rendering; pinned shared runtime and host regression evidence; full milestone remains open |
