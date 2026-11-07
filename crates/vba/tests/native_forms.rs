@@ -1602,3 +1602,112 @@ fn native_font_assignment_keeps_shared_identity_trusted_continuations_and_origin
     assert!(bridge.begin(&mut session).is_err());
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_page_appearance_uses_multipage_without_non_office_members_trusted_continuations_and_original_workbook_resources() -> R {
+    let form = "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Initialize()\nEntry.Font.Name=\"Authored face\"\nEntry.Font.Size=12.25\nEnd Sub\nPrivate Sub Apply_Click()\nDim font As MSForms.NewFont\nSet font=Entry.Font\nSet Heading.Font=font\nSet Me.Font=font\nDebug.Print Heading.Font Is font,Me.Font Is font\nDim m As Object,p As Object,c As Object\nSet m=Me.Controls.Add(\"Forms.MultiPage.1\")\nSet p=m.Pages.Add()\nm.FontSize=17.25\nSet c=p.Controls.Add(\"Forms.TextBox.1\")\nDebug.Print c.FontSize,c.Parent Is p,p.Parent Is m\nOn Error Resume Next\nDebug.Print p.Font\nDebug.Print Err.Number\nErr.Clear\np.BackColor=1\nDebug.Print Err.Number\nOn Error GoTo 0\nRange(\"A1\").Value=font.Size\nStop\nfont.Bold=True\nfont.Size=14.5\nRange(\"B1\").Value=font.Weight\nMe.Hide\nEnd Sub";
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", form),
+        ("Launch", "Module", "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Show\nEnd Sub"),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Fonts.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let owner = ide.form_active_window().ok_or("form")?;
+    assert_eq!(ide.form_instance_font(owner, Some(12))?.size, 122500);
+    bridge.begin(&mut session)?;
+    ide.form_instance_event(owner, Some(13), None, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break);
+    assert_eq!(ide.form_instance_font(owner, Some(12))?.name, "Authored face");
+    assert_eq!(ide.output(), vec!["True\tTrue", "17.25\tTrue\tTrue", "438", "438"]);
+    assert_eq!(ide.form_instance_font(owner, Some(11))?.size, 122500);
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Number(12.25)
+    );
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed);
+    assert_eq!((ide.form_instance_font(owner, Some(12))?.size, ide.form_instance_font(owner, Some(12))?.weight), (145000, 700));
+    assert_eq!(ide.form_instance_font(owner, Some(11))?.size, 145000);
+    assert_eq!(ide.form_instance_font(owner, None)?.weight, 700);
+    assert_eq!(ide.output(), vec!["True\tTrue", "17.25\tTrue\tTrue", "438", "438"]);
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::new(0, 1)),
+        gridcraft_engine::core::Value::Number(700.)
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.begin(&mut session).is_err());
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_appearance_and_font_aliases_preserve_typed_continuations_trusted_continuations_and_original_workbook_resources() -> R {
+    let form = "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Initialize()\nEntry.Font.Name=\"Authored face\"\nEntry.Font.Size=12.25\nEnd Sub\nPrivate Sub Apply_Click()\nDim font As MSForms.NewFont\nSet font=Entry.Font\nSet Heading.Font=font\nSet Me.Font=font\nDebug.Print Heading.Font Is font,Me.Font Is font\nEntry.BackStyle=0\nEntry.BorderColor=RGB(1,2,3)\nEntry.BorderStyle=1\nEntry.FontSize=12.25\nDebug.Print VarType(Entry.BorderStyle),Entry.SpecialEffect\nRange(\"A1\").Value=font.Size\nStop\nfont.Bold=True\nfont.Size=14.5\nEntry.SpecialEffect=3\nRange(\"B1\").Value=font.Weight\nMe.Hide\nEnd Sub";
+    let original = fixture::add_designer(support::project(&[
+        ("NativeForm", "BaseClass", form),
+        ("Launch", "Module", "Attribute VB_Name = \"Launch\"\nSub Main()\nNativeForm.Show\nEnd Sub"),
+    ]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Fonts.xlsm".into(), Trust::FromFile));
+    let mut bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    ide.entry = "Main".into();
+    assert!(ide.output().is_empty());
+    assert!(bridge.dispatch(&mut session, &mut ide, Action::Run).is_err());
+    bridge.consent(true);
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    let owner = ide.form_active_window().ok_or("form")?;
+    assert_eq!(ide.form_instance_font(owner, Some(12))?.size, 122500);
+    bridge.begin(&mut session)?;
+    ide.form_instance_event(owner, Some(13), None, &mut bridge.host(&mut session))?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Break);
+    assert_eq!(ide.form_instance_font(owner, Some(12))?.name, "Authored face");
+    assert_eq!(ide.output(), vec!["True\tTrue", "3\t0"]);
+    assert_eq!(ide.form_instance_font(owner, Some(11))?.size, 122500);
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Number(12.25)
+    );
+    bridge.dispatch(&mut session, &mut ide, Action::Run)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    bridge.tick(&mut session, &mut ide)?;
+    settle(&mut session, &mut bridge, &mut ide)?;
+    assert_eq!(ide.mode(), Mode::Completed);
+    assert_eq!((ide.form_instance_font(owner, Some(12))?.size, ide.form_instance_font(owner, Some(12))?.weight), (145000, 700));
+    assert_eq!(ide.form_instance_font(owner, Some(11))?.size, 145000);
+    assert_eq!(ide.form_instance_font(owner, None)?.weight, 700);
+    assert_eq!(ide.form_instance_field(owner, Some(12), "BorderStyle")?, vba_values::Value::Long(0));
+    assert_eq!(ide.form_instance_field(owner, Some(12), "SpecialEffect")?, vba_values::Value::Long(3));
+    assert_eq!(ide.form_instance_field(owner, Some(12), "BackStyle")?, vba_values::Value::Long(0));
+    assert_eq!(ide.output(), vec!["True\tTrue", "3\t0"]);
+    assert_eq!(
+        session.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::new(0, 1)),
+        gridcraft_engine::core::Value::Number(700.)
+    );
+    let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
+    assert_eq!(read_xlsx(&saved)?.0.vba_project.as_deref(), Some(&original));
+    bridge.consent(false);
+    assert!(bridge.begin(&mut session).is_err());
+    Ok(())
+}

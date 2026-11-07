@@ -1,5 +1,22 @@
 # GridCraft roadmap
 
+M7A.4 appearance audit (2026-11-07): shared ADRs 0083–0085 remove the
+non-Office Page Font/colour exposure; Page children and client painting use the
+owning MultiPage. Native records retain applicable BorderColor, BorderStyle,
+SpecialEffect and BackStyle. Ordinary typed properties preserve documented
+border/effect coupling, transparency and errors. Published Font aliases share the
+canonical Font with exact Currency/Integer/String/Boolean values. Local painting
+uses those fields and clips fixed-size controls to authored bounds. Package
+cases cover Page ownership, typed appearance, trust refusal, Stop/Continue and
+unchanged original VBA resources; canvas fixtures use aliases and appearance.
+Shared revision `23dab09fec89767c040693391f25647102ffdf1e`.
+Full CI (10 steps), strict optional VBA/UI Clippy, five form UI cases,
+VBA web and all 33 native/33 actual Node-WASM package cases pass. The host
+render was inspected. Remaining member/default/selection, lifecycle/focus, binding,
+keyboard/mouse, image/RefEdit and ActiveX/platform cases stay open. Full M7A.4
+remains IN PROGRESS; native edited saving is M7A.5. Fresh Office observations
+remain M8.5 NOT_RUN. Budgets and the existing macro bridge are unchanged.
+
 M7A.4 Font-assignment update (2026-11-07): shared ADR 0082 adds ordinary typed
 Font setters on native UserForms and Font-capable controls. Explicit assignment
 shares an object reference; old aliases survive replacement and unload, and new
@@ -189,7 +206,7 @@ real signature verification and fresh Office comparison remain explicit limits.
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native Font assignment; earlier: native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -433,6 +450,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 native appearance, corrected Page ownership and published Font aliases; pinned shared runtime and host acceptance; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 typed native Font assignment, reference lifetime and host regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 native Font metadata, typed objects and local rendering; pinned shared runtime and host regression evidence; full milestone remains open |
 | 2026-10-25 | minor | Progress log: AutoSum over a selected row, and a selection's empty last row and column |
