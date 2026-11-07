@@ -1,5 +1,23 @@
 # Unsupported VBA functions and features
 
+M7A.4 HideSelection (2026-11-07): shared ADR 0091 implements native
+TextBox/ComboBox bit-29 flags, ordinary Boolean state and True file/dynamic
+defaults. Inactive selected text stays highlighted when False; both ComboBox
+presentations use canonical ranges without changing edit permission or drop
+state. Text/Value, selected ranges, events, original resources and all budgets
+remain independent. Highlight painting uses local clipped galleys outside font
+locks. Package regressions check trust refusal, typed state and nonempty ranges
+at Stop/resume, and unchanged original VBA bytes. Canvas fixtures include a
+runtime-created ComboBox with persistent highlighting.
+Shared revision `74f89f2bfb80c461d9791175291b48d892fa6006`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
+cases pass. The light host canvas was inspected. The 13 shared lockfile packages
+changed by revision only. Remaining selection, properties,
+AutoSize/scrolling, lifecycle/input, bindings and image/RefEdit/ActiveX/platform
+cases stay open. Full M7A.4 remains IN PROGRESS; edited native saving is M7A.5
+and fresh Office observations remain M8.5 NOT_RUN.
+
 M7A.4 caption Alignment (2026-11-07): shared ADR 0090 implements native
 CheckBox/OptionButton flag translation, ordinary Long Alignment state, Right
 defaults and published constants. ToggleButton's documented disabled member is

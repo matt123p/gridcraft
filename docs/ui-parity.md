@@ -1,5 +1,23 @@
 # UI parity
 
+M7A.4 HideSelection (2026-11-07): shared ADR 0091 implements native
+TextBox/ComboBox bit-29 flags, ordinary Boolean state and True file/dynamic
+defaults. Inactive selected text stays highlighted when False; both ComboBox
+presentations use canonical ranges without changing edit permission or drop
+state. Text/Value, selected ranges, events, original resources and all budgets
+remain independent. Highlight painting uses local clipped galleys outside font
+locks. Package regressions check trust refusal, typed state and nonempty ranges
+at Stop/resume, and unchanged original VBA bytes. Canvas fixtures include a
+runtime-created ComboBox with persistent highlighting.
+Shared revision `74f89f2bfb80c461d9791175291b48d892fa6006`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
+cases pass. The light host canvas was inspected. The 13 shared lockfile packages
+changed by revision only. Remaining selection, properties,
+AutoSize/scrolling, lifecycle/input, bindings and image/RefEdit/ActiveX/platform
+cases stay open. Full M7A.4 remains IN PROGRESS; edited native saving is M7A.5
+and fresh Office observations remain M8.5 NOT_RUN.
+
 M7A.4 caption Alignment (2026-11-07): shared ADR 0090 implements native
 CheckBox/OptionButton flag translation, ordinary Long Alignment state, Right
 defaults and published constants. ToggleButton's documented disabled member is
@@ -134,7 +152,7 @@ Fonts, borders/effects, transparency, remaining ambient/platform/default/selecti
 and collection/lifecycle requirements stay open. Full M7A.4 remains incomplete;
 fresh Office comparisons remain M8.5 NOT_RUN.
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native caption Alignment); earlier: minor (native Boolean caption wrapping); earlier: minor (native WordWrap defaults and fixed text bounds); earlier: minor (native TextAlign and caret geometry); earlier: minor (native ListBox border correction); earlier: minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native HideSelection); earlier: minor (native caption Alignment); earlier: minor (native Boolean caption wrapping); earlier: minor (native WordWrap defaults and fixed text bounds); earlier: minor (native TextAlign and caret geometry); earlier: minor (native ListBox border correction); earlier: minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured
@@ -333,6 +351,7 @@ GridCraft tabs. Design Mode uses a full-size ribbon icon and retains its selecte
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 native HideSelection and canonical inactive text highlights; pinned runtime, stopped range/resource and canvas regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 CheckBox/OptionButton Alignment, clipped accessible captions and correctly positioned indicator bevels; pinned runtime and package/canvas regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 Boolean-control WordWrap, bounded accessible captions and centred ToggleButtons; pinned shared runtime, stopped package and canvas regressions; full milestone remains open |
 | 2026-11-07 | minor | M7A.4 selected caption WordWrap, native/runtime defaults and fixed horizontal text allocation; refreshed shared pin and host regressions; full milestone remains open |
