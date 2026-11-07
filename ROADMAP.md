@@ -1,5 +1,21 @@
 # GridCraft roadmap
 
+M7A.4 Font update (2026-11-07): shared ADR 0081 retains native StdFont/TextProps
+and VBFrame Font blocks with exact fractional sizes and original resources.
+Ordinary Font objects expose typed attributes, independent instance state and
+container defaults for runtime-added controls and Pages. Local rendering uses
+canonical values and existing host fonts; optional face selection belongs to the
+caller. Extreme display sizes are bounded with a visible notice while retaining
+the canonical value. Host package cases cover trust refusal, typed aliases,
+Stop/Continue and unchanged original VBA resources; canvas tests exercise authored
+typography with existing activation/input ordering.
+Pinned shared product `f899c9925de3e2d4ef838f8ac78287ec9b2f4c2b` passes full CI
+(all 10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web
+and all 30 native/30 actual Node-WASM package cases. The host document render
+was inspected. Font replacement, ambient/platform realization, borders/effects,
+transparency and the remaining full M7A.4 checklist stay open. Fresh Office
+comparisons remain M8.5 NOT_RUN.
+
 M7A.4 colour update (2026-11-07): shared ADR 0080 retains native BackColor/ForeColor
 bits and file defaults, exposes ordinary typed properties and paints authored RGB
 values through the shared form renderer. Optional platform/client palette lookup
@@ -161,7 +177,7 @@ real signature verification and fresh Office comparison remain explicit limits.
 
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-04 · **Change:** minor (native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -405,6 +421,7 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 native Font metadata, typed objects and local rendering; pinned shared runtime and host regression evidence; full milestone remains open |
 | 2026-10-25 | minor | Progress log: AutoSum over a selected row, and a selection's empty last row and column |
 | 2026-10-24 | minor | Macro interface on the Automate tab; progress log row |
 | 2026-10-24 | minor | Macro engine and `macro.*` commands; catalog 275 / 291 → 276 / 292 (View › Macros › Record Macro); progress log row |

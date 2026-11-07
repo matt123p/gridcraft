@@ -364,7 +364,7 @@ fn native_document_click_waits_for_deactivate_continue_and_reset_discards_it() -
         app.run("vba.open", json!({"source":"Sub Main()\nNativeForm.Show 0\nEnd Sub"})).map_err(std::io::Error::other)?;
         let pause = if prefix { "Debug.Print Entry.Text" } else { "Stop" };
         let code = format!(
-            "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Initialize()\nMe.BackColor=RGB(230,240,250)\nEntry.BackColor=RGB(250,230,200)\nEntry.ForeColor=RGB(80,30,20)\nApply.BackColor=RGB(190,220,240)\nEnd Sub\nPrivate Sub UserForm_Deactivate()\nDebug.Print \"deactivated\"\n{pause}\nRange(\"A1\").Value=42\nEnd Sub{}",
+            "Attribute VB_Name = \"NativeForm\"\nAttribute VB_PredeclaredId = True\nPrivate Sub UserForm_Initialize()\nMe.BackColor=RGB(230,240,250)\nEntry.BackColor=RGB(250,230,200)\nEntry.ForeColor=RGB(80,30,20)\nEntry.Font.Size=12.25\nEntry.Font.Italic=True\nEntry.Font.Underline=True\nApply.BackColor=RGB(190,220,240)\nEnd Sub\nPrivate Sub UserForm_Deactivate()\nDebug.Print \"deactivated\"\n{pause}\nRange(\"A1\").Value=42\nEnd Sub{}",
             if prefix {
                 "\nPrivate Sub Entry_KeyPress(ByVal k As MSForms.ReturnInteger)\nDebug.Print \"press\"\nk.Value=122\nEnd Sub\nPrivate Sub Entry_Change()\nDebug.Print \"change\"\nStop\nEnd Sub"
             } else {

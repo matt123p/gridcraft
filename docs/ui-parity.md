@@ -1,5 +1,21 @@
 # UI parity
 
+M7A.4 Font update (2026-11-07): shared ADR 0081 retains native StdFont/TextProps
+and VBFrame Font blocks with exact fractional sizes and original resources.
+Ordinary Font objects expose typed attributes, independent instance state and
+container defaults for runtime-added controls and Pages. Local rendering uses
+canonical values and existing host fonts; optional face selection belongs to the
+caller. Extreme display sizes are bounded with a visible notice while retaining
+the canonical value. Host package cases cover trust refusal, typed aliases,
+Stop/Continue and unchanged original VBA resources; canvas tests exercise authored
+typography with existing activation/input ordering.
+Pinned shared product `f899c9925de3e2d4ef838f8ac78287ec9b2f4c2b` passes full CI
+(all 10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web
+and all 30 native/30 actual Node-WASM package cases. The host document render
+was inspected. Font replacement, ambient/platform realization, borders/effects,
+transparency and the remaining full M7A.4 checklist stay open. Fresh Office
+comparisons remain M8.5 NOT_RUN.
+
 M7A.4 colour update (2026-11-07): shared ADR 0080 retains native BackColor/ForeColor
 bits and file defaults, exposes ordinary typed properties and paints authored RGB
 values through the shared form renderer. Optional platform/client palette lookup
@@ -15,7 +31,7 @@ Fonts, borders/effects, transparency, remaining ambient/platform/default/selecti
 and collection/lifecycle requirements stay open. Full M7A.4 remains incomplete;
 fresh Office comparisons remain M8.5 NOT_RUN.
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (native form fonts; earlier: native form colours; earlier: native form input before document activation; earlier: selected native UserForm cell/list bindings; earlier: checkbox cells print as boxes; earlier: Ctrl+arrow and Ctrl+Shift+arrow while pointing a formula reference; earlier: editing a hyperlink loads its existing fields; earlier: AutoSum over a selected row puts its total to the right; ribbon catalog count 276 / 292) · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured
@@ -214,6 +230,7 @@ GridCraft tabs. Design Mode uses a full-size ribbon icon and retains its selecte
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | M7A.4 native Font metadata, typed objects and local rendering; pinned shared runtime and host regression evidence; full milestone remains open |
 | 2026-11-04 | trivial | Developer ribbon: remove extra group captions and use a full-size Design Mode toggle |
 | 2026-10-30 | minor | Checkbox cells print and export to PDF as boxes, as on screen: unchecked white with a grey outline, checked green with a white tick (#2972). They printed their value as TRUE or FALSE; other values in a checkbox cell still print as text |
 | 2026-10-29 | minor | Formula pointing from the keyboard: Ctrl+arrow (⌘arrow) moves the pointed cell to the edge of its data and Ctrl+Shift+arrow (⌘⇧arrow) extends the pointed range there, as the same keys move and extend the selection, so typing `=COUNTIF(`, clicking the top of a column and pressing ⌘⇧↓ points at the whole column of data; the keys used to move or extend by one cell. A range reaching the sheet edge is written as whole columns or rows (`A:B`). The editor reads the modifiers of the arrow's own key event, so a keystroke pressed and released within one frame (a control client's `ui.key`, an automation tool) keeps its Shift and Ctrl |
