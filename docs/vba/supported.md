@@ -1,5 +1,22 @@
 # Supported VBA functions and features
 
+M7A.4 caption WordWrap (2026-11-07): shared ADR 0087 decodes applicable
+Label/CommandButton flags and exposes ordinary Boolean state with distinct file/
+runtime defaults. Dynamic TextBox starts with WordWrap=True. Local caption
+wrapping/clipping preserves fixed bounds, fonts and accelerators; unwrapped
+multiline TextBox allocation retains its horizontal interaction/accessibility
+bounds and complete UTF-16 text/cursor rows. Package cases cover typed wrapping
+through trusted Stop/Continue, original resources, document edits/undo and denied
+execution. Canvas fixtures exercise the same canonical properties.
+Shared revision `2be3f2dcbf96b3798adb348649a131fe73436061`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, VBA web and 33 native/33 actual Node 22-WASM package cases pass. The
+updated document/form render was inspected. Boolean-control wrapping, AutoSize,
+scrolling and the remaining property/lifecycle/input/binding/image/RefEdit/ActiveX
+and platform cases stay open. Full M7A.4 remains IN PROGRESS; native edited saving
+is M7A.5 and fresh Office observations remain M8.5 NOT_RUN. VM/host protocols,
+global font/style policy and execution/memory/permission budgets are unchanged.
+
 M7A.4 TextAlign (2026-11-07): shared ADR 0086 implements selected native
 Label/TextBox/ListBox/ComboBox alignment with ordinary Long state and published
 fmTextAlign constants. Native ParagraphAlign and public centre/right values are
