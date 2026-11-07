@@ -1,5 +1,23 @@
 # Supported VBA functions and features
 
+M7A.4 caption Alignment (2026-11-07): shared ADR 0090 implements native
+CheckBox/OptionButton flag translation, ordinary Long Alignment state, Right
+defaults and published constants. ToggleButton's documented disabled member is
+not enabled. Real indicators and their bevels follow the selected side; caption
+text stays left aligned and clipped in its own rectangle. Empty captions retain
+accessible runtime names. Value/Null/groups/WordWrap/events, source/resources and
+all budgets remain unchanged. Package regressions cover trust refusal, typed
+properties, inert stopped inspection, one-time resume and original VBA bytes.
+Canvas fixtures include a runtime-created left-caption CheckBox.
+Shared revision `b8d203dd00bef56acce74deeb0d25d13811fbe1e`.
+Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
+cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
+cases pass. The light host canvas was rendered and inspected. The 13 shared
+lockfile packages changed by revision only. Remaining applicable members,
+AutoSize/scrolling, lifecycle/input, binding and image/RefEdit/ActiveX/platform
+cases remain open. Full M7A.4 stays IN PROGRESS; edited native saving is M7A.5
+and fresh Office observations remain M8.5 NOT_RUN.
+
 M7A.4 Boolean captions (2026-11-07): shared ADR 0088 implements native
 CheckBox/OptionButton/ToggleButton WordWrap flags, True defaults and ordinary
 Boolean state. Value, Null/TripleState, option groups, events and original
