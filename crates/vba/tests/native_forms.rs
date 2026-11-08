@@ -1774,7 +1774,10 @@ fn edited_xlsm_native_project_copy_reopens_runs_and_drops_signatures() -> R {
     let mut c = ide.form(id).ok_or("form")?.form().controls.get(1).ok_or("entry")?.clone();
     c.text = "saved embedded".into();
     ide.edit_form(id, gridcraft_vba::vba_ide::forms::DesignEdit::Replace(c))?;
-    ide.set_text(fixture::SOURCE.replace("initialized", "saved initialize"))?;
+    let edited_source = fixture::SOURCE
+        .replace("initialized", "saved initialize")
+        .replace("Debug.Print Entry.Text", "Stop\r\nRange(\"A1\").Value2 = Entry.Text\r\nDebug.Print Entry.Text");
+    ide.set_text(edited_source)?;
     let snapshot = bridge.prepare_native_project_export(&session, &ide)?;
     assert!(!bridge.permitted(&session));
     assert!(ide.output().is_empty());
@@ -1795,15 +1798,67 @@ fn edited_xlsm_native_project_copy_reopens_runs_and_drops_signatures() -> R {
     new_ide.run_form(new_id, true, &mut new_bridge.host(&mut reopened))?;
     settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
     assert_eq!(new_ide.output(), vec!["saved initialize"]);
+    new_bridge.begin(&mut reopened)?;
     new_ide.form_event(new_id, Some(13), None, &mut new_bridge.host(&mut reopened))?;
+    settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
+    assert_eq!(new_ide.mode(), Mode::Break);
+    assert_eq!(reopened.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()), gridcraft_engine::core::Value::Empty);
+    new_bridge.dispatch(&mut reopened, &mut new_ide, Action::Run)?;
     settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
     new_bridge.tick(&mut reopened, &mut new_ide)?;
     settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
     assert_eq!(new_ide.output(), vec!["saved initialize", "saved embedded"]);
+    assert_eq!(new_ide.mode(), Mode::Completed);
+    new_bridge.finish(&mut reopened)?;
+    assert_eq!(
+        reopened.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()),
+        gridcraft_engine::core::Value::Text("saved embedded".into())
+    );
+    reopened.execute("edit.undo", serde_json::json!({}))?;
+    assert_eq!(reopened.doc()?.wb.sheet(0).ok_or("sheet")?.value(gridcraft_engine::core::CellRef::default()), gridcraft_engine::core::Value::Empty);
+    new_bridge.dispatch(&mut reopened, &mut new_ide, Action::Reset)?;
+    assert!(new_ide.form_instances()?.is_empty());
     bridge.acknowledge_native_project_export(&session, &mut ide, &snapshot)?;
     assert!(!ide.active_module().ok_or("module")?.dirty());
     ide.set_text(format!("{}\n' later", fixture::SOURCE))?;
     assert!(bridge.validate_native_project_export(&session, &ide, &snapshot).is_err());
     assert_eq!(session.doc()?.wb.vba_project.as_deref().map(Vec::as_slice), Some(original.as_slice()));
     Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn malformed_native_package_resources_refuse_without_document_mutation() {
+    use std::io::{Cursor, Read, Write};
+    for corruption in 0..4 {
+        let original = fixture::add_designer(support::project(&[("NativeForm", "BaseClass", fixture::SOURCE)]));
+        let mut file = cfb::CompoundFile::open(Cursor::new(original)).unwrap();
+        let path = if corruption == 1 { "/NativeForm/o" } else { "/NativeForm/f" };
+        let mut bytes = Vec::new();
+        file.open_stream(path).unwrap().read_to_end(&mut bytes).unwrap();
+        if corruption < 2 {
+            bytes.truncate(1);
+        } else {
+            let site = bytes.windows(4).position(|w| w == [0xf5, 1, 0, 0]).unwrap();
+            if corruption == 2 {
+                bytes[site + 22..site + 24].copy_from_slice(&[0xff, 0x7f]);
+            } else {
+                bytes[site + 4..site + 8].copy_from_slice(&i32::MAX.to_le_bytes());
+            }
+        }
+        file.create_stream(path).unwrap().write_all(&bytes).unwrap();
+        let malformed = file.into_inner().into_inner();
+        let mut wb = Workbook::new();
+        wb.vba_project = Some(malformed.clone().into());
+        let package = write_xlsx_as(&wb, XlsxKind::MacroWorkbook).unwrap();
+        let mut session = Session::new();
+        session.add_document(DocState::from_saved(read_xlsx(&package).unwrap().0, None, "Malformed.xlsm".into(), Trust::FromFile));
+        let before = session.doc().unwrap().wb.clone();
+        let revision = session.doc().unwrap().revision;
+        let bridge = Bridge::new(&session).unwrap();
+        assert!(bridge.import_project(&session).is_err(), "corruption {corruption}");
+        assert!(std::sync::Arc::ptr_eq(&before, &session.doc().unwrap().wb));
+        assert_eq!(session.doc().unwrap().revision, revision);
+        assert_eq!(session.doc().unwrap().wb.vba_project.as_deref().map(Vec::as_slice), Some(malformed.as_slice()));
+    }
 }
