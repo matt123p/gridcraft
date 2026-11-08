@@ -1,5 +1,19 @@
 # Supported VBA functions and features
 
+M7A.6 native-only files (2026-11-08): the shared custom form codec/APIs and
+`.tvform` file routes/examples are removed under
+[ADR 0099](../../../tiny-vba/docs/decisions/0099-native-only-form-workflows.md). New forms use
+inert native templates. Native `.frm`/`.frx` Save/Export and edited macro-enabled
+copy export retain the M7A.5 snapshot/signature/IO contract. Useful legacy-era
+host callback tests now import native pairs; there is no legacy importer or
+converter. Shared revision `d9431ce4992ee9580acfe2fe0f7276de229bedaf`. All 10 CI steps,
+strict optional VBA/UI Clippy, six form UI cases, the VBA-enabled web build and
+34 native/34 Node 22 WASM package cases pass. The migrated native import retains
+its real workbook callback assertions. The host canvas was inspected; 13 shared
+lockfile packages changed by revision only. M7A.7 acceptance and
+M8.5 fresh Office comparisons remain separate; older codec/support entries below
+are historical and superseded.
+
 M7A.5 persistence (2026-11-08): native `.frm`/`.frx` Save/Export and
 **Export Edited XLSM Copy** (`vba.exportNativePackage`) are implemented. The copy
 compiles idle/reset authored source without execution, encodes edited native form

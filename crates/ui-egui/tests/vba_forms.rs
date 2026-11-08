@@ -4,10 +4,7 @@ use gridcraft_engine::{
     core::{CellRef, Value},
 };
 use gridcraft_ui_egui::{Services, SheetApp};
-use gridcraft_vba::vba_ide::{
-    form_archive,
-    forms::{Bounds, Control, ControlKind, Form},
-};
+use gridcraft_vba::vba_ide::forms::{Bounds, Control, ControlKind, Form};
 use serde_json::json;
 use std::fs;
 use vba_ui_egui::{Command, FormCommand};
@@ -15,7 +12,7 @@ use vba_ui_egui::{Command, FormCommand};
 type R = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
-fn imported_tvform_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R {
+fn imported_native_form_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R {
     let source = "Private Sub TextBox1_Change()\nRange(\"A1\").Value2 = Len(TextBox1.Text)\nEnd Sub\nPrivate Sub CommandButton1_Click()\nRange(\"A2\").Value2 = 42\nMe.Hide\nEnd Sub\n";
     let form = Form {
         name: "M5Form".into(),
@@ -52,9 +49,24 @@ fn imported_tvform_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R
         ],
         tab_order: vec![1, 2],
     };
-    let archive = form_archive::encode(&form, source)?;
-    let path = std::env::temp_dir().join(format!("gridcraft-m5-form-{}.tvform", std::process::id()));
-    fs::write(&path, archive.as_bytes())?;
+    let mut template = gridcraft_vba::Ide::new();
+    let id = template.add_form(&form.name)?;
+    template.edit_form(
+        id,
+        gridcraft_vba::vba_ide::forms::DesignEdit::FormProperties { caption: form.caption.clone(), width: form.width, height: form.height },
+    )?;
+    for control in &form.controls {
+        template.edit_form(id, gridcraft_vba::vba_ide::forms::DesignEdit::Add(control.kind, control.bounds))?;
+        template.edit_form(id, gridcraft_vba::vba_ide::forms::DesignEdit::Replace(control.clone()))?;
+    }
+    template.set_text(format!("Attribute VB_Name = \"M5Form\"\r\n{source}"))?;
+    let snapshot = template.export_native_form(id)?;
+    let dir = std::env::temp_dir().join(format!("gridcraft-native-form-{}", std::process::id()));
+    fs::create_dir_all(&dir)?;
+    for file in snapshot.files() {
+        fs::write(dir.join(&file.name), &file.bytes)?;
+    }
+    let path = dir.join("M5Form.frm");
     let picked = path.clone();
     let services = Services { pick_open: Some(Box::new(move || Some(picked.to_string_lossy().into_owned()))), ..Default::default() };
     let mut session = Session::new();
@@ -117,7 +129,7 @@ fn imported_tvform_runs_textbox_and_button_callbacks_on_the_workbook_host() -> R
     assert!(!editor.ide.form_visible(form_id));
     assert!(!editor.ide.form_is_modal(form_id));
 
-    fs::remove_file(path)?;
+    fs::remove_dir_all(dir)?;
     Ok(())
 }
 
