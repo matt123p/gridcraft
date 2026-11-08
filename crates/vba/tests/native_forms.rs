@@ -125,10 +125,10 @@ fn native_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
             (
                 "Launch",
                 "Module",
-                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,t As MSForms.TextBox\nSet t=f.Entry\nt.Text=\"abcde\"\nt.SelStart=1\nt.SelLength=2\nt.SelText=\"X\"\nf.Show 0\nDebug.Print t.MultiLine\nDebug.Print t.PasswordChar\nDebug.Print t.Text\nDebug.Print t.SelStart\nt.HideSelection=False\nt.SelStart=1\nt.SelLength=2\nDebug.Print VarType(t.HideSelection),t.HideSelection\nStop\nDebug.Print t.SelStart,t.SelLength\nEnd Sub",
+                "Attribute VB_Name = \"Launch\"\nSub Main()\nDim f As New NativeForm,t As MSForms.TextBox\nSet t=f.Entry\nt.Text=\"abcde\"\nt.SelStart=1\nt.SelLength=2\nt.SelText=\"X\"\nf.Show 0\nDebug.Print t.MultiLine\nDebug.Print t.PasswordChar\nDebug.Print t.Text\nDebug.Print t.SelStart\nt.HideSelection=False\nt.SelStart=1\nt.SelLength=2\nDebug.Print VarType(t.HideSelection),t.HideSelection\nStop\nDebug.Print t.SelStart,t.SelLength\nDebug.Print VarType(t.AutoTab),t.AutoTab\nt.MaxLength=1\nEnd Sub",
             ),
         ]),
-        fixture::text_companion(0xacf0481b, 42),
+        fixture::text_companion(0xecf0481b, 42),
     );
     let mut wb = Workbook::new();
     wb.vba_project = Some(original.clone().into());
@@ -149,11 +149,12 @@ fn native_text_selection_and_input_preserve_xlsm_project_bytes() -> R {
     bridge.dispatch(&mut session, &mut ide, Action::Run)?;
     settle(&mut session, &mut bridge, &mut ide)?;
     assert_eq!(ide.mode(), Mode::Completed);
-    assert_eq!(ide.output(), vec!["initialized", "True", "*", "aXde", "2", "11\tFalse", "1\t2"]);
+    assert_eq!(ide.output(), vec!["initialized", "True", "*", "aXde", "2", "11\tFalse", "1\t2", "11\tTrue"]);
     let f = *ide.form_instances()?.first().ok_or("instance")?;
-    ide.form_instance_text(f, 12, vba_values::VbaString::from_utf8("z")?, (1, 0), &mut bridge.host(&mut session))?;
+    ide.form_instance_text_edit(f, 12, vba_values::VbaString::from_utf8("z")?, (1, 0), &mut bridge.host(&mut session))?;
     settle(&mut session, &mut bridge, &mut ide)?;
     assert_eq!(ide.form_instance_field(f, Some(12), "VbaSelStart")?, vba_values::Value::Long(1));
+    assert_eq!(ide.form_keyboard_target(f)?, Some(13));
     let saved = write_xlsx_as(session.doc()?.wb.as_ref(), XlsxKind::MacroWorkbook)?;
     let (back, _) = read_xlsx(&saved)?;
     assert_eq!(back.vba_project.as_deref(), Some(&original));
