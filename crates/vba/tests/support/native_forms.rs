@@ -161,13 +161,16 @@ pub fn boolean_companion() -> Vec<u8> {
 
 /// Original MorphData TextBox packet; no Office-produced resource is adopted.
 pub fn text_companion(flags: u32, password: u16) -> Vec<u8> {
-    text_companion_options(flags, password, None)
+    text_companion_options(flags, password, None, None)
 }
 pub fn text_scroll_companion(flags: u32, password: u16, scroll: u8) -> Vec<u8> {
-    text_companion_options(flags, password, Some(scroll))
+    text_companion_options(flags, password, Some(scroll), None)
 }
-fn text_companion_options(flags: u32, password: u16, scroll: Option<u8>) -> Vec<u8> {
+fn text_companion_options(flags: u32, password: u16, scroll: Option<u8>, take_focus: Option<bool>) -> Vec<u8> {
     let mut controls = controls();
+    if let Some(take_focus) = take_focus {
+        controls[2] = button_focus_control(take_focus);
+    }
     let mut body = u32s(&[0x80400301 | if scroll.is_some() { 1 << 5 } else { 0 }, 0, flags]);
     if let Some(scroll) = scroll {
         body.extend([scroll, 0]);
@@ -691,4 +694,17 @@ pub fn binding_companion() -> Vec<u8> {
     let mut bytes = (data.len() as u32).to_le_bytes().to_vec();
     bytes.extend(data);
     bytes
+}
+
+fn button_focus_control(take_focus: bool) -> Vec<u8> {
+    let mut body = u32s(&[0x28 | if take_focus { 0 } else { 1 << 9 }, 0x80000005]);
+    body.extend(string("Apply"));
+    body.extend(u32s(&[2540, 635]));
+    let mut button = record(0x200, &body);
+    button.extend(record(0x200, &[0; 4]));
+    button
+}
+
+pub fn text_scroll_button_focus_companion(flags: u32, password: u16, scroll: u8, take_focus: bool) -> Vec<u8> {
+    text_companion_options(flags, password, Some(scroll), Some(take_focus))
 }
