@@ -161,10 +161,21 @@ pub fn boolean_companion() -> Vec<u8> {
 
 /// Original MorphData TextBox packet; no Office-produced resource is adopted.
 pub fn text_companion(flags: u32, password: u16) -> Vec<u8> {
+    text_companion_options(flags, password, None)
+}
+pub fn text_scroll_companion(flags: u32, password: u16, scroll: u8) -> Vec<u8> {
+    text_companion_options(flags, password, Some(scroll))
+}
+fn text_companion_options(flags: u32, password: u16, scroll: Option<u8>) -> Vec<u8> {
     let mut controls = controls();
-    let mut body = u32s(&[0x80400301, 0, flags]);
-    body.extend(password.to_le_bytes());
-    body.extend([0, 0]);
+    let mut body = u32s(&[0x80400301 | if scroll.is_some() { 1 << 5 } else { 0 }, 0, flags]);
+    if let Some(scroll) = scroll {
+        body.extend([scroll, 0]);
+        body.extend(password.to_le_bytes());
+    } else {
+        body.extend(password.to_le_bytes());
+        body.extend([0, 0]);
+    }
     body.extend(u32s(&[0x80000007, 2540, 635]));
     body.extend(string("initial"));
     let mut text = record(0x200, &body);
