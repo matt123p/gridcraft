@@ -791,3 +791,16 @@ pub fn image_size(data: &[u8]) -> Option<(u32, u32)> {
 
 #[cfg(test)]
 mod tests;
+
+/// Encode an explicitly edited macro-enabled copy. Source compilation/encoding
+/// belongs to the optional VBA editor; this layer owns package/signature policy.
+pub fn encode_edited_vba_package_copy(wb: &Workbook, expected: &[u8], edited: &[u8]) -> Result<Vec<u8>> {
+    let candidate = gridcraft_xlsx::prepare_edited_vba_package(wb, expected, edited).map_err(|error| EngineError::Other(error.to_string()))?;
+    let bytes =
+        gridcraft_xlsx::write_xlsx_as(&candidate, gridcraft_xlsx::XlsxKind::MacroWorkbook).map_err(|error| EngineError::Other(error.to_string()))?;
+    let (back, _) = gridcraft_xlsx::read_xlsx(&bytes).map_err(|error| EngineError::Other(error.to_string()))?;
+    if back.vba_project.as_deref().map(Vec::as_slice) != Some(edited) {
+        return Err(EngineError::Other("native package reopen differs from encoded project".into()));
+    }
+    Ok(bytes)
+}

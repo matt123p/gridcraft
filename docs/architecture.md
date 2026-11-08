@@ -208,3 +208,16 @@ M7A.4 increment — 2026-11-04: the shared native form runtime is pinned at
 centrally by the shared UI API and retain the existing host execution-consent
 checks. Canonical controls/lifetimes stay in tiny-vba; document state, package
 retention and authorization stay in this fork. Full M7A.4 remains open.
+
+## M7A.5 explicit native persistence (2026-11-08)
+
+The optional VBA bridge prepares a compile-checked shared native-project snapshot
+bound to document/project identity and exact imported originals. The format crate
+owns signature removal and project replacement on a document clone. Engine IO
+writes/reopens a macro-enabled copy and compares exact project bytes. The UI owns
+file selection, final snapshot validation and atomic commit; browser callbacks
+only request downloads. This uses existing dependency edges. Copy export does
+not mutate the original document or clear its editor's dirty state; ordinary
+Save retains its original project. Native form Save/Export separately publishes
+a complete immutable `.frx` before replacing `.frm`; failed/stale saves do not
+acknowledge modified state. See the shared ADR 0098 and M7A.5 acceptance record.

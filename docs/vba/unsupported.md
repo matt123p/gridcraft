@@ -1,5 +1,26 @@
 # Unsupported VBA functions and features
 
+M7A.5 persistence (2026-11-08): native `.frm`/`.frx` Save/Export and
+**Export Edited XLSM Copy** (`vba.exportNativePackage`) are implemented. The copy
+compiles idle/reset authored source without execution, encodes edited native form
+resources, removes invalidated VBA signatures and reopens the macro-enabled output
+to check exact project bytes. File selection revalidates project/document/source/
+design identity; native output commits atomically and refuses the current document
+path. Copy export/download leaves the original editor modified and preserves its
+original project bytes. Ordinary document Save retains those original VBA bytes;
+open the edited copy to use the persisted changes. Native `.frm` Save acknowledges
+only successful current-snapshot IO; browser download requests never do.
+Shared revision `8800fcb07e628d4719a5c5459969503ba7e70f7c`.
+See the [supported workflow and acceptance limits](../../../tiny-vba/docs/m7a5-acceptance.md).
+All 10 CI steps, strict optional VBA/UI Clippy, six form UI cases, the VBA-enabled
+web build and 34 native/34 Node 22 WASM package cases pass. The signature-removal
+regression passes, including shared data retention and incomplete graph refusal.
+Thirteen shared lockfile packages changed by revision only. M7A.4 is complete for the common profile under
+ADR 0097; uncommon extensions belong to P9, `.tvform` removal to M7A.6 and final
+integration to M7A.7. Fresh Office observations remain M8.5 NOT_RUN. Earlier
+incremental entries below retain historical status and are superseded by this
+current scope and persistence contract.
+
 M7A.4 button click focus and input identity (2026-11-08): shared ADR 0096
 implements CommandButton TakeFocusOnClick, native True defaults and False clicks
 that preserve text focus/selection and deferred validation. Normal Tab/explicit
@@ -342,7 +363,7 @@ retain the precise native evidence and limits for these source contracts.
 
 | Feature | Unsupported variants and reason |
 |---|---|
-| Source persistence | Source edits do not rewrite `vbaProject.bin`. Standard modules use GridCraft storage; class/form projects must be exported separately where workbook storage refuses them |
+| Source persistence | Ordinary document Save preserves original `vbaProject.bin`; use Export Edited XLSM Copy for admitted edited source/native resources. Component identity changes, unsupported resources and cryptographic verification/resigning remain unsupported |
 | Project invocation | No arbitrary unchanged-XLSM compatibility promise, automatic execution on open, cross-project/add-in Run or automatic trust of another workbook |
 | Sheet transfers | Cross-workbook/new-workbook transfers and copies requiring document-module, table or preserved-package transfer services refuse explicitly |
 | Clipboard | No system clipboard, cross-workbook or multi-area clipboard graph; unsupported linked/theme/conditional-format-merge paste modes refuse |
@@ -393,7 +414,7 @@ remaining native form/control gaps; no interactive control or edited-save claim.
 
 M7A.1/M7A.2 revision — 2026-11-04: selected native UserForm import/attachment
 through shared designer/runtime/debugger; source/resource import remains inert.
-Native edited form saving remains unsupported.
+Native edited form persistence now uses the explicit common-profile Save/Export and edited XLSM copy paths described above. Uncommon resource edits and implicit binary writeback during ordinary document Save remain unsupported.
 
 M7A.3 revision — 2026-11-04: worksheet Form Controls no longer require a future
 interactive-support stage. Profile limits and independent authored evidence remain

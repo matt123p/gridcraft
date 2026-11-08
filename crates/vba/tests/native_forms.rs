@@ -1732,3 +1732,78 @@ fn native_appearance_font_aliases_alignment_and_wrapping_preserve_trusted_contin
     assert!(bridge.begin(&mut session).is_err());
     Ok(())
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn edited_xlsm_native_project_copy_reopens_runs_and_drops_signatures() -> R {
+    use gridcraft_model::{Preserved, PreservedPart, PreservedRel};
+    use std::sync::Arc;
+    let original = fixture::add_designer(support::project(&[("NativeForm", "BaseClass", fixture::SOURCE)]));
+    let mut wb = Workbook::new();
+    wb.vba_project = Some(Arc::new(original.clone()));
+    let mut package = Preserved::default();
+    package.rels.push(PreservedRel {
+        id: "project".into(),
+        rel_type: "http://schemas.microsoft.com/office/2006/relationships/vbaProject".into(),
+        target: "xl/vbaProject.bin".into(),
+        external: false,
+    });
+    package.parts.push(PreservedPart {
+        name: "xl/vbaProject.bin".into(),
+        content_type: "application/vnd.ms-office.vbaProject".into(),
+        data: Arc::from(original.as_slice()),
+        rels: vec![PreservedRel {
+            id: "signature".into(),
+            rel_type: "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignatureV3".into(),
+            target: "xl/signature.bin".into(),
+            external: false,
+        }],
+    });
+    package.parts.push(PreservedPart {
+        name: "xl/signature.bin".into(),
+        content_type: "application/vnd.ms-office.vbaProjectSignatureV3".into(),
+        data: Arc::from(b"signature sentinel".as_slice()),
+        rels: vec![],
+    });
+    wb.vba_package = Some(Arc::new(package));
+    let mut session = Session::new();
+    session.add_document(DocState::from_saved(wb, None, "Forms.xlsm".into(), Trust::FromFile));
+    let bridge = Bridge::new(&session)?;
+    let mut ide = bridge.import_project(&session)?;
+    let id = ide.active_module().ok_or("native module")?.id;
+    let mut c = ide.form(id).ok_or("form")?.form().controls.get(1).ok_or("entry")?.clone();
+    c.text = "saved embedded".into();
+    ide.edit_form(id, gridcraft_vba::vba_ide::forms::DesignEdit::Replace(c))?;
+    ide.set_text(fixture::SOURCE.replace("initialized", "saved initialize"))?;
+    let snapshot = bridge.prepare_native_project_export(&session, &ide)?;
+    assert!(!bridge.permitted(&session));
+    assert!(ide.output().is_empty());
+    let candidate = gridcraft_xlsx::prepare_edited_vba_package(snapshot.workbook(), snapshot.original_project(), snapshot.encoded_project())?;
+    bridge.validate_native_project_export(&session, &ide, &snapshot)?;
+    let bytes = write_xlsx_as(&candidate, XlsxKind::MacroWorkbook)?;
+    let (back, _) = read_xlsx(&bytes)?;
+    let graph = back.vba_package.as_ref().ok_or("package")?;
+    assert!(!graph.parts.iter().any(|p| p.content_type.to_ascii_lowercase().contains("vbaprojectsignature")));
+    let mut reopened = Session::new();
+    reopened.add_document(DocState::from_saved(back, None, "Edited.xlsm".into(), Trust::FromFile));
+    let mut new_bridge = Bridge::new(&reopened)?;
+    let mut new_ide = new_bridge.import_project(&reopened)?;
+    let new_id = new_ide.active_module().ok_or("native module")?.id;
+    assert!(!new_bridge.permitted(&reopened));
+    assert!(new_ide.output().is_empty());
+    new_bridge.consent(true);
+    new_ide.run_form(new_id, true, &mut new_bridge.host(&mut reopened))?;
+    settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
+    assert_eq!(new_ide.output(), vec!["saved initialize"]);
+    new_ide.form_event(new_id, Some(13), None, &mut new_bridge.host(&mut reopened))?;
+    settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
+    new_bridge.tick(&mut reopened, &mut new_ide)?;
+    settle(&mut reopened, &mut new_bridge, &mut new_ide)?;
+    assert_eq!(new_ide.output(), vec!["saved initialize", "saved embedded"]);
+    bridge.acknowledge_native_project_export(&session, &mut ide, &snapshot)?;
+    assert!(!ide.active_module().ok_or("module")?.dirty());
+    ide.set_text(format!("{}\n' later", fixture::SOURCE))?;
+    assert!(bridge.validate_native_project_export(&session, &ide, &snapshot).is_err());
+    assert_eq!(session.doc()?.wb.vba_project.as_deref().map(Vec::as_slice), Some(original.as_slice()));
+    Ok(())
+}

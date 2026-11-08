@@ -350,3 +350,95 @@ pub fn write_package_rels(root: &mut Rels, out: &mut Out) {
         root.add_raw(&ty, &target, external);
     }
 }
+
+/// Prepare an explicitly encoded VBA replacement on a clone. Ordinary save still
+/// requires original-byte identity. The caller owns source encoding and atomic IO.
+/// Every signature relationship and its private reachable graph is removed.
+pub fn prepare_edited_vba_package(wb: &Workbook, expected: &[u8], edited: &[u8]) -> Result<Workbook, IoError> {
+    if wb.vba_project.as_deref().map(Vec::as_slice) != Some(expected) {
+        return Err(IoError::Format("VBA project changed during save".into()));
+    }
+    if edited.len() > 16 * 1024 * 1024 || !edited.starts_with(&[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]) {
+        return Err(IoError::Format("invalid encoded VBA project".into()));
+    }
+    let mut candidate = wb.clone();
+    candidate.vba_project = Some(Arc::new(edited.to_vec()));
+    if let Some(original) = &wb.vba_package {
+        if original.parts.len() > 4096 || original.parts.iter().map(|p| p.rels.len()).sum::<usize>().saturating_add(original.rels.len()) > 10000 {
+            return Err(IoError::Format("VBA preservation graph limit".into()));
+        }
+        let names: HashSet<_> = original.parts.iter().map(|part| normalize(&part.name)).collect();
+        if names.len() != original.parts.len()
+            || original.rels.iter().chain(original.parts.iter().flat_map(|p| &p.rels)).any(|r| !r.external && !names.contains(&normalize(&r.target)))
+        {
+            return Err(IoError::Format("incomplete or ambiguous VBA preservation graph".into()));
+        }
+        if original.rels.first().is_none_or(|r| r.external || !r.rel_type.to_ascii_lowercase().ends_with("/vbaproject")) {
+            return Err(IoError::Format("invalid VBA project relationship".into()));
+        }
+        let mut package = original.as_ref().clone();
+        let root = package.rels.first().map(|r| normalize(&r.target)).ok_or_else(|| IoError::Format("missing VBA package root".into()))?;
+        let project =
+            package.parts.iter().find(|p| normalize(&p.name) == root).ok_or_else(|| IoError::Format("missing original VBA project".into()))?;
+        if project.data.as_ref() != expected {
+            return Err(IoError::Format("original VBA preservation bytes changed".into()));
+        }
+        let signature = |s: &str| {
+            let s = s.to_ascii_lowercase();
+            s.contains("vbaprojectsignature") || s.contains("digital-signature")
+        };
+        let mut removed: HashSet<String> = package.parts.iter().filter(|p| signature(&p.content_type)).map(|p| normalize(&p.name)).collect();
+        for rel in package.rels.iter().chain(package.parts.iter().flat_map(|p| &p.rels)) {
+            if signature(&rel.rel_type) && !rel.external {
+                removed.insert(normalize(&rel.target));
+            }
+        }
+        let seeds = removed.clone();
+        loop {
+            let before = removed.len();
+            for part in &package.parts {
+                if removed.contains(&normalize(&part.name)) {
+                    for rel in &part.rels {
+                        if !rel.external {
+                            removed.insert(normalize(&rel.target));
+                        }
+                    }
+                }
+            }
+            if before == removed.len() {
+                break;
+            }
+        }
+        if removed.contains(&root) {
+            return Err(IoError::Format("signature graph reaches the VBA project".into()));
+        }
+        let mut reachable = HashSet::from([root.clone()]);
+        loop {
+            let before = reachable.len();
+            for part in &package.parts {
+                if reachable.contains(&normalize(&part.name)) {
+                    for rel in &part.rels {
+                        let target = normalize(&rel.target);
+                        if !rel.external && !signature(&rel.rel_type) && !seeds.contains(&target) {
+                            reachable.insert(target);
+                        }
+                    }
+                }
+            }
+            if before == reachable.len() {
+                break;
+            }
+        }
+        removed.retain(|name| seeds.contains(name) || !reachable.contains(name));
+        package.parts.retain(|p| !removed.contains(&normalize(&p.name)));
+        package.rels.retain(|r| !signature(&r.rel_type) && !removed.contains(&normalize(&r.target)));
+        for part in &mut package.parts {
+            part.rels.retain(|r| !signature(&r.rel_type) && !removed.contains(&normalize(&r.target)));
+            if normalize(&part.name) == root {
+                part.data = Arc::from(edited);
+            }
+        }
+        candidate.vba_package = Some(Arc::new(package));
+    }
+    Ok(candidate)
+}

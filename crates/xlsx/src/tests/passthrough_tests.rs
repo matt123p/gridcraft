@@ -1009,3 +1009,37 @@ fn m7_vba_damaged_or_rewritten_related_graph_is_reported_without_execution() {
         assert!(report.warnings.iter().any(|w| w.contains("VBA related parts could not be preserved")));
     }
 }
+
+#[test]
+fn edited_vba_package_removes_all_signatures_but_keeps_shared_data() {
+    let input = vba_graph_fixture("signature.bin", "data.bin");
+    let (mut wb, _) = read_xlsx(&input).unwrap();
+    let package = Arc::make_mut(wb.vba_package.as_mut().unwrap());
+    let root = package.parts.iter_mut().find(|p| p.name == "xl/vbaProject.bin").unwrap();
+    root.rels.push(gridcraft_model::PreservedRel {
+        id: "keep-data".into(),
+        rel_type: "http://schemas.microsoft.com/office/2006/relationships/wordVbaData".into(),
+        target: "xl/data.bin".into(),
+        external: false,
+    });
+    let original = wb.vba_project.as_ref().unwrap().clone();
+    let edited = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1encoded-source-sentinel";
+    let candidate = crate::prepare_edited_vba_package(&wb, &original, edited).unwrap();
+    let bytes = crate::write_xlsx_as(&candidate, crate::XlsxKind::MacroWorkbook).unwrap();
+    let zip = Unpacked::new(&bytes);
+    zip.assert_valid();
+    assert_eq!(zip.parts["xl/vbaProject.bin"], edited);
+    assert!(!zip.parts.values().any(|bytes| bytes == b"opaque signature sentinel"));
+    assert!(zip.parts.values().any(|bytes| bytes == b"opaque nested payload"));
+    assert!(!zip.rels("xl/vbaProject.bin").iter().any(|r| r.1.to_ascii_lowercase().contains("vbaprojectsignature")));
+    assert_eq!(wb.vba_project.as_ref().unwrap().as_slice(), original.as_slice());
+    assert!(crate::prepare_edited_vba_package(&wb, b"stale", edited).is_err());
+    let mut dangling = wb.clone();
+    let graph = Arc::make_mut(dangling.vba_package.as_mut().unwrap());
+    graph.parts.retain(|part| part.name != "xl/data.bin");
+    assert!(crate::prepare_edited_vba_package(&dangling, &original, edited).is_err());
+    let mut ambiguous = wb.clone();
+    let graph = Arc::make_mut(ambiguous.vba_package.as_mut().unwrap());
+    graph.parts.push(graph.parts[0].clone());
+    assert!(crate::prepare_edited_vba_package(&ambiguous, &original, edited).is_err());
+}

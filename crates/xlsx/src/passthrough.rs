@@ -188,3 +188,5 @@ fn rels_part_name(part: &str) -> String {
     let (dir, file) = package::split_dir(part);
     if dir.is_empty() { format!("_rels/{file}.rels") } else { format!("{dir}/_rels/{file}.rels") }
 }
+
+pub use write::prepare_edited_vba_package;

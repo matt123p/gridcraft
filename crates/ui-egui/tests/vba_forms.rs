@@ -477,3 +477,33 @@ fn native_document_click_waits_for_deactivate_continue_and_reset_discards_it() -
     }
     Ok(())
 }
+
+#[path = "../../vba/tests/support/mod.rs"]
+mod package_fixture;
+#[test]
+fn native_package_copy_command_writes_edited_forms_without_acknowledging_original() -> R {
+    let original = native_fixture::add_designer(package_fixture::project(&[("NativeForm", "BaseClass", native_fixture::SOURCE)]));
+    let mut wb = gridcraft_engine::model::Workbook::new();
+    wb.vba_project = Some(original.clone().into());
+    let mut session = Session::new();
+    session.add_document(gridcraft_engine::DocState::from_saved(wb, None, "Original.xlsm".into(), gridcraft_engine::Trust::FromFile));
+    let path = std::env::temp_dir().join(format!("grid-native-copy-{}.xlsm", std::process::id()));
+    let selected = path.to_string_lossy().into_owned();
+    let services = Services { pick_save: Some(Box::new(move |_| Some(selected.clone()))), ..Default::default() };
+    let mut app = SheetApp::new(session, services);
+    app.run("vba.open", json!({"project":true}))?;
+    let editor = app.vba.as_mut().ok_or("editor")?;
+    let source = native_fixture::SOURCE.replace("initialized", "UI saved");
+    editor.ide.set_text(source.clone())?;
+    assert!(app.run("vba.exportNativePackage", json!({}))?.get("exported").and_then(|v| v.as_bool()).unwrap_or(false));
+    let (back, _) = gridcraft_xlsx::read_xlsx(&std::fs::read(&path)?)?;
+    let mut reopened = Session::new();
+    reopened.add_document(gridcraft_engine::DocState::from_saved(back, None, "Copy.xlsm".into(), gridcraft_engine::Trust::FromFile));
+    let bridge = gridcraft_vba::Bridge::new(&reopened)?;
+    let decoded = bridge.import_project(&reopened)?;
+    assert_eq!(decoded.active_module().ok_or("native module")?.text, source);
+    assert!(app.vba.as_ref().ok_or("editor")?.ide.active_module().ok_or("source")?.dirty());
+    assert_eq!(app.session.doc()?.wb.vba_project.as_deref().map(Vec::as_slice), Some(original.as_slice()));
+    std::fs::remove_file(path)?;
+    Ok(())
+}

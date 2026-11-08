@@ -141,6 +141,7 @@ pub fn commands(app: &SheetApp) -> Vec<Json> {
         ("vba.trust", "VBA Consent", "{allow: bool}", None),
         ("vba.return", "Return to Workbook", "{}", None),
         ("vba.close", "Close VBA Project", "{discard?: bool}", None),
+        ("vba.exportNativePackage", "Export Edited XLSM Copy", "{}", None),
         ("vba.apply", "Save VBA Source to Workbook", "{}", None),
         ("vba.entries", "VBA Procedures", "{}", None),
         ("vba.invoke", "Run Assigned Macro", "{entry: string}", None),
@@ -471,6 +472,9 @@ pub fn run(app: &mut SheetApp, id: &str, p: &Json) -> Result<Json> {
         if let Some(editor) = app.vba.as_mut() {
             editor.visible = false;
         }
+    }
+    if id == "vba.exportNativePackage" {
+        return export_native_package_copy(app);
     }
     if matches!(id, "vba.apply" | "vba.assign" | "vba.pin") {
         return publish(app, id, p);
@@ -1280,12 +1284,16 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     });
     let mut commands = Vec::new();
     let mut save_workbook = false;
+    let mut export_package = false;
     let mut allow = false;
     egui::Panel::top("gridcraft_vba_host").show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.label("GridCraft VBA");
             if ui.button("Save Source to Workbook").clicked() {
                 save_workbook = true;
+            }
+            if ui.button("Export Edited XLSM Copy").clicked() {
+                export_package = true;
             }
             if ui.button("Return to workbook").clicked() {
                 editor.visible = false;
@@ -1319,6 +1327,20 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
     let mut closed = false;
     for request in editor.ide.take_requests() {
         let result: Result<()> = match request {
+            HostRequest::NativeForm { snapshot, save } => {
+                editor.ide.validate_native_form_save(&snapshot).map_err(error).and_then(|()| export_native_form(app, &snapshot)).and_then(
+                    |committed| {
+                        if committed && save {
+                            editor.ide.acknowledge_native_form_save(&snapshot).map_err(error)
+                        } else {
+                            if !committed {
+                                editor.ide.message("Native files were offered for download; save remains unacknowledged.");
+                            }
+                            Ok(())
+                        }
+                    },
+                )
+            }
             HostRequest::RenameDocument { .. } => {
                 Err("Workbook component identities are host-owned; code-name changes require a project writeback contract.".into())
             }
@@ -1368,6 +1390,9 @@ pub fn show(app: &mut SheetApp, ui: &mut egui::Ui) {
         app.vba = Some(editor);
         if allow {
             app.run_or_alert("vba.trust", json!({"allow":true}));
+        }
+        if export_package {
+            app.run_or_alert("vba.exportNativePackage", json!({}));
         }
         if save_workbook {
             app.run_or_alert("vba.apply", json!({}));
@@ -1566,4 +1591,54 @@ pub(crate) fn document_raw_input(app: &mut SheetApp, ctx: &egui::Context, raw: &
         editor.view.cancel_document_input(ctx, raw);
         editor.ide.message(error.to_string());
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[path = "vba_native_files.rs"]
+mod native_files;
+fn export_native_form(app: &SheetApp, snapshot: &gridcraft_vba::vba_ide::NativeFormSave) -> Result<bool> {
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(pick) = &app.services.pick_save {
+        let name = snapshot.files().first().ok_or("Native form source missing")?.name.as_str();
+        let Some(path) = pick(name) else { return Ok(false) };
+        native_files::write_native_form(std::path::Path::new(&path), snapshot).map_err(error)?;
+        return Ok(true);
+    }
+    if let Some(download) = &app.services.download {
+        for file in snapshot.files() {
+            download(&file.name, &file.bytes);
+        }
+        return Ok(false);
+    }
+    Err("No native form export service is available".into())
+}
+
+fn export_native_package_copy(app: &SheetApp) -> Result<Json> {
+    let editor = app.vba.as_ref().ok_or("VBA editor is not open")?;
+    let snapshot = editor.bridge.prepare_native_project_export(&app.session, &editor.ide).map_err(error)?;
+    let bytes = gridcraft_engine::io::encode_edited_vba_package_copy(snapshot.workbook(), snapshot.original_project(), snapshot.encoded_project())
+        .map_err(error)?;
+    editor.bridge.validate_native_project_export(&app.session, &editor.ide, &snapshot).map_err(error)?;
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(pick) = &app.services.pick_save {
+        let Some(path) = pick("EditedWorkbook.xlsm") else {
+            return Ok(json!({"cancelled":true}));
+        };
+        if !std::path::Path::new(&path).extension().is_some_and(|s| s.eq_ignore_ascii_case("xlsm")) {
+            return Err("Choose an .xlsm copy".into());
+        }
+        if let Some(original) = app.session.doc().map_err(error)?.path.as_deref()
+            && (path == original || std::fs::canonicalize(&path).ok().zip(std::fs::canonicalize(original).ok()).is_some_and(|(a, b)| a == b))
+        {
+            return Err("Choose a different path for the edited workbook copy".into());
+        }
+        editor.bridge.validate_native_project_export(&app.session, &editor.ide, &snapshot).map_err(error)?;
+        native_files::write_package(std::path::Path::new(&path), &bytes).map_err(error)?;
+        return Ok(json!({"exported":true,"path":path}));
+    }
+    if let Some(download) = &app.services.download {
+        download("EditedWorkbook.xlsm", &bytes);
+        return Ok(json!({"downloadRequested":true}));
+    }
+    Err("No workbook copy export service is available".into())
 }
