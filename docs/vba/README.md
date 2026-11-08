@@ -1,5 +1,21 @@
 # VBA documentation
 
+M8 candidate validation (2026-11-08): `crates/vba/tests/m8_workbooks.rs` and
+`tests/fixtures/m8/selection.json` define 20 original independent Rust-built XLSM
+workflows, with fixed expected cell values/output types, inert import/compile,
+trust denial, native save/reopen, retained project bytes, undo and Reset. They
+cover language and host categories separately and include no Office-produced
+workbooks. The optional shared `cargo xtask m8-hosts` checks the current tiny-vba
+candidate using temporary local dependencies, then restores shipping lockfiles.
+See [M8 evidence](../../../tiny-vba/docs/m8-acceptance.md). M8.5 fresh Office
+comparisons remain NOT_RUN; no release acceptance or new shipping runtime pin
+is implied.
+Validation: all 20 workbook workflows pass natively and under Node 22 browser WASM
+against the M8 candidate, alongside 41 existing package/form/worksheet cases per
+target. The shipping-pin full CI passes all 10 steps, and strict Clippy passes
+for the new suite. These are authored contract checks; Office comparison remains
+NOT_RUN. The shared execution record identifies the candidate tree separately.
+
 M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](../../../tiny-vba/docs/m7a-acceptance.md)
 cover the agreed common native forms, worksheet scope, native file/edited package
 copies and custom-format removal. The strengthened edited-copy case now reopens

@@ -1,0 +1,297 @@
+{
+  "schema": 1,
+  "profile": "m8-authored-workbooks-v1",
+  "license": "MIT OR Apache-2.0",
+  "provenance": "independently-authored in repository; native packages built in Rust, no Office binaries",
+  "evidence_basis": "authored-contract",
+  "office_observations": "NOT_RUN",
+  "inputs": {
+    "A1": 12,
+    "A2": 10,
+    "A3": 8,
+    "A4": " alice ",
+    "A5": "A😀"
+  },
+  "cases": [
+    {
+      "id": "invoice",
+      "category": "arithmetic/cell-read-write",
+      "path": "tests/fixtures/m8/invoice.bas",
+      "sha256": "c41dfeb515aa109d52697fa9f5c24a828fdd215914b908f6c105b8a8d79652e1",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 120,
+        "type": "Double"
+      },
+      "rationale": "12 units at 10 per unit yield numeric 120.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "sales-total",
+      "category": "worksheet-function/reference",
+      "path": "tests/fixtures/m8/sales-total.bas",
+      "sha256": "9ed1c6149438d7b81c7a7300339edaf1826a35fe5efed76af6cf1435e3264589",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 30,
+        "type": "Double"
+      },
+      "rationale": "The workbook sum over 12, 10 and 8 yields numeric 30.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "discount",
+      "category": "branch/coercion",
+      "path": "tests/fixtures/m8/discount.bas",
+      "sha256": "bb91ebfd28d082c69e7905466239be949d9a4f2053ab8793c7b7d4cfe24a48d2",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 10.8,
+        "type": "Double"
+      },
+      "rationale": "The amount 12 satisfies >=10; multiplying by 0.9 yields Double 10.8.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "positive-balance",
+      "category": "loop/dynamic-address",
+      "path": "tests/fixtures/m8/positive-balance.bas",
+      "sha256": "fd834b7bb885ebc49345b427ff9b172c00cb0c7d1dbd159ca6e0ba1956bf689f",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 30,
+        "type": "Double"
+      },
+      "rationale": "All three input balances are positive, so the loop totals 12+10+8=30.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "normalize-name",
+      "category": "string/host-text",
+      "path": "tests/fixtures/m8/normalize-name.bas",
+      "sha256": "d4b4234209751ec7b43cd1a50dc867483bf2657fd23998624e095ea4b246edb2",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": "ALICE",
+        "type": "String"
+      },
+      "rationale": "Trimming ASCII edge spaces and uppercasing alice yields String ALICE.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "leap-date",
+      "category": "date/native-cell",
+      "path": "tests/fixtures/m8/leap-date.bas",
+      "sha256": "b5074dada13d6a3fab3d13eb984203f914840c8ec286e3f8036ba0e950345e99",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 45351,
+        "type": "Double"
+      },
+      "rationale": "Gregorian 2024-02-29 has VBA serial 45351; CDbl writes that numeric serial.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "currency-invoice",
+      "category": "currency/fixed-point",
+      "path": "tests/fixtures/m8/currency-invoice.bas",
+      "sha256": "420a28f41f2b3f27b2d52261eb317e70c6f9c19fc447b1f7fd9765d0146f0ff2",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 19.95,
+        "type": "Double"
+      },
+      "rationale": "Fixed-point Currency 6.6500 times 3 is 19.9500, written as numeric 19.95.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "bankers-rounding",
+      "category": "conversion/tie-even",
+      "path": "tests/fixtures/m8/bankers-rounding.bas",
+      "sha256": "93b2e1065add0d26461692761fd4befde0df24ea096c6a8521a4a7e8b6c39e50",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 2,
+        "type": "Double"
+      },
+      "rationale": "CLng ties-to-even maps exact 2.5 to Long 2, then numeric cell 2.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "overflow-recovery",
+      "category": "error/overflow",
+      "path": "tests/fixtures/m8/overflow-recovery.bas",
+      "sha256": "02ec605882e0b49c41f7273a807155a8b8362fe59b41b17b80645927233effb0",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 6,
+        "type": "Double"
+      },
+      "rationale": "Assigning 40000 to a 16-bit Integer raises error 6; Resume Next preserves that exact Err number.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "bounded-array",
+      "category": "array/lower-bounds",
+      "path": "tests/fixtures/m8/bounded-array.bas",
+      "sha256": "26bfb70b4806f9f41db8e51a552052a5c8cb0b4aee1e800d69d15341a398d619",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 6,
+        "type": "Double"
+      },
+      "rationale": "Array indices -1,0,1 hold 1,2,3, whose sum is Long 6.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "byref-update",
+      "category": "procedure/canonical-alias",
+      "path": "tests/fixtures/m8/byref-update.bas",
+      "sha256": "c5dbe704e0bfe61ddc1ad13269a4e35bf8398d94159957b1ac76164d91e9ab14",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 14,
+        "type": "Double"
+      },
+      "rationale": "The shared canonical ByRef location starts at 7 and is doubled to 14.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "static-counter",
+      "category": "persistent/function-state",
+      "path": "tests/fixtures/m8/static-counter.bas",
+      "sha256": "6d5dcd1ba55292a9d66c65086defabc896b0b9130eafa83dd14174e523dcaca3",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 2,
+        "type": "Double"
+      },
+      "rationale": "Two calls share one Static Long initialized at zero; the second call returns 2.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "bucket-label",
+      "category": "branch/range-predicate/host-text",
+      "path": "tests/fixtures/m8/bucket-label.bas",
+      "sha256": "9e08d097598cdee1590d6938c6b5e56f0662e6801518c3d432749b0a1e9a2f2a",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": "medium",
+        "type": "String"
+      },
+      "rationale": "Input 10 satisfies both inclusive bounds 10..20, selecting String medium.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "null-predicate",
+      "category": "variant/null",
+      "path": "tests/fixtures/m8/null-predicate.bas",
+      "sha256": "cb51fb438ad608bb4d83d50576ac67dc6091a57da74c9219f6a5f2fcc8314986",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": true,
+        "type": "Boolean"
+      },
+      "rationale": "A Variant holding Null satisfies IsNull and writes Boolean True.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "formula-recalc",
+      "category": "formula/recalculation",
+      "path": "tests/fixtures/m8/formula-recalc.bas",
+      "sha256": "ef6d558fe3ed76bd1b707b195c96a73824fb11fc78f6d64602bafaccdc884874",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 30,
+        "type": "Double"
+      },
+      "rationale": "The persisted formula SUM(A1:A3) recalculates to numeric 30 without replacing source project bytes.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "named-rate",
+      "category": "names/evaluation",
+      "path": "tests/fixtures/m8/named-rate.bas",
+      "sha256": "4a8493c1cca9a7addcf2ccd8eb96d78514a584ea23acce528037395b5be691d3",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 2,
+        "type": "Double"
+      },
+      "rationale": "A workbook-scoped constant name Rate=0.25 evaluated times 8 yields numeric 2.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "worksheet-context",
+      "category": "nominal-sheet/identity",
+      "path": "tests/fixtures/m8/worksheet-context.bas",
+      "sha256": "e5d580bf4c462eeb931cd9e8ea865649e9d4c8a9f7ad641d7d61cf7e549d4278",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 12,
+        "type": "Double"
+      },
+      "rationale": "The typed ThisWorkbook Data worksheet reads its own A1=12 and writes numeric 12.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "foreach-total",
+      "category": "array/enumerator",
+      "path": "tests/fixtures/m8/foreach-total.bas",
+      "sha256": "8797fb99ea45bdae42e8860722ae39215491cfc07b403111689afffcb20aaeff",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 10,
+        "type": "Double"
+      },
+      "rationale": "Enumerating Variant array elements 1,2,3,4 yields Long total 10.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "early-exit",
+      "category": "loop/exit",
+      "path": "tests/fixtures/m8/early-exit.bas",
+      "sha256": "1954eb6caf636c42e34598b0609af6a35ed36bdadb0f3fa1547543dc5196d0ca",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 3,
+        "type": "Double"
+      },
+      "rationale": "The first positive loop index divisible by 3 is 3; Exit For retains that index.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "utf16-length",
+      "category": "utf16/host-string",
+      "path": "tests/fixtures/m8/utf16-length.bas",
+      "sha256": "3fbe910a89dc759287292dc8b589739c223da21bc310b49de0b8a9d1abeae38c",
+      "review": "original bounded source; host calls restricted to workbook data/names/formula; no external IO",
+      "expected": {
+        "cell": "B1",
+        "value": 3,
+        "type": "Double"
+      },
+      "rationale": "Host text A followed by U+1F600 contains three UTF-16 code units, so Len returns Long 3.",
+      "execution_status": "NOT_RUN"
+    }
+  ]
+}
