@@ -204,7 +204,7 @@ pub(crate) fn show(app: &mut SheetApp, ui: &mut egui::Ui, geo: &Geo, wb: &Workbo
             if design {
                 let r = ui.interact(rect, ui.scope_id().with("design-select"), egui::Sense::click_and_drag());
                 if r.clicked() || r.drag_started() {
-                    app.selected_chart = Some(id);
+                    app.selected_object = Some(gridcraft_engine::model::ObjRef::new(gridcraft_engine::model::ObjKind::Shape, id));
                 }
                 if r.drag_started()
                     && let Some(pos) = ui.input(|i| i.pointer.press_origin())
@@ -213,14 +213,14 @@ pub(crate) fn show(app: &mut SheetApp, ui: &mut egui::Ui, geo: &Geo, wb: &Workbo
                     let logical = anchor_rect(geo, sh, &shape.anchor);
                     let a = shape.anchor;
                     app.grid.drag = crate::grid::Drag::Object {
-                        kind: "shape",
-                        id,
+                        obj: gridcraft_engine::model::ObjRef::new(gridcraft_engine::model::ObjKind::Shape, id),
                         start,
                         orig: (a.cell, a.dx, a.dy, a.width, a.height),
-                        resize: (start - logical.right_bottom()).length() < 10.,
+                        handle: crate::objects::handle_at(logical, start),
+                        stepped: false,
                     };
                 }
-                if app.selected_chart == Some(id) {
+                if app.selected_object == Some(gridcraft_engine::model::ObjRef::new(gridcraft_engine::model::ObjKind::Shape, id)) {
                     super::selection_frame(ui.painter(), rect);
                 }
             }

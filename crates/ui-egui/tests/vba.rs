@@ -36,6 +36,25 @@ fn publish_source_enables_formulas_and_revoke_or_close_disables_them() {
     a.run("vba.apply", json!({})).unwrap();
     assert_eq!(cell(&a, "B1"), Value::Number(12.));
 }
+
+#[test]
+fn function_picker_keeps_stored_vba_functions_in_the_typed_catalogue() {
+    use gridcraft_ui_egui::control::{Outcome, handle};
+    let mut a = worksheet_app();
+    a.run("vba.apply", json!({})).unwrap();
+    a.run("vba.close", json!({})).unwrap();
+    assert!(
+        matches!(handle(&mut a, &egui::Context::default(), "ui.dialog", &json!({"name":"insertFunction", "category":"User Defined"})), Outcome::Done(reply) if reply["ok"].as_bool() == Some(true))
+    );
+    a.dialog.as_mut().unwrap().search = "Triple".into();
+    let mut h = common::harness_with(common::builder().with_size(egui::vec2(1440., 900.)), a, 4);
+    assert!(h.query_by_label("Triple (User Defined)").is_some(), "a stored UDF remains visible in the new picker");
+    h.get_by_label("Triple (User Defined)").click();
+    h.run_steps(2);
+    h.get_by_label("   OK   ").click();
+    h.run_steps(3);
+    assert_eq!(h.state().editor.as_ref().map(|editor| editor.text.as_str()), Some("=Triple("));
+}
 #[test]
 fn button_and_toolbar_assignment_are_persistent_undoable_and_public_only() {
     use gridcraft_vba::worksheet::Project;
@@ -169,7 +188,7 @@ fn worksheet_button_click_runs_and_design_mode_selects() {
         h.run_steps(3);
     }
     assert_eq!(cell(h.state(), "A1"), Value::Number(0.));
-    assert_eq!(h.state().selected_chart, Some(id));
+    assert_eq!(h.state().selected_object, Some(gridcraft_engine::model::ObjRef::new(gridcraft_engine::model::ObjKind::Shape, id)));
     for pressed in [true, false] {
         h.input_mut()
             .events

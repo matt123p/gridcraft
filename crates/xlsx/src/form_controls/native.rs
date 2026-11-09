@@ -3,7 +3,8 @@ use super::{
     read_worksheet_controls, shape_map, xml,
 };
 use gridcraft_core::{CellRef, MAX_COLS, MAX_ROWS};
-use gridcraft_model::{Anchor, AnchorMode, Color, FormControl, FormControlKind, Shape, ShapeFormat, ShapeKind};
+use gridcraft_model::form_controls::FormControl;
+use gridcraft_model::{Anchor, AnchorMode, Color, FormControlKind, Shape, ShapeFormat, ShapeKind};
 
 pub(crate) fn decode(sheet: &Sheet) -> Result<Vec<Shape>, IoError> {
     let Some(kept) = sheet.preserved.as_deref() else { return Ok(vec![]) };
@@ -156,6 +157,7 @@ pub(crate) fn decode(sheet: &Sheet) -> Result<Vec<Shape>, IoError> {
         }
         result.push(Shape {
             identity: Default::default(),
+            math: Default::default(),
             id: 0,
             anchor,
             kind: ShapeKind::Rectangle,

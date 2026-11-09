@@ -282,6 +282,7 @@ pub fn after_engine_command(app: &mut SheetApp, id: &str, params: &Json, result:
             | "range.setContents"
             | "range.setValues"
             | "range.fill"
+            | "range.move"
             | "edit.clearContents"
             | "edit.clearAll"
             | "edit.cut"
@@ -327,13 +328,30 @@ pub fn after_engine_command(app: &mut SheetApp, id: &str, params: &Json, result:
     let sheet = match params.get("sheet") {
         Some(Json::Number(number)) => number.as_u64().and_then(|index| usize::try_from(index).ok()),
         Some(Json::String(name)) => doc.wb.sheet_index(name),
+        None | Some(Json::Null) if id == "range.move" => params
+            .get("range")
+            .and_then(Json::as_str)
+            .and_then(|text| gridcraft_engine::core::split_sheet(text).0)
+            .map_or(Some(default_sheet), |name| doc.wb.sheet_index(&name)),
         None | Some(Json::Null) => Some(default_sheet),
         _ => None,
     };
     let Some(sheet) = sheet.filter(|index| *index < doc.wb.sheets.len()) else { return };
+    // The native border move replaces the old cut/paste UI path. Both changed ranges still
+    // notify VBA, after the move has committed, without replaying either native operation.
+    if id == "range.move"
+        && let Some(source) = params
+            .get("range")
+            .and_then(Json::as_str)
+            .and_then(|text| gridcraft_engine::core::RangeRef::parse(gridcraft_engine::core::split_sheet(text).1))
+        && let Err(error) = editor.bridge.notify_sheet_change(&app.session, sheet, source)
+    {
+        editor.ide.message(error.to_string());
+        return;
+    }
     let target = if id == "cell.set" {
         params.get("cell").and_then(Json::as_str).and_then(gridcraft_engine::core::CellRef::parse).map(gridcraft_engine::core::RangeRef::cell)
-    } else if matches!(id, "edit.paste" | "edit.pasteSpecial")
+    } else if matches!(id, "edit.paste" | "edit.pasteSpecial" | "range.move")
         && let Some(pasted) = result.get("pasted").and_then(Json::as_str).and_then(gridcraft_engine::core::RangeRef::parse)
     {
         Some(pasted)

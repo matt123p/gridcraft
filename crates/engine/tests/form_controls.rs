@@ -13,7 +13,7 @@ fn session() -> Session {
 fn add(s: &mut Session, kind: i32, name: &str) -> Json {
     s.execute("control.add", json!({"type":kind,"name":name,"left":140,"top":80,"width":160,"height":60})).unwrap()["shape"].clone()
 }
-fn state(s: &Session, id: &Json) -> gridcraft_engine::model::FormControl {
+fn state(s: &Session, id: &Json) -> gridcraft_engine::model::form_controls::FormControl {
     let d = s.doc().unwrap();
     let sh = d.wb.sheet(0).unwrap();
     let shape = sh.shapes.iter().find(|sh| json!(sh.id) == *id).unwrap();
@@ -152,6 +152,9 @@ fn invalid_disabled_protected_and_oversized_actions_are_atomic() {
     s.execute("review.protectSheet", json!({})).unwrap();
     let before = s.doc().unwrap().wb.clone();
     assert!(s.execute("control.activate", json!({"id":list})).is_err());
+    for command in ["object.move", "object.delete", "object.setAnchorMode", "arrange.bringForward"] {
+        assert!(s.execute(command, json!({"kind":"shape", "id":list, "width":200, "mode":"absolute"})).is_err(), "{command}");
+    }
     assert_eq!(s.doc().unwrap().wb, before);
 }
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]

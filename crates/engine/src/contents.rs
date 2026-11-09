@@ -209,7 +209,7 @@ fn apply(session: &mut Session, sheet: usize, range: RangeRef, contents: &[CellC
                 style
             };
             let cell = match content {
-                CellContent::Value(value) => Cell { value: value.clone(), formula: None, style },
+                CellContent::Value(value) => Cell { value: value.clone(), formula: None, style, py: None },
                 CellContent::Formula(text) => {
                     let body = text.strip_prefix('=').unwrap_or(text);
                     let expr = cx.wb.name_call_case(cmd::edit::parse_typed_formula(body)?);

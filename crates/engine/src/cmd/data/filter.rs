@@ -313,6 +313,7 @@ fn filter_rows(wb: &Workbook, sheet: usize, af: &AutoFilter) -> Vec<(u32, bool)>
 
 pub(super) fn clear_filter(s: &mut Session, p: &Json) -> Result<Json> {
     let sheet = target_sheet(s, p)?;
+    crate::cmd::refuse_unless_allowed(s, sheet, "Filtering", |p| p.autofilter)?;
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         let formerly_filtered = sh.rows.keys().copied().filter(|row| sh.is_row_filtered(*row)).collect::<Vec<_>>();
@@ -340,6 +341,7 @@ pub(super) fn clear_filter(s: &mut Session, p: &Json) -> Result<Json> {
 
 pub(super) fn reapply(s: &mut Session, p: &Json) -> Result<Json> {
     let sheet = target_sheet(s, p)?;
+    crate::cmd::refuse_unless_allowed(s, sheet, "Filtering", |p| p.autofilter)?;
     edit(s, |cx| {
         apply_filter(&mut cx.wb, sheet);
         cx.structural = true;
@@ -372,5 +374,9 @@ pub fn filter_values(wb: &Workbook, sheet: usize, col: u32) -> Vec<(String, bool
         let key = if blank { sort_key(&Value::Empty) } else { sort_key(&v) };
         seen.entry((key, t)).or_insert(on);
     }
-    seen.into_iter().map(|((_, t), on)| (t, on)).collect()
+    let mut values: Vec<_> = seen.into_iter().collect();
+    values.sort_by(|((a, ta), _), ((b, tb), _)| {
+        a.0.cmp(&b.0).then(a.1.cmp(&b.1)).then_with(|| gridcraft_core::compare_text(&a.2, &b.2)).then_with(|| ta.cmp(tb))
+    });
+    values.into_iter().map(|((_, t), on)| (t, on)).collect()
 }

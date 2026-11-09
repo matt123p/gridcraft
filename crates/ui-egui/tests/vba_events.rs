@@ -8,6 +8,34 @@ use gridcraft_ui_egui::control::{Outcome, handle};
 use serde_json::json;
 
 #[test]
+fn native_range_move_keeps_source_and_destination_change_events() -> Result<(), Box<dyn std::error::Error>> {
+    let mut session = Session::new();
+    session.new_workbook();
+    session.execute("cell.set", json!({"cell":"D3","input":"1"}))?;
+    std::sync::Arc::make_mut(&mut session.doc_mut()?.wb).sheet_mut(0).ok_or("sheet missing")?.code_name = Some("SheetCode".into());
+    let mut app = SheetApp::new(session, Default::default());
+    app.run("vba.open", json!({}))?;
+    let editor = app.vba.as_mut().ok_or("editor not opened")?;
+    editor.ide.add_document_module(
+        "Sheet1.cls",
+        "SheetCode",
+        "Attribute VB_Name = \"SheetCode\"\nPrivate Sub Worksheet_Change(ByVal Target As Range)\nDebug.Print Target.Row\nEnd Sub\n",
+    )?;
+    editor.bridge.configure(&mut editor.ide)?;
+    editor.bridge.consent(true);
+    app.run("range.move", json!({"range":"D3","to":"E5"}))?;
+    for _ in 0..200 {
+        let editor = app.vba.as_mut().ok_or("editor closed")?;
+        editor.bridge.tick(&mut app.session, &mut editor.ide)?;
+    }
+    let sheet = app.session.doc()?.wb.sheet(0).ok_or("sheet missing")?;
+    assert_eq!(sheet.value(CellRef::parse("D3").ok_or("cell")?), Value::Empty);
+    assert_eq!(sheet.value(CellRef::parse("E5").ok_or("cell")?), Value::Number(1.0));
+    assert_eq!(app.vba.as_ref().ok_or("editor")?.ide.output(), vec!["3", "5"]);
+    Ok(())
+}
+
+#[test]
 fn committed_native_cell_edit_queues_worksheet_change() -> Result<(), Box<dyn std::error::Error>> {
     let mut session = Session::new();
     session.new_workbook();

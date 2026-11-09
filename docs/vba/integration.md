@@ -203,6 +203,14 @@ that share their execution path. For example, a Range value write uses
 The engine owns protection, validation, recalculation, recording and history.
 The native API is defined in the [engine implementation](../../crates/engine/src/contents.rs).
 
+Upstream basic sheet controls use `Sheet.controls` and the ordinary Insert/Controls
+commands. The VBA Office profile uses Shape metadata and the scoped
+`gridcraft_model::form_controls::FormControl` type. The reader assigns one owner:
+VBA projects, DrawingML companions and explicit native enabled/visibility state
+stay with strict Office attachment; basic controls keep their existing path.
+Both paths use the native control-properties/VML writer and shared object
+protection checks. A mixed sheet saves and reopens without duplicating controls.
+
 Typed VBA values cross a native host protocol rather than JSON member dispatch.
 JSON envelopes are produced where the engine needs replayable journal/recording
 entries. This keeps replay and UI/control calls on the same mutation path.

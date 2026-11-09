@@ -2,8 +2,9 @@
 use super::{
     CellRef, CommandSpec, EngineError, Json, Result, Session, bad, cell_param_on, cmd, edit, f64_param, has_doc, str_param, target_sheet, u32_param,
 };
+use gridcraft_model::form_controls::FormControl;
 use gridcraft_model::form_controls::{effective_control, linked_write, radio_group, resolve_binding};
-use gridcraft_model::{Anchor, AnchorMode, Color, FormControl, FormControlKind, Shape, ShapeFormat, ShapeKind};
+use gridcraft_model::{Anchor, AnchorMode, Color, FormControlKind, Shape, ShapeFormat, ShapeKind};
 use serde_json::json;
 use std::collections::BTreeSet;
 pub fn specs() -> Vec<CommandSpec> {
@@ -87,6 +88,7 @@ fn add(s: &mut Session, p: &Json) -> Result<Json> {
     }
     let shape = Shape {
         identity: Default::default(),
+        math: Default::default(),
         id,
         on_action: None,
         kind: ShapeKind::Rectangle,

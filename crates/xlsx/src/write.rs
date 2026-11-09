@@ -5,7 +5,7 @@ use std::fmt::Write as _;
 
 use gridcraft_core::RangeRef;
 use gridcraft_formula::quote_sheet;
-use gridcraft_model::{CalcMode, CalcSettings, PhoneticString, ShowObjects, Style, Visibility, Workbook};
+use gridcraft_model::{CalcMode, CalcSettings, PhoneticString, ShowObjects, Style, Visibility, Workbook, WorkbookView};
 
 use crate::package::ZipOut;
 use crate::xml::{esc, esc_attr};
@@ -120,6 +120,10 @@ pub struct Out {
     pub drawings: u32,
     pub tables: u32,
     pub comments: u32,
+    /// VML drawings written, the last VML shape-id block used, and control properties parts.
+    pub vmls: u32,
+    pub vml_block: u32,
+    pub ctrl_props: u32,
     /// Authors of threaded comments, in first-use order; written to `xl/persons/person.xml`.
     pub persons: Vec<String>,
     pub table_id: u32,
@@ -128,6 +132,8 @@ pub struct Out {
     pub cell_pictures: crate::richdata::PicturesOut,
     /// Kept (pass-through) parts written so far.
     pub kept: crate::passthrough::KeptOut,
+    /// The code of the Python cells written so far, in order: script `i` of the Python part.
+    pub python_scripts: Vec<String>,
 }
 
 impl Out {
@@ -208,6 +214,41 @@ pub fn write_xlsx(wb: &Workbook, kind: XlsxKind) -> Result<Vec<u8>, IoError> {
     write_xlsx_named(wb, kind, None)
 }
 
+/// The `<workbookView>` attributes beyond `activeTab`: the window's display settings
+/// that differ from the format's defaults. An ordinary workbook gets none, so its file
+/// is unchanged; a workbook Excel saved with the sheet tabs or scroll bars hidden
+/// keeps them that way (#3057).
+fn workbook_view_attrs(wb: &Workbook) -> String {
+    let mut attrs = String::new();
+    if !wb.view.show_sheet_tabs {
+        attrs.push_str(" showSheetTabs=\"0\"");
+    }
+    if !wb.view.show_horizontal_scroll {
+        attrs.push_str(" showHorizontalScroll=\"0\"");
+    }
+    if !wb.view.show_vertical_scroll {
+        attrs.push_str(" showVerticalScroll=\"0\"");
+    }
+    let tab_ratio = wb.view.tab_ratio.min(WorkbookView::MAX_TAB_RATIO);
+    if tab_ratio != 600 {
+        let _ = write!(attrs, " tabRatio=\"{tab_ratio}\"");
+    }
+    attrs
+}
+
+fn write_persons_part(out: &mut Out, wb_rels: &mut Rels) {
+    if !out.persons.is_empty() {
+        let mut x = format!("{XML_DECL}<personList xmlns=\"{NS_THREADED}\" xmlns:x=\"{NS_MAIN}\">");
+        for (i, name) in out.persons.iter().enumerate() {
+            let n = esc_attr(name);
+            let _ = write!(x, "<person displayName=\"{n}\" id=\"{}\" userId=\"{n}\" providerId=\"None\"/>", person_guid(i));
+        }
+        x.push_str("</personList>");
+        out.part("xl/persons/person.xml", Some(CT_PERSONS), x.into_bytes());
+        wb_rels.add_uri(REL_PERSON, "persons/person.xml");
+    }
+}
+
 /// Writes the workbook for the file `book_name` (a bare file name). A PivotChart is bound to its
 /// PivotTable in Excel only when its link starts with the workbook in brackets.
 pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) -> Result<Vec<u8>, IoError> {
@@ -233,12 +274,16 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
         drawings: 0,
         tables: 0,
         comments: 0,
+        vmls: 0,
+        vml_block: 0,
+        ctrl_props: 0,
         persons: vec![],
         table_id: 0,
         dynamic_arrays: false,
         needs_calc: false,
         cell_pictures: Default::default(),
         kept: Default::default(),
+        python_scripts: vec![],
     };
     out.kept.reserve_vml_blocks(wb);
     out.default_type("rels", "application/vnd.openxmlformats-package.relationships+xml");
@@ -273,12 +318,17 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
     if wb.date_system == gridcraft_core::DateSystem::D1904 {
         w.push_str(" date1904=\"1\"");
     }
+    if wb.remove_personal_info {
+        w.push_str(" filterPrivacy=\"1\"");
+    }
     w.push_str("/>");
     if wb.protected_structure {
         let pw = wb.structure_password.as_ref().map(|h| crate::sheet_write::password_attrs(h, "workbook")).unwrap_or_default();
         let _ = write!(w, "<workbookProtection{pw} lockStructure=\"1\"/>");
     }
-    let _ = write!(w, "<bookViews><workbookView activeTab=\"{}\"/></bookViews><sheets>{sheets_xml}</sheets>", kept.file_index(active));
+    let _ = write!(w, "<bookViews><workbookView activeTab=\"{}\"", kept.file_index(active));
+    w.push_str(&workbook_view_attrs(wb));
+    let _ = write!(w, "/></bookViews><sheets>{sheets_xml}</sheets>");
     w.push_str(&kept.elements);
     if !names.is_empty() {
         let _ = write!(w, "<definedNames>{names}</definedNames>");
@@ -304,6 +354,9 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
     if wb.calc.precision_as_displayed {
         w.push_str(" fullPrecision=\"0\"");
     }
+    if wb.calc.r1c1 {
+        w.push_str(" refMode=\"R1C1\"");
+    }
     if out.needs_calc {
         w.push_str(" fullCalcOnLoad=\"1\"");
     }
@@ -320,6 +373,12 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
     pivots.finish(wb, &mut out, &|code: &str| crate::tables::builtin_id(code).or_else(|| fmt_ids.get(code).copied()));
     out.part("xl/styles.xml", Some("application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"), styles.into_bytes());
     wb_rels.add("styles", "styles.xml");
+    if !out.python_scripts.is_empty() {
+        use crate::python_part as py;
+        let part = py::write(&out.python_scripts);
+        out.part(py::PART, Some(py::CONTENT_TYPE), part.into_bytes());
+        wb_rels.add_uri(py::REL, "python.xml");
+    }
     if wb.styles.iter().any(|(_, st)| st.num_fmt.as_str() == "checkbox") {
         use crate::feature_bags as fpb;
         out.part(fpb::PART, Some(fpb::CONTENT_TYPE), fpb::checkbox_part().into_bytes());
@@ -351,16 +410,7 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
         );
         wb_rels.add("sheetMetadata", "metadata.xml");
     }
-    if !out.persons.is_empty() {
-        let mut x = format!("{XML_DECL}<personList xmlns=\"{NS_THREADED}\" xmlns:x=\"{NS_MAIN}\">");
-        for (i, name) in out.persons.iter().enumerate() {
-            let n = esc_attr(name);
-            let _ = write!(x, "<person displayName=\"{n}\" id=\"{}\" userId=\"{n}\" providerId=\"None\"/>", person_guid(i));
-        }
-        x.push_str("</personList>");
-        out.part("xl/persons/person.xml", Some(CT_PERSONS), x.into_bytes());
-        wb_rels.add_uri(REL_PERSON, "persons/person.xml");
-    }
+    write_persons_part(&mut out, &mut wb_rels);
     out.part("xl/workbook.xml", Some(kind.main_content_type()), w.into_bytes());
     // A macro-free package can't hold a VBA project (Excel refuses such a file).
     if let Some(data) = wb.vba_project.as_ref().filter(|_| kind.is_macro_enabled()) {
@@ -372,13 +422,16 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
 
     // Document properties.
     let p = &wb.props;
+    // "Remove personal information on save": the author and company are not saved (#3089).
+    let private = |v: &String| if wb.remove_personal_info { String::new() } else { v.clone() };
+    let (author, company) = (private(&p.author), private(&p.company));
     let mut core = format!(
         "{XML_DECL}<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"
     );
     for (tag, v) in [
         ("dc:title", &p.title),
         ("dc:subject", &p.subject),
-        ("dc:creator", &p.author),
+        ("dc:creator", &author),
         ("cp:keywords", &p.keywords),
         ("dc:description", &p.description),
     ] {
@@ -390,8 +443,8 @@ pub fn write_xlsx_named(wb: &Workbook, kind: XlsxKind, book_name: Option<&str>) 
     out.part("docProps/core.xml", Some("application/vnd.openxmlformats-package.core-properties+xml"), core.into_bytes());
     let mut app = String::from(XML_DECL);
     app.push_str("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><Application>GridCraft</Application>");
-    if !p.company.is_empty() {
-        let _ = write!(app, "<Company>{}</Company>", esc(&p.company));
+    if !company.is_empty() {
+        let _ = write!(app, "<Company>{}</Company>", esc(&company));
     }
     app.push_str("</Properties>");
     out.part("docProps/app.xml", Some("application/vnd.openxmlformats-officedocument.extended-properties+xml"), app.into_bytes());

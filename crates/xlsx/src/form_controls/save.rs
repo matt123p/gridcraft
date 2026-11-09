@@ -3,7 +3,8 @@ use super::{
     decode_native_controls, limited, normalize, patch, shape_map, xml,
 };
 use crate::xml::{esc, esc_attr};
-use gridcraft_model::{FormControl, FormControlKind, Preserved, PreservedXml, Shape, Workbook};
+use gridcraft_model::form_controls::FormControl;
+use gridcraft_model::{FormControlKind, Preserved, PreservedXml, Shape, Workbook};
 use std::sync::Arc;
 
 fn bool_text(v: bool) -> String {

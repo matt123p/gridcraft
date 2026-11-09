@@ -60,6 +60,53 @@ fn native_button_identity_caption_and_assignment_decode_without_effects() {
     assert_eq!(s.shapes.len(), 1, "native metadata materializes one Shape");
     assert!(s.shapes[0].format.form_control.is_some());
 }
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn native_and_basic_controls_round_trip_with_one_owner_each() {
+    use gridcraft_model::{ControlKind, FormControl};
+    let mut wb = gridcraft_model::Workbook::new();
+    *wb.sheet_mut(0).unwrap() = sheet();
+    wb.sheet_mut(0).unwrap().controls.push(FormControl { id: 3000, kind: ControlKind::Slider, value: 25, ..Default::default() });
+    for _ in 0..2 {
+        let bytes = write_xlsx(&wb).unwrap();
+        wb = read_xlsx(&bytes).unwrap().0;
+        let s = wb.sheet(0).unwrap();
+        assert_eq!(s.controls.len(), 1, "the basic slider has one owner");
+        assert_eq!(s.controls[0].value, 25);
+        assert_eq!(s.shapes.iter().filter(|shape| shape.format.form_control.is_some()).count(), 1, "the native button has one owner");
+        let metadata = read_worksheet_controls(s).unwrap();
+        assert_eq!(metadata.buttons.len(), 1);
+        assert_eq!(metadata.buttons[0].name, "Button 10");
+        assert_eq!(metadata.buttons[0].macro_assignment.as_deref(), Some("[0]!AuthoredButton"));
+    }
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn a_vba_project_keeps_modern_button_macros_in_the_native_profile() {
+    use gridcraft_model::{ControlAction, FormControl, MacroInput};
+    let mut wb = gridcraft_model::Workbook::new();
+    let original = b"authored opaque VBA project bytes".to_vec();
+    wb.vba_project = Some(original.clone().into());
+    wb.sheet_mut(0).unwrap().controls.push(FormControl {
+        id: 1,
+        text: "Run authored macro".into(),
+        action: Some(ControlAction::Macro { name: "AuthoredButton".into(), input: MacroInput::Selection, output: None }),
+        ..Default::default()
+    });
+    for _ in 0..2 {
+        let bytes = crate::write_xlsx_as(&wb, crate::XlsxKind::MacroWorkbook).unwrap();
+        wb = read_xlsx(&bytes).unwrap().0;
+        let sheet = wb.sheet(0).unwrap();
+        assert!(sheet.controls.is_empty(), "a VBA macro button is not also a declarative control");
+        assert_eq!(sheet.shapes.iter().filter(|shape| shape.format.form_control.is_some()).count(), 1);
+        let metadata = read_worksheet_controls(sheet).unwrap();
+        assert_eq!(metadata.buttons.len(), 1);
+        assert_eq!(metadata.buttons[0].macro_assignment.as_deref(), Some("[0]!AuthoredButton"));
+        assert_eq!(wb.vba_project.as_deref().map(|bytes| bytes.as_slice()), Some(original.as_slice()));
+    }
+}
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn native_button_metadata_survives_sheet_rename_and_original_package_save() {

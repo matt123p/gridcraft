@@ -229,7 +229,7 @@ pub(super) fn scenario_show(s: &mut Session, p: &Json) -> Result<Json> {
             // apply percent entry (9 -> 9%) to a Percentage-formatted cell.
             let style = cx.wb.sheet(si).map(|sh| sh.style_id(*c)).unwrap_or_default();
             let value = scalar_value(v)?;
-            let cell = if value.is_empty() { None } else { Some(Cell { value, formula: None, style }) };
+            let cell = if value.is_empty() { None } else { Some(Cell { value, formula: None, style, py: None }) };
             let sh = cx.sheet_mut(si)?;
             match cell {
                 Some(cell) => sh.set_cell(*c, cell),
@@ -314,7 +314,7 @@ pub(super) fn scenario_summary(s: &mut Session, p: &Json) -> Result<Json> {
         let bold = cx.wb.styles.derive(StyleId::DEFAULT, |st| st.font.bold = true);
         let mut sheet = Sheet::new(name.clone());
         let put = |sheet: &mut Sheet, row: u32, col: u32, v: Value, style: StyleId| {
-            sheet.set_cell(CellRef::new(row, col), Cell { value: v, formula: None, style });
+            sheet.set_cell(CellRef::new(row, col), Cell { value: v, formula: None, style, py: None });
         };
         put(&mut sheet, 1, 1, Value::text("Scenario Summary"), bold);
         put(&mut sheet, 2, 2, Value::text("Current Values:"), bold);
