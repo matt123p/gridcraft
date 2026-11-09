@@ -302,7 +302,7 @@ Opaque signature payload preservation does not verify signature validity.
 
 This is the feature reference for `GridCraft.Excel.v1`. It describes GridCraft's
 VBA integration, including the language runtime supplied by its pinned tiny-vba
-dependency. [Getting started](../vba.md) covers build options and the editor.
+dependency. [Getting started](getting-started.md) covers build options and the editor.
 
 A supported object member implements the GridCraft behavior described here. It
 may accept fewer options than the corresponding Excel member. Use the

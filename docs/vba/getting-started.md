@@ -1,6 +1,6 @@
 # VBA in GridCraft
 
-Updated 2026-11-04: [M7 package acceptance](../../tiny-vba/docs/m7-acceptance.md)
+Updated 2026-11-04: [M7 package acceptance](../../../tiny-vba/docs/m7-acceptance.md)
 adds reviewed original `.xlsm` specimens and real load/compile/run/save/reopen
 workflows. The writer preserves the original VBA project and supported related
 parts; it does not encode edited IDE source into that binary project. Loading
@@ -12,9 +12,9 @@ Excel object model, backed by GridCraft's existing commands and calculator.
 
 Start with these references:
 
-- [Supported functions and features](vba/supported.md)
-- [Unsupported functions and features, and why](vba/unsupported.md)
-- [How the integration works](vba/integration.md)
+- [Supported functions and features](supported.md)
+- [Unsupported functions and features, and why](unsupported.md)
+- [How the integration works](integration.md)
 
 ## Enable VBA
 
@@ -82,5 +82,5 @@ preserves an existing `vbaProject.bin`, but source edits are saved in GridCraft'
 own workbook storage; they do not rewrite Excel's binary VBA project.
 
 Compatibility depends on the functions, members, options and external services a
-macro uses. Check the [supported reference](vba/supported.md) and
-[known restrictions](vba/unsupported.md) before relying on an existing Excel macro.
+macro uses. Check the [supported reference](supported.md) and
+[known restrictions](unsupported.md) before relying on an existing Excel macro.

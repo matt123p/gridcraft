@@ -312,7 +312,7 @@ host edit and preserves original VBA resources. Automatic document-canvas raw
 input buffering/replay remains unimplemented; L01/L02 and full M7A.4 stay open.
 Pinned product and final validation are recorded in ROADMAP.md.
 
-[Getting started](../vba.md) explains how to enable VBA, run a macro and add a
+[Getting started](getting-started.md) explains how to enable VBA, run a macro and add a
 worksheet function.
 
 | Reference | What you will find |

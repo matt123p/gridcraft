@@ -1,304 +1,8 @@
 # GridCraft roadmap
 
-M7A.4 HideSelection (2026-11-07): shared ADR 0091 implements native
-TextBox/ComboBox bit-29 flags, ordinary Boolean state and True file/dynamic
-defaults. Inactive selected text stays highlighted when False; both ComboBox
-presentations use canonical ranges without changing edit permission or drop
-state. Text/Value, selected ranges, events, original resources and all budgets
-remain independent. Highlight painting uses local clipped galleys outside font
-locks. Package regressions check trust refusal, typed state and nonempty ranges
-at Stop/resume, and unchanged original VBA bytes. Canvas fixtures include a
-runtime-created ComboBox with persistent highlighting.
-Shared revision `74f89f2bfb80c461d9791175291b48d892fa6006`.
-Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
-cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
-cases pass. The light host canvas was inspected. The 13 shared lockfile packages
-changed by revision only. Remaining selection, properties,
-AutoSize/scrolling, lifecycle/input, bindings and image/RefEdit/ActiveX/platform
-cases stay open. Full M7A.4 remains IN PROGRESS; edited native saving is M7A.5
-and fresh Office observations remain M8.5 NOT_RUN.
-
-M7A.4 caption Alignment (2026-11-07): shared ADR 0090 implements native
-CheckBox/OptionButton flag translation, ordinary Long Alignment state, Right
-defaults and published constants. ToggleButton's documented disabled member is
-not enabled. Real indicators and their bevels follow the selected side; caption
-text stays left aligned and clipped in its own rectangle. Empty captions retain
-accessible runtime names. Value/Null/groups/WordWrap/events, source/resources and
-all budgets remain unchanged. Package regressions cover trust refusal, typed
-properties, inert stopped inspection, one-time resume and original VBA bytes.
-Canvas fixtures include a runtime-created left-caption CheckBox.
-Shared revision `b8d203dd00bef56acce74deeb0d25d13811fbe1e`.
-Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
-cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
-cases pass. The light host canvas was rendered and inspected. The 13 shared
-lockfile packages changed by revision only. Remaining applicable members,
-AutoSize/scrolling, lifecycle/input, binding and image/RefEdit/ActiveX/platform
-cases remain open. Full M7A.4 stays IN PROGRESS; edited native saving is M7A.5
-and fresh Office observations remain M8.5 NOT_RUN.
-
-M7A.4 Boolean captions (2026-11-07): shared ADR 0088 implements native
-CheckBox/OptionButton/ToggleButton WordWrap flags, True defaults and ordinary
-Boolean state. Value, Null/TripleState, option groups, events and original
-resources remain independent. Local caption layout retains widget input, full
-accessible labels/state and authored bounds; ToggleButton captions stay centred.
-Package regressions verify trust refusal, typed wrapping, stopped inspection,
-one-time resume and unchanged original VBA bytes. Canvas fixtures include a
-runtime-created wrapped CheckBox. ADR 0089 stabilizes the restricted WASI test
-runner through value-preserving callback forwarding, with no stack/VM/capability
-budget increase or added arguments, environment or preopened directories.
-Shared revision `b7010bd2738bbcac87a018b94bd261c2d8533f24`.
-Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
-cases, the VBA-enabled web build and all 33 native/33 Node 22 WASM package
-cases pass. The light host canvas was rendered and inspected. All 13 shared
-packages changed by revision only in the lockfile. Alignment/TextAlign and remaining
-properties/defaults, AutoSize/scrolling, lifecycle/input, bindings and image/
-RefEdit/ActiveX/platform cases remain open. Full M7A.4 stays IN PROGRESS; native
-edited saving is M7A.5 and fresh Office observations remain M8.5 NOT_RUN.
-
-M7A.4 caption WordWrap (2026-11-07): shared ADR 0087 decodes applicable
-Label/CommandButton flags and exposes ordinary Boolean state with distinct file/
-runtime defaults. Dynamic TextBox starts with WordWrap=True. Local caption
-wrapping/clipping preserves fixed bounds, fonts and accelerators; unwrapped
-multiline TextBox allocation retains its horizontal interaction/accessibility
-bounds and complete UTF-16 text/cursor rows. Package cases cover typed wrapping
-through trusted Stop/Continue, original resources, document edits/undo and denied
-execution. Canvas fixtures exercise the same canonical properties.
-Shared revision `2be3f2dcbf96b3798adb348649a131fe73436061`.
-Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
-cases, VBA web and 33 native/33 actual Node 22-WASM package cases pass. The
-updated document/form render was inspected. Boolean-control wrapping, AutoSize,
-scrolling and the remaining property/lifecycle/input/binding/image/RefEdit/ActiveX
-and platform cases stay open. Full M7A.4 remains IN PROGRESS; native edited saving
-is M7A.5 and fresh Office observations remain M8.5 NOT_RUN. VM/host protocols,
-global font/style policy and execution/memory/permission budgets are unchanged.
-
-M7A.4 TextAlign (2026-11-07): shared ADR 0086 implements selected native
-Label/TextBox/ListBox/ComboBox alignment with ordinary Long state and published
-fmTextAlign constants. Native ParagraphAlign and public centre/right values are
-translated explicitly. Font assignment, text/selection and events stay independent;
-local glyph/caret positions agree, including UTF-16 pointer selection. ComboBox
-popup rows keep their own alignment. Package regressions exercise typed alignment
-through trusted Stop/Continue, retain document edits/undo and original VBA resources,
-and keep denied execution inert. Canvas fixtures include aligned native controls.
-Shared revision `77465858e83c5e59790296b5d2fb1ed3c3b39374`.
-Full CI (all 10 steps), strict optional VBA/UI Clippy, five native-form UI
-cases, VBA web, and 33 native/33 actual Node 22-WASM package cases pass. The
-updated document/form render was inspected. Boolean/RefEdit and remaining property/default,
-wrap/AutoSize, input/lifecycle/binding and ActiveX/platform cases stay open.
-Full M7A.4 remains IN PROGRESS; native edited saving remains M7A.5 and fresh
-Office observations remain M8.5 NOT_RUN. No VM/protocol/global style/font or
-execution/memory/permission budget changes are included.
-
-M7A.4 appearance audit (2026-11-07): shared ADRs 0083–0085 remove the
-non-Office Page Font/colour exposure; Page children and client painting use the
-owning MultiPage. Native records retain applicable BorderColor, BorderStyle,
-SpecialEffect and BackStyle. Ordinary typed properties preserve documented
-border/effect coupling, transparency and errors. Published Font aliases share the
-canonical Font with exact Currency/Integer/String/Boolean values. Local painting
-uses those fields and clips fixed-size controls to authored bounds. Package
-cases cover Page ownership, typed appearance, trust refusal, Stop/Continue and
-unchanged original VBA resources; canvas fixtures use aliases and appearance.
-The follow-up list renderer removes its unconditional outside outline; canonical
-BorderStyle/SpecialEffect own ListBox edges, while ComboBox popups keep their
-separate frame. Canvas fixtures include runtime-created flat lists.
-Shared revision `0bc169c5dd38f57634a77515a45a58370b1220b3`.
-Full CI (10 steps), strict optional VBA/UI Clippy, five form UI cases,
-VBA web and all 33 native/33 actual Node-WASM package cases pass. The host
-render was inspected. Remaining member/default/selection, lifecycle/focus, binding,
-keyboard/mouse, image/RefEdit and ActiveX/platform cases stay open. Full M7A.4
-remains IN PROGRESS; native edited saving is M7A.5. Fresh Office observations
-remain M8.5 NOT_RUN. Budgets and the existing macro bridge are unchanged.
-
-M7A.4 Font-assignment update (2026-11-07): shared ADR 0082 adds ordinary typed
-Font setters on native UserForms and Font-capable controls. Explicit assignment
-shares an object reference; old aliases survive replacement and unload, and new
-controls still copy independent container defaults. Root setters retain lazy
-load/reload and unrelated objects fail nominal validation before mutation.
-Package cases cover assignment across Stop/Continue, trust and original-resource
-preservation; canvas input tests now use an assigned Font. Shared revision
-`38dacbd178dd8f25c98b4da8338f575e85df8171` passes full CI (10 steps), strict
-optional VBA/UI Clippy, five form UI cases, VBA web and 31 native/31 actual
-Node-WASM package cases. The host render was inspected. Nothing/external/other-assignment, ambient/platform, appearance and the
-full remaining M7A.4 checklist stay open; fresh Office comparisons are NOT_RUN.
-
-M7A.4 Font update (2026-11-07): shared ADR 0081 retains native StdFont/TextProps
-and VBFrame Font blocks with exact fractional sizes and original resources.
-Ordinary Font objects expose typed attributes, independent instance state and
-container defaults for runtime-added controls and Pages. Local rendering uses
-canonical values and existing host fonts; optional face selection belongs to the
-caller. Extreme display sizes are bounded with a visible notice while retaining
-the canonical value. Host package cases cover trust refusal, typed aliases,
-Stop/Continue and unchanged original VBA resources; canvas tests exercise authored
-typography with existing activation/input ordering.
-Pinned shared product `f899c9925de3e2d4ef838f8ac78287ec9b2f4c2b` passes full CI
-(all 10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web
-and all 30 native/30 actual Node-WASM package cases. The host document render
-was inspected. Font replacement, ambient/platform realization, borders/effects,
-transparency and the remaining full M7A.4 checklist stay open. Fresh Office
-comparisons remain M8.5 NOT_RUN.
-
-M7A.4 colour update (2026-11-07): shared ADR 0080 retains native BackColor/ForeColor
-bits and file defaults, exposes ordinary typed properties and paints authored RGB
-values through the shared form renderer. Optional platform/client palette lookup
-belongs to the caller's UI theme; missing client entries keep their canonical value
-and show an unavailable-palette message. A runtime-created MultiPage Page-parent
-lookup regression is fixed. Native package tests cover trust refusal, Stop/Continue,
-one-shot document effects and unchanged original VBA resources. Host canvas tests
-exercise authored form/control colours with existing activation/input ordering.
-Pinned shared product `d3c99baab86fad9e33333fd4204066757baec63d` passes full CI
-(10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web and
-29 native/29 actual Node-WASM package cases. The host document view was inspected.
-Fonts, borders/effects, transparency, remaining ambient/platform/default/selection
-and collection/lifecycle requirements stay open. Full M7A.4 remains incomplete;
-fresh Office comparisons remain M8.5 NOT_RUN.
-
-M7A.4 input-order update (2026-11-07): shared ADR 0079 orders earlier native
-key/text/paste/IME input before document Deactivate. Existing keyboard receipts,
-widget defaults and Change callbacks finish first; spanning composition stays
-with the form through Stop. Reset/context/trust invalidation discards unapplied
-input. Modal redirection cancels the later document gesture while preserving the
-original keyboard receipt. No host API, authorization or budget is changed.
-Canvas regressions now also pause in the preceding form Change callback.
-Pinned shared product `231818a4179a6b096bcc66b1d8922ad0282ac7ce` passes full CI
-(10 steps), strict optional VBA/UI Clippy, all five form UI cases, VBA web and
-28 native/28 actual Node-WASM package cases. The canvas case covers stopped key
-replacement/Change, Continue/Reset and one document replay; the host view was
-inspected. Full M7A.4 remains incomplete; fresh Office comparisons stay M8.5 NOT_RUN.
-
-M7A.4 document-focus update (2026-11-07): ADR 0078 adds a bounded raw-input
-barrier before document canvas input. Native modeless Deactivate runs through
-existing authorization; Stop retains the original gesture, Continue restores and
-repaints the document before replay, and Reset/source/document/trust/geometry
-changes discard stale input. Reentrant activation also cancels a partially
-replayed pointer capture. RefEdit retains its explicit worksheet-selection path.
-Pinned shared product `ce6482640332cb67ccfe3372886a4039c832437e` passes full CI (10 steps), strict
-optional VBA/UI Clippy, all five form UI cases, VBA web and 28 native/28 actual
-Node-WASM package cases. Broader M7A.4 remains incomplete; fresh
-Office observations stay M8.5 NOT_RUN.
-
-M7A.4 activation update (2026-11-06): shared ADR 0077 implements selected native
-Show/Hide/modeless activation, reentrant lifecycle guards, unload retirement and
-cross-modeless keyboard continuations. Canonical state stays in ordinary VBA;
-window input uses existing authorization. Automatic document-canvas input
-buffering/replay and full L01/L02/M7A.4 remain open; fresh Office observations
-remain M8.5 NOT_RUN. Pinned shared product
-`a7d9d3122c42ca602e14118da48477ea02522f06`; full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, VBA web
-and all 28 native/28 actual Node-WASM package cases pass. The new stopped
-Deactivate regression preserves trust, one-shot workbook edits and original
-resources.
-
-M7A.4 nested-input update (2026-11-06): shared ADR 0076 services child mouse
-callbacks while a parent mouse/key callback is parked. Raw input scopes share the
-existing 64-event queue; held releases retain their original capture, modal areas
-follow Show order, and open ComboBox popups stay above their owning form. Reset,
-parent unload and owner-local keyboard barriers suppress stale/replayed defaults.
-Canonical VBA state and existing host authority remain unchanged. Selected L02
-cases are covered; M7A.4 and the full lifecycle/control checklist remain partial.
-Fresh Office observations remain M8.5 NOT_RUN.
-Pinned shared product `c99996351a80a234b23f2e81b54e210dae0bd530` passes full CI (10 steps),
-strict optional VBA/UI Clippy, four form UI cases, VBA web and all 27 native/27
-actual Node-WASM package cases. The nested callback regression preserves modal
-ownership, separate child/parent receipts, one-shot workbook effects and original
-resources.
-
-M7A.4 composite-pointer update (2026-11-06): shared ADR 0075 adds selected
-ComboBox/RefEdit text/drop/picker, list/popup row, numeric step/repeat/drag and
-indexed tab/page-header defaults after ordinary callbacks. Retained modal display
-metadata preserves window presentation while callbacks run, without authorizing
-input. Tabs retain identity through reorder and discard removed targets. Existing
-host consent, snapshots, ordinary VBA state and resource preservation remain in
-force; ComboBox AutoWordSelect preserves its inverse native bit. M7A.4 and the
-full runtime checklist remain incomplete. Fresh Office observations are M8.5
-NOT_RUN; native edited persistence/removal remain separate.
-Pinned shared product `f027c5d14f0a57c6a0ebfa0f1cc2fb393cb9c2b7` passes full CI (10 steps),
-strict optional VBA/UI Clippy, four form UI cases, the VBA web build and all
-26 native/26 actual Node-WASM package cases. The new modal pointer regression
-preserves stopped authority, one-shot workbook effects and original resources.
-
-M7A.4 TextBox pointer update (2026-11-06): shared ADR 0074 adds selected
-caret, captured drag, double-click cancellation/word selection and Shift extension
-after ordinary mouse callbacks. Native AutoWordSelect is decoded with its inverse
-file bit; new dynamic text controls retain their separate default. Canonical
-UTF-16/CRLF, focus redirects, host authorization, Stop/Continue and Reset/source
-identity remain enforced. Modal bounds stay stable while input waits. Editable
-ComboBox/RefEdit, list/numeric/tab pointer defaults, further platform/selection and
-lifecycle cases remain open; M7A.4 is incomplete and fresh Office comparisons
-remain M8.5 NOT_RUN. Validation receipts follow below.
-
-M7A.4 mouse update (2026-11-06): shared ADR 0073 adds typed native
-MouseDown/MouseMove/MouseUp/DblClick callbacks, indexed arguments, mutable cancel
-and selected simple-control capture/defaults. Stop/Continue, outside release and
-Reset preserve input identity and source. Event signatures omit unused class-field
-metadata while preserving typed arguments, executable method fields and all limits.
-Text/list/numeric/indexed-tab pointer defaults, lifecycle and other checklist rows
-remain open; M7A.4 is incomplete and Office observations remain M8.5 NOT_RUN.
-Pinned shared revision `c9f829824c56397c101ac9228c89db289b788458` passes full
-CI (10 steps), strict optional VBA/UI Clippy, four form UI tests, web and all
-24 native/24 Node-WASM package cases. Indexed MultiPage mouse input, stopped
-callbacks, authority, workbook effects and exact original resources are verified.
-
-M7A.4 accelerator update (2026-11-06): shared ADR 0072 at `7d43f082de4b7827da1e1d93c257ebeb50eca4ae`
-adds persisted native accelerators, canonical Accelerator properties and selected
-Label/button/boolean/Tab/Page Alt actions. Focus validation, Stop/Continue and
-existing authorization apply. Caption underlines use the host theme and fonts.
-Duplicate routing explicitly refuses; non-ASCII/platform ordering, mouse,
-lifecycle and other checklist rows remain open. M7A.4 remains incomplete; fresh
-Office observations remain M8.5 NOT_RUN. Full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, web and
-all 23 native/23 Node-WASM package cases pass. The accelerator case preserves
-authorization, one-shot debugger continuation, workbook effects and original
-VBA resources.
-
-M7A.4 keyboard-focus update (2026-11-06): root input eligibility and selected
-Tab/SetFocus/Space ordering are implemented in shared ADR 0071. Full CI, strict
-optional VBA/UI checks, form UI/web and all 22 native/22 Node-WASM package cases
-pass, including trust, debugger and original resources. M7A.4 remains incomplete.
-
-M7A.4 keyboard update (2026-11-06): typed native key callbacks and the shared
-raw-input barrier are pinned. Full CI, strict optional VBA/UI checks, form UI/web
-and all 21 native/21 Node-WASM package cases pass, including trust and debugger
-continuations. Full keyboard/platform behavior and M7A.4 remain partial.
-
-M7A.4 empty-collection update (2026-11-06): UserForms now works without a form
-component through the shared existing provider. Count/Item/Add errors, aliases,
-empty iteration, Stop/resume, trust and document/undo invariance are covered by
-authored regressions. Full CI and optional VBA/UI/web/Node-WASM checks pass.
-Broader M7A.4
-remains open; readiness estimates are unchanged.
-
-
-M7A.4 array update (2026-11-06): shared IR 14 adds lazy project-class/native-form
-array elements with canonical identity, ByRef and constructor continuations.
-Full CI, optional VBA/UI/web and all 20 native/Node-WASM package cases pass.
-Broader M7A.4 remains open;
-readiness estimates are unchanged. See [VBA support](docs/vba/supported.md).
-
-M7A.4 runtime type update (2026-11-06): native object TypeName uses the existing
-read-only object/type projection without default-property evaluation. Shared
-CI/WASM/WASI, full fork CI, optional VBA/UI/web and Node/WASM identity checks pass. [Integration profile](docs/vba/integration.md). Readiness estimates and
-the remaining M7A.4 scope are unchanged.
-
-M7A.4 runtime update (2026-11-05): selected native dynamic Controls, multiple
-selection, canonical TypeName and ControlSource/RowSource bindings use the shared
-engine and existing workbook commands. Full CI and native/Node-WASM/UI integration
-pass. [Scope, ownership and limits](docs/vba/integration.md). M7A.4 remains in
-progress; readiness estimates are unchanged.
-
-Developer ribbon polish (2026-11-04): consistent button row and separators, with a
-full-size Design Mode toggle. Readiness estimates unchanged.
-
-M7A.3 (2026-11-04): all nine standard native worksheet Form Controls now support
-reconciled import, widgets, trusted assignments, live bindings, selected VBA APIs
-and native edit/save/reopen. [Profile and limits](docs/vba/worksheet-controls.md).
-UserForm semantics/persistence and .tvform removal remain separate shared tasks.
-
-VBA package update (2026-11-04): the shared plan's M7 authored unchanged-document
-profile has fork-owned package/trust/source/event acceptance; see
-[tiny-vba M7](../tiny-vba/docs/m7-acceptance.md). Edited binary project writeback,
-real signature verification and fresh Office comparison remain explicit limits.
-
 **Stage: alpha** · next: beta, ~25 points of "ready for real work" and ~160–240 h away
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-07 · **Change:** minor (native HideSelection); earlier: minor (native caption Alignment); earlier: minor (native Boolean caption wrapping); earlier: minor (native WordWrap defaults and fixed text bounds); earlier: minor (native TextAlign and caret geometry); earlier: minor (native ListBox border correction); earlier: minor (native appearance and Font aliases); earlier: minor (native Font assignment; earlier: native form fonts; earlier: native worksheet Form Controls; parity estimates retained) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-25 · **Change:** minor (AutoSum over a selected row puts its total to the right, and fills a selection's empty last row and column; earlier: macro engine and `macro.*` commands; macro interface on the Automate tab) · **Target:** Microsoft Excel (Microsoft 365)
 
 GridCraft aims at full Microsoft Excel parity, and at being better in places: faster, open (XLSX
 is the native format), fully scriptable by agents (MCP, control channel, CLI), and on the web.
@@ -362,7 +66,7 @@ collaboration, mobile, AI).
 | Localization | ~10% (ribbon in 6 languages) | 100–165 | [localization-parity.md](docs/localization-parity.md) |
 | Hardware (multi-core calc, GPU, pen, multi-window) | ~40% | 25–40 | [hardware-parity.md](docs/hardware-parity.md) |
 | Platforms | ~80% (no iOS/Android; ahead on Linux, BSD, RISC-V) | 30–60 | [target-app-parity.md](docs/target-app-parity.md#platforms) |
-| Ecosystem / add-ins | ~10% (bounded existing-capability VBA adapter; COM/XLL and full parity out of scope) | 25–40 | [target-app-parity.md](docs/target-app-parity.md#ecosystem-and-ai) |
+| Ecosystem / add-ins | ~10% (VBA out of scope; own scripts, MCP, CLI) | 25–40 | [target-app-parity.md](docs/target-app-parity.md#ecosystem-and-ai) |
 | AI features | ~15% (agent control strong; no in-app assistant) | 30–50 | [target-app-parity.md](docs/target-app-parity.md#ecosystem-and-ai) |
 | **Total** | **~50%** | **~700–1,100** | |
 
@@ -382,7 +86,7 @@ collaboration, mobile, AI).
 | Get & Transform, external data, data model | ~15% | ~10% | 60–100 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
 | Insert objects (pictures, shapes, ink, SmartArt, equations) | ~55% | ~45% | 25–40 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
 | Review, comments, protection, collaboration | ~55% | ~40% | 35–55 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
-| Automation (recorded scripts plus optional bounded VBA over existing GridCraft features) | ~30% | ~20% | 12–20 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
+| Automation (recorded scripts; typed macros with a recorder, a Macros dialog and a step editor; no VBA) | ~30% | ~20% | 12–20 | [target-app-parity.md](docs/target-app-parity.md#feature-areas) |
 
 ## Languages
 
@@ -431,7 +135,6 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 | Date | What landed |
 |---|---|
-| 2026-10-27 | Native typed `range.setContents` command and host API preserve literal/error/formula types and destination formats. VBA now writes Text-formatted cells through the shared engine lifecycle; recordings replay the exact typed contents. |
 | 2026-10-25 | AutoSum over a selection does what Excel does: a selected row gets one total to its right (in its last cell if that is empty), not a one-cell total under each cell; a block whose last column is empty gets each row's total there, one whose last row is empty each column's, and with both the corner gets the total of the block; otherwise totals go under each column as before |
 | 2026-10-24 | Macro interface ([macros.md](docs/macros.md#in-the-window)): an Automate › Macros group (Record Macro, which turns into Stop Recording, Use Relative References, Run Macro with recent macros); "Recording · N steps" with Stop in the status bar; a Record Macro dialog (checked name, free Ctrl+Shift shortcut, description); the Macros dialog lists macros beside Automate scripts and a VBA project, with Run, Step Into, Edit, Create, Delete and Options; Ctrl+Shift+letter macro shortcuts; questions that offer Run, Overwrite, Shift Down or Shift Right; a step editor with a breakpoint gutter, drag to reorder, a command picker, reference boxes that switch between relative tokens and absolute references, Inputs and Output tabs, a debug bar (Check, Run, Step, Continue, Run to Here, Stop with keep or undo) and grid overlays for inputs, writes, conflicts and the current step |
 | 2026-10-24 | Go To lists the named ranges of every sheet (`Sheet2!Name` for a name scoped to another sheet; hidden names, constants and formulas left out) and the references entered before, a double-click goes to an entry, and the Reference box takes several names or references separated by commas (`Price, Type`, `B14:C22,F19:G30`) |
@@ -539,18 +242,8 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 
 ## Revision history
 
-
 | Date | Change | Summary |
 |---|---|---|
-| 2026-11-07 | minor | M7A.4 native HideSelection and canonical inactive text highlights; pinned runtime, stopped range/resource and canvas regressions; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 CheckBox/OptionButton Alignment, clipped accessible captions and correctly positioned indicator bevels; pinned runtime and package/canvas regressions; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 Boolean-control WordWrap, bounded accessible captions and centred ToggleButtons; pinned shared runtime, stopped package and canvas regressions; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 selected caption WordWrap, native/runtime defaults and fixed horizontal text allocation; refreshed shared pin and host regressions; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 selected native TextAlign, canonical typed values and matching caret geometry; refreshed shared pin and host regressions; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 ListBox follows canonical border/effect state; refreshed shared pin, canvas fixture and host acceptance; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 native appearance, corrected Page ownership and published Font aliases; pinned shared runtime and host acceptance; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 typed native Font assignment, reference lifetime and host regressions; full milestone remains open |
-| 2026-11-07 | minor | M7A.4 native Font metadata, typed objects and local rendering; pinned shared runtime and host regression evidence; full milestone remains open |
 | 2026-10-25 | minor | Progress log: AutoSum over a selected row, and a selection's empty last row and column |
 | 2026-10-24 | minor | Macro interface on the Automate tab; progress log row |
 | 2026-10-24 | minor | Macro engine and `macro.*` commands; catalog 275 / 291 → 276 / 292 (View › Macros › Record Macro); progress log row |
@@ -605,31 +298,3 @@ Ranked; estimates in Opus 5.5 agent-hours. Detail and the full beta-gate list in
 | 2026-10-10 | minor | Checked against the alpha gate (six core workflows pass): stays alpha |
 | 2026-10-10 | major | Re-measured against Excel for Mac 16.113.4: stage alpha, breadth ~75%, ready ~50%, ~160–240 h to beta, ~700–1,100 h to full parity; progress docs restructured; detail moved to `docs/` |
 | 2026-10-07 | major | First estimates: catalog 89%, functions ~93%, depth ~65%, ~35 h to alpha, ~215 h to full parity |
-
-M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
-remaining native form/control gaps; no interactive control or edited-save claim.
-
-M7A.1/M7A.2 update — 2026-11-04: selected native UserForm export-format and
-embedded import now attach to the shared designer/code/debugger/runtime. Original
-source/resources remain separate; package load stays inert, explicit consent
-precedes run, and unchanged saving retains original project bytes. Native edited
-form persistence, broader native semantics and custom-format removal remain open.
-
-M7A.3 revision — 2026-11-04: native worksheet controls share Shape state and normal
-engine undo/recalc. ControlFormat/assigned macros use the optional adapter/bridge;
-OOXML/VML persistence retains untouched parts. See the bounded profile/evidence.
-
-M7A.4 progress — 2026-11-04: updated the optional shared VBA engine/editor pin,
-added native boolean form/control integration and enforced execution consent for
-instance input. Authored native package/input/trust regressions accompany the
-change. This is partial M7A.4; native edited persistence and .tvform removal remain
-separate work, with fresh Office observations still NOT_RUN.
-
-Mouse command authorization is explicit under shared ADR 0073: form commands
-require host preparation unless they are known inert design operations. The final
-pin passes the same full CI/optional UI/web and 24 native/24 Node-WASM gates.
-
-Accepted shared pin `3e8676cc754f59e06df64d2677c1f64af0216432`: full CI (10 steps), strict optional VBA/UI Clippy,
-25 native and 25 actual Node-WASM package cases, four form UI cases and web checks
-pass. The new selection case preserves authority, stopped continuation and exact
-original workbook/VBA resources. M7A.4 remains incomplete.

@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-03 · **Change:** minor (accepted bounded VBA projection scope) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-24 · **Change:** minor (§8: PivotTable Enable show details; earlier: PivotTable Show Details) · **Target:** Microsoft Excel (Microsoft 365)
 
 Every known shortfall against Excel, one entry each, ranked by user impact (what blocks someone
 using GridCraft for real work first). This is the work list: pick from the top, check the open
@@ -165,11 +165,8 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
   [hardware-parity.md](hardware-parity.md)
 
 ### 21. Automation and add-ins (F)
-- GridCraft has an optional bounded VBA integration for capabilities the product
-  already supports. General Excel object-model parity, COM/XLL add-ins, Office
-  Scripts compatibility and using VBA work to add missing GridCraft features are
-  out of scope. No plugin or custom-function API. **Estimate:** 25–40 h for the
-  separate plugin/custom-function gap; VBA projection work is tracked by OM packets.
+- VBA out of scope (dropped on open, #6); no Office Scripts compatibility; no plugin or custom
+  function API. **Estimate:** 25–40 h plus an owner decision.
 
 ### 22. AI features (F)
 - No in-app assistant, natural-language formulas or Analyze Data; agent control via MCP is
@@ -183,12 +180,6 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
   chrome (#169, #170), Linux title bar (#54), icon consistency across apps (#173). **Estimate:** 7–12 h.
 
 ## Revision history
-
-- 2026-11-03: Accept the existing-capability-only boundary for the optional VBA integration.
-- 2026-10-29: Record M3 range/navigation/structural coverage and retain M4 identity/value and M5 events gaps.
-
-- 2026-10-28: Record Excel VBA source-compatibility blockers and link the audited
-  optional adapter profile; no general unchanged-workbook claim.
 
 | Date | Change | Summary |
 |---|---|---|
@@ -226,5 +217,3 @@ No alpha blockers: every core workflow passes the [alpha gate](roadmap.md#alpha-
 | 2026-10-10 | minor | Updated for the 10-10 merges (#17, #31, #38, #62, #82, #104, #116) and the new chart resize bug (#190) |
 | 2026-10-10 | minor | Noted that no gap blocks the alpha gate |
 | 2026-10-10 | major | Created: 24 ranked gaps with evidence, from the full re-measure and the 60 open issues |
-
-- 2026-10-29: Audit M3 and implement M4 identity/value/member behavior; publish/pin the shared prerequisite and remove local overrides.

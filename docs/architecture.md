@@ -1,18 +1,6 @@
 # Architecture
 
-M7A implementation update (2026-11-04): `gridcraft-xlsx::read_worksheet_controls`
-reads the existing sheet preservation graph into a bounded native Button metadata
-snapshot. No duplicate writable control store, UI/VM dependency or authority is
-added. Full DrawingML identity reconciliation and interactive/native save paths
-remain separate gates; [ADR 0039](../../tiny-vba/docs/decisions/0039-m7a-native-control-metadata.md).
-
-VBA package contract update (2026-11-04): source decoding stays in the existing
-pinned tiny-vba `vba-project` crate; document attachment, trust and OOXML preservation
-stay in this fork. There is no encoder or reverse dependency. The
-[M7 writeback/signature decision](../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md)
-separates original binary retention from source exports and future edited writeback.
-
-> **Last reviewed:** 2026-11-03 · **Last updated:** 2026-11-04 · **Change:** minor (optional VBA integration) · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-25 · **Change:** trivial (the hidden names that hold macros; earlier: macro engine on the engine building blocks) · **Target:** Microsoft Excel (Microsoft 365)
 
 How GridCraft is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -40,11 +28,6 @@ including tests, 2026-10-10.
 | — | `xtask` | — | `ci`, `parity`, `assets`, `layers`, `wasm`, `version`, `stats` |
 
 ## Data flow
-
-Optional VBA runs in the toolkit-free `gridcraft-vba` adapter above the engine.
-It uses the separate tiny-vba compiler, VM and editor; workbook changes use native
-commands. See [VBA integration](vba/integration.md) for the architecture, object
-lifetimes, events and host services.
 
 1. **Every action is a command.** The UI, CLI, control channel and MCP call
    `Session::execute(id, params)`. Commands are `CommandSpec { id, label, menu, shortcut, params,
@@ -176,48 +159,8 @@ rpm, tarball), FreeBSD, and web (WASM; WebGPU or WebGL2). Release workflows in
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-11-03 | minor | Linked priority-based OM delivery: High first, selected Medium next, Low deferred; stable IDs retained |
 | 2026-10-25 | trivial | The hidden names that hold macros are `_gc_macro_<n>_<k>` |
 | 2026-10-24 | minor | Macro engine on the building blocks (`macros/`, `cmd/macros.rs`) |
 | 2026-10-24 | minor | Engine building blocks for multi-command actions: undo groups, recording buffer, document trust, chunked hidden-name storage |
 | 2026-10-14 | minor | Document Undo's retained-cell-storage budget and latest-step guarantee |
 | 2026-10-10 | major | Created from the code on main: crates, layers, data flow, agent control, known gaps |
-
-M7 revision history — 2026-11-04: added the authored unchanged-document/package
-profile, original-project/source-export distinction and explicit signature policy.
-See the linked shared M7 acceptance record for exact tests and limitations.
-
-M7A revision — 2026-11-04: initial native worksheet metadata decoder and explicit
-remaining native form/control gaps; no interactive control or edited-save claim.
-
-M7A.1/M7A.2 update — 2026-11-04: selected native UserForm export-format and
-embedded import now attach to the shared designer/code/debugger/runtime. Original
-source/resources remain separate; package load stays inert, explicit consent
-precedes run, and unchanged saving retains original project bytes. Native edited
-form persistence, broader native semantics and custom-format removal remain open.
-
-M7A.3 — 2026-11-04: [native worksheet controls](vba/worksheet-controls.md)
-live in the existing model Shape store. Pure model queries resolve bindings/groups;
-engine control commands own transactions/undo/recalc; XLSX joins and patches native
-control/VML/DrawingML parts. The optional VBA adapter/shell supplies ControlFormat,
-accessible widgets and trusted, owner-bound assignments. No shared VM or GUI edge
-enters the engine/model/XLSX layers; ActiveX and UserForms retain separate contracts.
-
-M7A.4 increment — 2026-11-04: the shared native form runtime is pinned at
-`d2de831892e5d2b17557de6b7abb00a83fdfc292`. Form instance commands are classified
-centrally by the shared UI API and retain the existing host execution-consent
-checks. Canonical controls/lifetimes stay in tiny-vba; document state, package
-retention and authorization stay in this fork. Full M7A.4 remains open.
-
-## M7A.5 explicit native persistence (2026-11-08)
-
-The optional VBA bridge prepares a compile-checked shared native-project snapshot
-bound to document/project identity and exact imported originals. The format crate
-owns signature removal and project replacement on a document clone. Engine IO
-writes/reopens a macro-enabled copy and compares exact project bytes. The UI owns
-file selection, final snapshot validation and atomic commit; browser callbacks
-only request downloads. This uses existing dependency edges. Copy export does
-not mutate the original document or clear its editor's dirty state; ordinary
-Save retains its original project. Native form Save/Export separately publishes
-a complete immutable `.frx` before replacing `.frm`; failed/stale saves do not
-acknowledge modified state. See the shared ADR 0098 and M7A.5 acceptance record.

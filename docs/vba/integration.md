@@ -3,7 +3,7 @@
 GridCraft embeds tiny-vba and supplies an Excel-shaped view of its native
 workbook model. The interpreter executes VBA; GridCraft owns workbook objects,
 commands, calculation, persistence and UI services. The entry guide is
-[VBA in GridCraft](../vba.md); the feature contract is split into
+[VBA in GridCraft](getting-started.md); the feature contract is split into
 [supported](supported.md) and [unsupported](unsupported.md) references.
 
 For a first read, follow [startup and execution](#startup-and-execution), then
@@ -201,7 +201,7 @@ VBA property assignments and methods call native engine commands or typed APIs
 that share their execution path. For example, a Range value write uses
 `Session::set_range_contents`, the typed API for `range.setContents`.
 The engine owns protection, validation, recalculation, recording and history.
-[Native cell contents](../native-cell-contents.md) documents that generic API.
+The native API is defined in the [engine implementation](../../crates/engine/src/contents.rs).
 
 Typed VBA values cross a native host protocol rather than JSON member dispatch.
 JSON envelopes are produced where the engine needs replayable journal/recording

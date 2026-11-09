@@ -184,10 +184,6 @@ pointer and keyboard input, dialogs and screenshots. See [`docs/mcp.md`](docs/mc
 
 ## Architecture
 
-An optional [VBA integration](docs/vba.md) provides an editor, debugger and
-Excel-style objects backed by GridCraft commands. See the
-[supported features](docs/vba/supported.md) and [feature limits](docs/vba/unsupported.md).
-
 GridCraft is an engine-first Cargo workspace with enforced layering (`cargo xtask layers`). The
 egui frontend is a separate crate, so the UI can be swapped without touching the engine.
 
