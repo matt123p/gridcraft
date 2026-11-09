@@ -116,13 +116,7 @@ pub(super) fn keyboard(app: &mut SheetApp, ctx: &egui::Context, resp: &egui::Res
                         app.session.clipboard = None;
                         app.grid.ensure_visible = true;
                     }
-                    Key::Enter => {
-                        if m.alt || m.ctrl {
-                            app.begin_edit(None, false);
-                        } else {
-                            app.move_after_enter(if shift { -1 } else { 1 }, 0);
-                        }
-                    }
+                    Key::Enter => enter(app, m),
                     Key::Tab => app.move_after_enter(0, if shift { -1 } else { 1 }),
                     Key::F2 => app.begin_edit(None, false),
                     // With an object selected, Delete and Backspace delete it, not the cells.
@@ -158,6 +152,14 @@ pub(super) fn keyboard(app: &mut SheetApp, ctx: &egui::Context, resp: &egui::Res
             }
             _ => {}
         }
+    }
+}
+
+fn enter(app: &mut SheetApp, modifiers: egui::Modifiers) {
+    if modifiers.alt || modifiers.ctrl {
+        app.begin_edit(None, false);
+    } else {
+        app.move_after_enter(if modifiers.shift { -1 } else { 1 }, 0);
     }
 }
 

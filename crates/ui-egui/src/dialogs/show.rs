@@ -124,22 +124,12 @@ pub(crate) fn build_params(d: &Dialog) -> Json {
 /// Takes and draws the active dialog, dispatches its body by name, consumes picture-inbox results, runs OK/confirm commands, handles Esc/close and restores the back-dialog stack.
 pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
     let Some(mut d) = app.dialog.take() else { return };
-    let home = app.ui_window();
     // The macro step editor is a large resizable window of its own.
     if d.name == "macroEditor" {
-        let mut open = true;
-        crate::macro_editor::window(app, ctx, &mut d, &mut open);
-        if !open {
-            app.macros.editor = None;
-            app.grid.macro_overlay = None;
-        } else if app.ui_window() != home {
-            // Something run from the editor switched windows: the editor stays in its own.
-            app.return_dialog(home, d);
-        } else {
-            app.dialog = Some(d);
-        }
+        show_macro_editor(app, ctx, d);
         return;
     }
+    let home = app.ui_window();
     if d.name == "pasteSpecial" {
         paste_special_shortcuts(&mut d, ctx);
     }
@@ -460,17 +450,7 @@ pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
         open = false;
     }
     #[cfg(feature = "vba")]
-    if (!win_open || ctx.input(|i| i.key_pressed(Key::Escape))) && d.name == "saveChanges" {
-        crate::vba::answer_native_close(app, crate::SaveAnswer::Cancel, false, ctx);
-    }
-    #[cfg(feature = "vba")]
-    if !open && d.name == "saveChanges" && d.values.contains_key("vbaToken") {
-        crate::vba::answer_save_prompt(app, crate::SaveAnswer::Cancel);
-    }
-    #[cfg(feature = "vba")]
-    if !open && let Some(token) = d.values.get("om15Token").and_then(Json::as_u64) {
-        let _ = crate::vba::interaction_dialog_closed(app, token, false);
-    }
+    notify_vba_dialog_closed(app, ctx, &d, win_open, open);
     if !open
         && !confirm
         && let Err(e) = end_pick(app, &mut d)
@@ -508,6 +488,34 @@ pub fn show(app: &mut SheetApp, ctx: &egui::Context) {
         app.dialog = Some(d);
     } else if let Some(back) = d.back.take() {
         app.dialog = Some(*back);
+    }
+}
+
+#[cfg(feature = "vba")]
+fn notify_vba_dialog_closed(app: &mut SheetApp, ctx: &egui::Context, d: &Dialog, win_open: bool, open: bool) {
+    if (!win_open || ctx.input(|i| i.key_pressed(Key::Escape))) && d.name == "saveChanges" {
+        crate::vba::answer_native_close(app, crate::SaveAnswer::Cancel, false, ctx);
+    }
+    if !open && d.name == "saveChanges" && d.values.contains_key("vbaToken") {
+        crate::vba::answer_save_prompt(app, crate::SaveAnswer::Cancel);
+    }
+    if !open && let Some(token) = d.values.get("om15Token").and_then(Json::as_u64) {
+        let _ = crate::vba::interaction_dialog_closed(app, token, false);
+    }
+}
+
+fn show_macro_editor(app: &mut SheetApp, ctx: &egui::Context, mut d: Dialog) {
+    let home = app.ui_window();
+    let mut open = true;
+    crate::macro_editor::window(app, ctx, &mut d, &mut open);
+    if !open {
+        app.macros.editor = None;
+        app.grid.macro_overlay = None;
+    } else if app.ui_window() != home {
+        // Something run from the editor switched windows: the editor stays in its own.
+        app.return_dialog(home, d);
+    } else {
+        app.dialog = Some(d);
     }
 }
 

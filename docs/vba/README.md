@@ -1,5 +1,15 @@
 # VBA documentation
 
+Tagged runtime (2026-11-09): Cargo dependencies use tiny-vba tag `v0.0.1`,
+resolved in `Cargo.lock` to `ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b`.
+This adopts the local M8 runtime fixes. Historical revision-specific receipts
+below retain their original scope; fresh Office comparisons remain M8.5 NOT_RUN.
+Validation: all 10 CI steps, 315 native VBA tests, 306 Node 22 WASM tests,
+311 VBA-enabled UI unit tests and 12 native-form/interaction tests pass,
+alongside strict optional VBA/UI Clippy and the VBA-enabled web build.
+Macro-editor/dialog-close and Enter handling use small helpers to keep the
+merged optional UI within the existing cognitive-complexity limit.
+
 M8 candidate validation (2026-11-08): `crates/vba/tests/m8_workbooks.rs` and
 `tests/fixtures/m8/selection.json` define 20 original independent Rust-built XLSM
 workflows, with fixed expected cell values/output types, inert import/compile,
