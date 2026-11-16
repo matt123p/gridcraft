@@ -19,3 +19,11 @@ find Arabic glyphs. A temporary fontconfig setup did not resolve the failure in
 the current test executable. The Arabic test source is unchanged from main.
 Later test binaries were not reached by that run. Historical milestone receipts
 in this folder retain their original revision scope.
+
+## Main framework alignment
+
+The feature branch uses main's split insert-command modules and shared
+`craft-xls` parser; the old monolithic bodies and XLS parser are not retained.
+CI uses main's shared `craft-common-actions` workflow unchanged. The separate
+feature-only VBA job was removed; optional VBA/UI acceptance commands remain
+local validation until supported by the shared CI workflow.
