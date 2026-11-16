@@ -458,7 +458,7 @@ Instance input and form launch use the existing document execution-authorization
 policy before dispatch, including handlers that only execute pure VBA. Editing,
 compiling and exporting source remain available without granting execution trust.
 
-See [the shared runtime record](../../../tiny-vba/docs/m7a4-native-runtime.md) and ADRs
+See [the shared runtime record](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a4-native-runtime.md) and ADRs
 0043/0044 for scope/evidence and remaining requirements. M7A.4 remains in progress;
 list/container/scroll/image/binding/platform packets, full focus/event/type parity,
 native edited persistence and format removal are not implied. Fresh Office

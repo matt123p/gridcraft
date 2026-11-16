@@ -1,5 +1,22 @@
 # VBA documentation
 
+This folder is the entry point for GridCraft's optional VBA integration. It
+contains setup, host behavior, design decisions, support limits and historical
+validation evidence. VBA documentation belongs here; the repository's main
+README and general roadmap are maintained independently.
+
+Start with [Getting started](getting-started.md), then consult the
+[supported features](supported.md), [limitations](unsupported.md),
+[integration architecture](integration.md), [worksheet controls](worksheet-controls.md)
+and [reference data](reference/README.md).
+
+Shared runtime references use permanent links to the `v0.0.1` runtime commit;
+reading this documentation does not require a sibling `tiny-vba` checkout.
+Build and test commands run from this repository's root. Dated validation
+receipts below describe their recorded revisions, rather than the current merge.
+See the [main synchronization validation](validation.md) for current checks and
+the remaining full-CI limitation.
+
 Tagged runtime (2026-11-09): Cargo dependencies use tiny-vba tag `v0.0.1`,
 resolved in `Cargo.lock` to `ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b`.
 This adopts the local M8 runtime fixes. Historical revision-specific receipts
@@ -17,7 +34,7 @@ trust denial, native save/reopen, retained project bytes, undo and Reset. They
 cover language and host categories separately and include no Office-produced
 workbooks. The optional shared `cargo xtask m8-hosts` checks the current tiny-vba
 candidate using temporary local dependencies, then restores shipping lockfiles.
-See [M8 evidence](../../../tiny-vba/docs/m8-acceptance.md). M8.5 fresh Office
+See [M8 evidence](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m8-acceptance.md). M8.5 fresh Office
 comparisons remain NOT_RUN; no release acceptance or new shipping runtime pin
 is implied.
 Validation: all 20 workbook workflows pass natively and under Node 22 browser WASM
@@ -26,7 +43,7 @@ target. The shipping-pin full CI passes all 10 steps, and strict Clippy passes
 for the new suite. These are authored contract checks; Office comparison remains
 NOT_RUN. The shared execution record identifies the candidate tree separately.
 
-M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](../../../tiny-vba/docs/m7a-acceptance.md)
+M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a-acceptance.md)
 cover the agreed common native forms, worksheet scope, native file/edited package
 copies and custom-format removal. The strengthened edited-copy case now reopens
 source/resources, stops before real host mutation, continues once, undoes the
@@ -41,7 +58,7 @@ Older incremental scope/status entries below are historical and superseded.
 
 M7A.6 native-only files (2026-11-08): the shared custom form codec/APIs and
 `.tvform` file routes/examples are removed under
-[ADR 0099](../../../tiny-vba/docs/decisions/0099-native-only-form-workflows.md). New forms use
+[ADR 0099](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0099-native-only-form-workflows.md). New forms use
 inert native templates. Native `.frm`/`.frx` Save/Export and edited macro-enabled
 copy export retain the M7A.5 snapshot/signature/IO contract. Useful legacy-era
 host callback tests now import native pairs; there is no legacy importer or
@@ -64,7 +81,7 @@ original project bytes. Ordinary document Save retains those original VBA bytes;
 open the edited copy to use the persisted changes. Native `.frm` Save acknowledges
 only successful current-snapshot IO; browser download requests never do.
 Shared revision `8800fcb07e628d4719a5c5459969503ba7e70f7c`.
-See the [supported workflow and acceptance limits](../../../tiny-vba/docs/m7a5-acceptance.md).
+See the [supported workflow and acceptance limits](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a5-acceptance.md).
 All 10 CI steps, strict optional VBA/UI Clippy, six form UI cases, the VBA-enabled
 web build and 34 native/34 Node 22 WASM package cases pass. The signature-removal
 regression passes, including shared data retention and incomplete graph refusal.
@@ -320,7 +337,8 @@ external application focus and passive hover do not emit lifecycle callbacks.
 The new package regression checks a stopped Deactivate handler before a one-shot
 host edit and preserves original VBA resources. Automatic document-canvas raw
 input buffering/replay remains unimplemented; L01/L02 and full M7A.4 stay open.
-Pinned product and final validation are recorded in ROADMAP.md.
+The pinned runtime and historical validation receipts are recorded in this
+VBA documentation folder.
 
 [Getting started](getting-started.md) explains how to enable VBA, run a macro and add a
 worksheet function.

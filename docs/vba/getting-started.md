@@ -1,6 +1,6 @@
 # VBA in GridCraft
 
-Updated 2026-11-04: [M7 package acceptance](../../../tiny-vba/docs/m7-acceptance.md)
+Updated 2026-11-04: [M7 package acceptance](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7-acceptance.md)
 adds reviewed original `.xlsm` specimens and real load/compile/run/save/reopen
 workflows. The writer preserves the original VBA project and supported related
 parts; it does not encode edited IDE source into that binary project. Loading

@@ -1,6 +1,6 @@
 # Unsupported VBA functions and features
 
-M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](../../../tiny-vba/docs/m7a-acceptance.md)
+M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a-acceptance.md)
 cover the agreed common native forms, worksheet scope, native file/edited package
 copies and custom-format removal. The strengthened edited-copy case now reopens
 source/resources, stops before real host mutation, continues once, undoes the
@@ -15,7 +15,7 @@ Older incremental scope/status entries below are historical and superseded.
 
 M7A.6 native-only files (2026-11-08): the shared custom form codec/APIs and
 `.tvform` file routes/examples are removed under
-[ADR 0099](../../../tiny-vba/docs/decisions/0099-native-only-form-workflows.md). New forms use
+[ADR 0099](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0099-native-only-form-workflows.md). New forms use
 inert native templates. Native `.frm`/`.frx` Save/Export and edited macro-enabled
 copy export retain the M7A.5 snapshot/signature/IO contract. Useful legacy-era
 host callback tests now import native pairs; there is no legacy importer or
@@ -38,7 +38,7 @@ original project bytes. Ordinary document Save retains those original VBA bytes;
 open the edited copy to use the persisted changes. Native `.frm` Save acknowledges
 only successful current-snapshot IO; browser download requests never do.
 Shared revision `8800fcb07e628d4719a5c5459969503ba7e70f7c`.
-See the [supported workflow and acceptance limits](../../../tiny-vba/docs/m7a5-acceptance.md).
+See the [supported workflow and acceptance limits](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a5-acceptance.md).
 All 10 CI steps, strict optional VBA/UI Clippy, six form UI cases, the VBA-enabled
 web build and 34 native/34 Node 22 WASM package cases pass. The signature-removal
 regression passes, including shared data retention and incomplete graph refusal.
@@ -301,7 +301,7 @@ a captured binary project while reusing its original signature/data graph refuse
 Package-wide signatures are invalidated by package rewrite. Native worksheet ActiveX remains unsupported; native UserForm import has
 selected control families and runtime packets; full UserForm behavior remains
 in progress. See the
-[writeback/signature contract](../../../tiny-vba/docs/decisions/0037-m7-package-preservation-and-writeback.md).
+[writeback/signature contract](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0037-m7-package-preservation-and-writeback.md).
 
 GridCraft exposes its existing workbook capabilities through a bounded VBA
 adapter. Some Excel features have no native equivalent; others exist in

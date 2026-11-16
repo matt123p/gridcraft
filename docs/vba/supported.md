@@ -1,6 +1,6 @@
 # Supported VBA functions and features
 
-M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](../../../tiny-vba/docs/m7a-acceptance.md)
+M7A.7/common M7A acceptance (2026-11-08): [ADR 0100 and the acceptance matrix](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a-acceptance.md)
 cover the agreed common native forms, worksheet scope, native file/edited package
 copies and custom-format removal. The strengthened edited-copy case now reopens
 source/resources, stops before real host mutation, continues once, undoes the
@@ -15,7 +15,7 @@ Older incremental scope/status entries below are historical and superseded.
 
 M7A.6 native-only files (2026-11-08): the shared custom form codec/APIs and
 `.tvform` file routes/examples are removed under
-[ADR 0099](../../../tiny-vba/docs/decisions/0099-native-only-form-workflows.md). New forms use
+[ADR 0099](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0099-native-only-form-workflows.md). New forms use
 inert native templates. Native `.frm`/`.frx` Save/Export and edited macro-enabled
 copy export retain the M7A.5 snapshot/signature/IO contract. Useful legacy-era
 host callback tests now import native pairs; there is no legacy importer or
@@ -38,7 +38,7 @@ original project bytes. Ordinary document Save retains those original VBA bytes;
 open the edited copy to use the persisted changes. Native `.frm` Save acknowledges
 only successful current-snapshot IO; browser download requests never do.
 Shared revision `8800fcb07e628d4719a5c5459969503ba7e70f7c`.
-See the [supported workflow and acceptance limits](../../../tiny-vba/docs/m7a5-acceptance.md).
+See the [supported workflow and acceptance limits](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a5-acceptance.md).
 All 10 CI steps, strict optional VBA/UI Clippy, six form UI cases, the VBA-enabled
 web build and 34 native/34 Node 22 WASM package cases pass. The signature-removal
 regression passes, including shared data retention and incomplete graph refusal.
@@ -296,7 +296,7 @@ Shapes/ControlFormat APIs and native save/reopen are implemented for the
 Updated 2026-11-05: M7's authored `.xlsm` workflows preserve original VBA
 project bytes, code names and supported related payload/relationship graphs
 through document edits and save/reopen. Loading and compiling are inert; execution
-requires document permission. See [M7 acceptance](../../../tiny-vba/docs/m7-acceptance.md)
+requires document permission. See [M7 acceptance](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7-acceptance.md)
 for exact source/typed-result, cross-workbook context, event and WASM evidence.
 Opaque signature payload preservation does not verify signature validity.
 
@@ -631,7 +631,7 @@ M7A revision — 2026-11-04: initial native worksheet metadata decoder and expli
 remaining native form/control gaps; no interactive control or edited-save claim.
 
 M7A.1/M7A.2 revision — 2026-11-04: native package UserForms attach inertly via
-the shared decoder; explicit consent precedes execution. [Profile and contracts](../../../tiny-vba/docs/m7a-control-contracts.md).
+the shared decoder; explicit consent precedes execution. [Profile and contracts](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a-control-contracts.md).
 
 M7A.3 revision — 2026-11-04: native worksheet controls supersede the earlier
 metadata-only slice; reference catalogue regenerated against the existing shared
@@ -639,7 +639,7 @@ metadata-only slice; reference catalogue regenerated against the existing shared
 
 M7A.4 increment — 2026-11-04: the pinned shared runtime adds explicit instances,
 selected boolean/group/input/property semantics, Controls/UserForms lookup and
-separate window/code lifetime. See [the shared scope and remaining work](../../../tiny-vba/docs/m7a4-native-runtime.md).
+separate window/code lifetime. See [the shared scope and remaining work](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a4-native-runtime.md).
 This is not full M7A.4 or native edited-save acceptance.
 
 M7A.4 runtime follow-up — 2026-11-04: native text selection, multiline/password
@@ -794,7 +794,7 @@ KeyPress replacement uses existing injected ANSI services. Unicode without a
 connected KeyPress handler retains the existing text path. All 21 native and 21 Node-WASM keyboard/package cases pass, alongside full
 CI (10 steps), strict optional VBA/UI Clippy, four form UI cases and optional
 web compilation. Full keyboard/platform/IME and M7A.4 remain partial;
-see [ADR 0070](../../../tiny-vba/docs/decisions/0070-native-keyboard-events.md).
+see [ADR 0070](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0070-native-keyboard-events.md).
 
 M7A.4 keyboard-focus update — 2026-11-06: shared revision
 `38578095ba1fc1ae3695f92a6c2e89cdb29d42f6` adds selected root focus and
@@ -805,7 +805,7 @@ gates, nine runtime keyboard cases, eleven new UI cases, the existing 24 form UI
 cases and Chromium pass. Full CI (10 steps), strict optional VBA/UI Clippy, four form UI cases, web and
 all 22 native/22 Node-WASM package cases pass, including root eligibility,
 Stop/Continue, authority and original VBA resources.
-See [ADR 0071](../../../tiny-vba/docs/decisions/0071-native-keyboard-focus-and-default-order.md).
+See [ADR 0071](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0071-native-keyboard-focus-and-default-order.md).
 
 M7A.4 accelerator update (2026-11-06): shared ADR 0072 at `7d43f082de4b7827da1e1d93c257ebeb50eca4ae`
 adds persisted native accelerators, canonical Accelerator properties and selected

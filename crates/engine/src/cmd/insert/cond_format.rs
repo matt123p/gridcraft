@@ -1,7 +1,13 @@
 use super::{
-    Anchor, BorderLine, BorderStyle, Borders, CfOperator, CfRule, CfValueKind, Color, CondFormat, EngineError, Fill, Json, Result, Session, Shape,
-    ShapeKind, Style, anchor_mode_param, bad, bool_param, cell_param, edit, f64_param, json, ok, str_param, target_ranges, target_sheet, u32_param,
+    Anchor, BorderLine, BorderStyle, Borders, CellRef, CfOperator, CfRule, CfValueKind, Color, CondFormat, EngineError, Fill, Json, RangeRef, Result,
+    Session, Shape, ShapeKind, Style, anchor_mode_param, bad, bool_param, cell_param, edit, f64_param, json, ok, str_param, target_ranges,
+    target_sheet, u32_param,
 };
+
+#[cfg(test)]
+pub(super) fn compiled() -> bool {
+    true
+}
 
 // ---------------------------------------------------------------- conditional formatting
 
@@ -120,13 +126,22 @@ fn check_cf_rule(rule: &CfRule) -> Result<()> {
             }
         }
         CfRule::Expression { formula, .. } => check_cf_formula(CMD, "rule", formula)?,
-        CfRule::IconSet{set,thresholds,..}=>{if thresholds.len()!=gridcraft_model::icon_count(set){return Err(bad(CMD,"icon threshold count differs from icon count"));}for value in thresholds{check_cf_value("icon threshold",value)?;}},
+        CfRule::IconSet { set, thresholds, .. } => {
+            if !thresholds.is_empty() && thresholds.len() != gridcraft_model::icon_count(set) {
+                return Err(bad(CMD, "icon threshold count differs from icon count"));
+            }
+            for value in thresholds {
+                check_cf_value("icon threshold", value)?;
+            }
+        }
         CfRule::DataBar { min, max, .. } => {
             check_cf_value("data bar minimum", min)?;
             check_cf_value("data bar maximum", max)?;
         }
         CfRule::ColorScale { stops } => {
-            if !matches!(stops.len(),2|3){return Err(bad(CMD,"color scale requires two or three stops"));}
+            if !matches!(stops.len(), 2 | 3) {
+                return Err(bad(CMD, "color scale requires two or three stops"));
+            }
             for (kind, _) in stops {
                 check_cf_value("color scale threshold", kind)?;
             }
@@ -273,7 +288,13 @@ pub(super) fn clear_cf(s: &mut Session, p: &Json) -> Result<Json> {
             sh.cond_formats.clear();
         } else {
             for cf in sh.cond_formats.iter_mut() {
+                let before = RangeRef::top_left(&cf.ranges);
                 cf.ranges.retain(|r| !ranges.iter().any(|x| x.intersects(r)));
+                // The relative formulas are written for the top-left cell: when it goes, they're
+                // rewritten for the new one, so the areas left keep reading the same cells.
+                if let (Some(from), Some(to)) = (before, RangeRef::top_left(&cf.ranges)) {
+                    rebase_cf_formulas(&mut cf.rule, from, to);
+                }
             }
             sh.cond_formats.retain(|c| !c.ranges.is_empty());
         }
@@ -281,7 +302,24 @@ pub(super) fn clear_cf(s: &mut Session, p: &Json) -> Result<Json> {
     })
 }
 
+/// Moves the relative references of a rule's per-cell formulas written for `from` to `to`.
+fn rebase_cf_formulas(rule: &mut CfRule, from: CellRef, to: CellRef) {
+    let mv = |f: &str| crate::cmd::data::move_rule_formula(f, from, to);
+    match rule {
+        CfRule::CellIs { a, b, .. } => {
+            *a = mv(a);
+            *b = b.as_deref().map(mv);
+        }
+        CfRule::Expression { formula, .. } => *formula = mv(formula),
+        _ => {}
+    }
+}
+
 pub(super) fn manage_cf(s: &mut Session, p: &Json) -> Result<Json> {
+    if let Some(update) = p.get("update") {
+        return update_cf(s, p, update);
+    }
+
     let sheet = target_sheet(s, p)?;
     if p.get("delete").is_none() && p.get("moveUp").is_none() && p.get("moveDown").is_none() {
         let list: Vec<Json> = s
@@ -329,6 +367,7 @@ pub(super) fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     let color = crate::cmd::format::color_param(p.get("color")).unwrap_or(Color::Theme(1, 0));
     let shape = Shape {
         identity: Default::default(),
+        on_action: None,
         id,
         kind: ShapeKind::Icon,
         anchor: Anchor { cell: at, dx: 4.0, dy: 4.0, width: size, height: size, mode: anchor_mode_param(p).unwrap_or_default() },
@@ -342,5 +381,61 @@ pub(super) fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     edit(s, |cx| {
         cx.sheet_mut(sheet)?.shapes.push(shape);
         Ok(json!({"shape": id}))
+    })
+}
+
+fn update_cf(s: &mut Session, p: &Json, update: &Json) -> Result<Json> {
+    let sheet = target_sheet(s, p)?;
+    crate::cmd::refuse_unless_allowed(s, sheet, "Conditional formatting", |p| p.format_cells)?;
+    let index = update
+        .get("index")
+        .and_then(Json::as_u64)
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| bad("home.manageRules", "missing rule index"))?;
+    let old = s.doc()?.wb.sheet(sheet).and_then(|sh| sh.cond_formats.get(index)).ok_or_else(|| bad("home.manageRules", "rule was deleted"))?.clone();
+    let mut next = old;
+    if let Some(rule) = update.get("rule") {
+        next.rule = serde_json::from_value(rule.clone()).map_err(|e| bad("home.manageRules", e.to_string()))?;
+        check_cf_rule(&next.rule)?;
+    }
+    if let Some(ranges) = update.get("ranges") {
+        let values = ranges.as_array().ok_or_else(|| bad("home.manageRules", "invalid ranges"))?;
+        if values.is_empty() || values.len() > 64 {
+            return Err(bad("home.manageRules", "range budget"));
+        }
+        let mut cells = 0u64;
+        next.ranges.clear();
+        for value in values {
+            let range = value.as_str().and_then(RangeRef::parse).ok_or_else(|| bad("home.manageRules", "invalid range"))?;
+            cells = cells.saturating_add(range.count());
+            if cells > 65536 {
+                return Err(bad("home.manageRules", "cell budget"));
+            }
+            next.ranges.push(range);
+        }
+    }
+    if let Some(stop) = update.get("stopIfTrue") {
+        next.stop_if_true = stop.as_bool().ok_or_else(|| bad("home.manageRules", "invalid StopIfTrue"))?;
+    }
+    let priority = update
+        .get("priority")
+        .map(|p| {
+            p.as_u64()
+                .and_then(|n| usize::try_from(n).ok())
+                .filter(|n| *n >= 1 && *n <= s.doc().ok().and_then(|d| d.wb.sheet(sheet)).map(|sh| sh.cond_formats.len()).unwrap_or(0))
+                .ok_or_else(|| bad("home.manageRules", "invalid priority"))
+        })
+        .transpose()?;
+    edit(s, |cx| {
+        let sh = cx.sheet_mut(sheet)?;
+        sh.cond_formats[index] = next.clone();
+        if let Some(priority) = priority {
+            let rule = sh.cond_formats.remove(index);
+            sh.cond_formats.insert(priority - 1, rule);
+        }
+        for (i, rule) in sh.cond_formats.iter_mut().enumerate() {
+            rule.priority = i as u32 + 1;
+        }
+        Ok(Json::Null)
     })
 }

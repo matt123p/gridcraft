@@ -25,7 +25,7 @@ or multicolumn bindings and unlisted members remain unsupported. Numeric imports
 need explicit native Max/Page defaults. Protected-sheet control edits/input refuse.
 UserForm resource encoding and .tvform removal are separate shared milestones.
 
-See the [full property/format/input/persistence contract and evidence](../../../tiny-vba/docs/m7a-worksheet-controls.md)
-and [ADR 0041](../../../tiny-vba/docs/decisions/0041-worksheet-form-controls.md).
+See the [full property/format/input/persistence contract and evidence](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/m7a-worksheet-controls.md)
+and [ADR 0041](https://github.com/matt123p/tiny-vba/blob/ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b/docs/decisions/0041-worksheet-form-controls.md).
 All fixtures are independently authored Rust builders; fresh Office comparisons
 remain NOT_RUN under M8.5. No blanket Excel parity claim follows from this profile.

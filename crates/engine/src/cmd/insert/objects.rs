@@ -1,7 +1,13 @@
 use super::{
-    Anchor, CellPicture, CellRef, Color, EngineError, Image, Json, PROTECTED, Result, Session, Shape, ShapeKind, Sparkline, SparklineKind,
-    anchor_mode_name, anchor_mode_param, bad, bool_param, cell_param, edit, f64_param, json, locked_cell_error, ok, str_param, u32_param,
+    Anchor, CellPicture, CellRef, Color, EngineError, Image, Json, MAX_OBJECT_OFFSET, ObjKind, ObjRef, PROTECTED, Result, Session, Shape, ShapeKind,
+    Sparkline, SparklineKind, anchor_mode_name, anchor_mode_param, bad, bool_param, cell_param, cell_param_on, edit, f64_param, json,
+    locked_cell_error, ok, size_cap, str_param, target_sheet, u32_param,
 };
+
+#[cfg(test)]
+pub(super) fn compiled() -> bool {
+    true
+}
 
 pub(super) fn insert_sparkline(s: &mut Session, p: &Json) -> Result<Json> {
     let src = str_param(p, "range").ok_or_else(|| bad("insert.sparkline", "missing `range`"))?.to_string();
@@ -37,8 +43,8 @@ pub(super) fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
     if placement == "cell" {
         let mime = validate_cell_picture(&data)?;
         let d = s.doc()?;
-        let sheet = d.wb.active_sheet();
-        let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
+        let sheet = target_sheet(s, p)?;
+        let sh = d.wb.sheet(sheet).ok_or(EngineError::NoDocument)?;
         let at = match str_param(p, "at") {
             Some(a) => CellRef::parse(a).ok_or_else(|| bad("insert.picture", "invalid cell address"))?,
             None => d.selection.active,
@@ -63,18 +69,32 @@ pub(super) fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
         .unwrap_or_else(|| if data.starts_with(&[0x89, b'P', b'N', b'G']) { "image/png".into() } else { "image/jpeg".into() });
     let (w, h) = crate::io::image_size(&data).unwrap_or((320, 240));
     let d = s.doc()?;
+    // Sheet protection locks drawing objects, as for a text box's text.
+    if d.wb.active().is_some_and(|sh| sh.is_protected()) {
+        return Err(EngineError::Other(PROTECTED.into()));
+    }
     let id = d.wb.next_object_id();
-    let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
+    let at = cell_param_on(s, p, "at", target_sheet(s, p)?)?.unwrap_or(d.selection.active);
     let scale = (640.0 / w.max(1) as f32).min(1.0);
+    let dimension = |key, original: u32, default: f32| -> Result<f32> {
+        let n = f64_param(p, key).unwrap_or(f64::from(default));
+        let n = if n == -1.0 { f64::from(original) } else { n };
+        if !n.is_finite() || !(0.0..=10000.0).contains(&n) {
+            return Err(bad("insert.picture", "picture dimensions exceed native bounds"));
+        }
+        Ok(n as f32)
+    };
+    let width = dimension("width", w, w as f32 * scale)?;
+    let height = dimension("height", h, h as f32 * scale)?;
     let img = Image {
         identity: Default::default(),
         id,
         anchor: Anchor {
             cell: at,
-            dx: 0.0,
-            dy: 0.0,
-            width: f64_param(p, "width").map(|v| v as f32).unwrap_or(w as f32 * scale),
-            height: f64_param(p, "height").map(|v| v as f32).unwrap_or(h as f32 * scale),
+            dx: f64_param(p, "dx").unwrap_or(0.0) as f32,
+            dy: f64_param(p, "dy").unwrap_or(0.0) as f32,
+            width,
+            height,
             // Excel inserts pictures as "Move but don't size with cells" (`editAs="oneCell"`).
             mode: anchor_mode_param(p).unwrap_or(gridcraft_model::AnchorMode::MoveOnly),
         },
@@ -82,7 +102,7 @@ pub(super) fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
         mime,
         alt: str_param(p, "alt").unwrap_or("").into(),
     };
-    let sheet = d.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         cx.sheet_mut(sheet)?.images.push(img);
         Ok(json!({"image": id}))
@@ -128,7 +148,7 @@ pub(super) fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
     };
     let d = s.doc()?;
     let id = d.wb.next_object_id();
-    let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
+    let at = cell_param_on(s, p, "at", target_sheet(s, p)?)?.unwrap_or(d.selection.active);
     let fill = crate::cmd::format::color_param(p.get("fill")).unwrap_or(if kind == ShapeKind::TextBox {
         Color::rgb(255, 255, 255)
     } else {
@@ -141,12 +161,13 @@ pub(super) fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
     });
     let shape = Shape {
         identity: Default::default(),
+        on_action: None,
         id,
         kind,
         anchor: Anchor {
             cell: at,
-            dx: 0.0,
-            dy: 0.0,
+            dx: f64_param(p, "dx").unwrap_or(0.0) as f32,
+            dy: f64_param(p, "dy").unwrap_or(0.0) as f32,
             width: f64_param(p, "width").unwrap_or(144.0) as f32,
             height: f64_param(p, "height").unwrap_or(if kind == ShapeKind::Line { 0.0 } else { 96.0 }) as f32,
             mode: anchor_mode_param(p).unwrap_or_default(),
@@ -157,7 +178,7 @@ pub(super) fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
         format: Default::default(),
         math: Default::default(),
     };
-    let sheet = d.wb.active_sheet();
+    let sheet = target_sheet(s, p)?;
     edit(s, |cx| {
         cx.sheet_mut(sheet)?.shapes.push(shape);
         Ok(json!({"shape": id}))
@@ -168,78 +189,133 @@ pub(super) fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
 const SHAPE_TEXT_MAX_CHARS: usize = 32_767;
 
 pub(super) fn shape_set_text(s: &mut Session, p: &Json) -> Result<Json> {
-    let id =
-        p.get("id").and_then(Json::as_u64).and_then(|id| u32::try_from(id).ok()).ok_or_else(|| bad("shape.setText", "`id` must be a text box id"))?;
-    let text = str_param(p, "text").ok_or_else(|| bad("shape.setText", "`text` must be a string"))?;
-    if text.chars().nth(SHAPE_TEXT_MAX_CHARS).is_some() {
-        return Err(bad("shape.setText", "`text` is longer than 32,767 characters"));
+    let id = u32_param(p, "id").ok_or_else(|| bad("shape.setText", "missing shape id"))?;
+    let sheet = target_sheet(s, p)?;
+    let shape = s.doc()?.wb.sheet(sheet).and_then(|sh| sh.shapes.iter().find(|x| x.id == id)).ok_or_else(|| bad("shape.setText", "no such shape"))?;
+    if shape.format.control_inert {
+        return Err(bad("shape.setText", "unsupported native control is retained without editing"));
     }
-    let d = s.doc()?;
-    let sheet = d.wb.active_sheet();
-    let sh = d.wb.active().ok_or_else(|| bad("shape.setText", "no such text box"))?;
-    let shape = sh.shapes.iter().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setText", "no such text box"))?;
-    if shape.kind != ShapeKind::TextBox {
+    let text = str_param(p, "text");
+    if text.is_some() && !matches!(shape.kind, ShapeKind::TextBox | ShapeKind::WordArt) && shape.format.form_control.is_none() {
         return Err(bad("shape.setText", "the shape is not a text box"));
     }
-    // Sheet protection locks drawing objects (there is no "edit objects" allowance yet).
-    if sh.is_protected() {
+    if shape.format.form_control.is_some() && text.is_some_and(|t| t.len() > 16384 || !gridcraft_model::form_controls::valid_control_text(t)) {
+        return Err(bad("shape.setText", "native control caption budget"));
+    }
+    if text.is_some_and(|t| t.chars().nth(SHAPE_TEXT_MAX_CHARS).is_some()) {
+        return Err(bad("shape.setText", "text is longer than 32767 characters"));
+    }
+    if shape.kind == ShapeKind::WordArt {
+        if text.is_some_and(str::is_empty) {
+            return Err(bad("shape.setText", "WordArt text must not be empty"));
+        }
+        if text.is_some_and(|t| t.chars().nth(crate::cmd::wordart::MAX_CHARS).is_some()) {
+            return Err(bad("shape.setText", format!("`text` is longer than {} characters", crate::cmd::wordart::MAX_CHARS)));
+        }
+    }
+    let mut format = shape.format.clone();
+    if let Some(patch) = p.get("format") {
+        let fields = patch.as_object().ok_or_else(|| bad("shape.setText", "format must be an object"))?;
+        let mut merged = serde_json::to_value(&format).map_err(|e| bad("shape.setText", e.to_string()))?;
+        for (k, v) in fields {
+            if !["no_line", "font_size", "bold", "italic", "font", "text_color", "text_outline", "align", "anchor", "rtl"].contains(&k.as_str()) {
+                return Err(bad("shape.setText", "unsupported native text format"));
+            }
+            merged[k] = v.clone();
+        }
+        format = serde_json::from_value(merged).map_err(|e| bad("shape.setText", e.to_string()))?;
+        if format.font_size.is_some_and(|v| !v.is_finite() || !(1.0..=4000.0).contains(&v))
+            || format.font.as_ref().is_some_and(|n| n.len() > 256)
+            || format.text_outline.is_some_and(|(_, w)| !w.is_finite() || !(0.0..=100.0).contains(&w))
+        {
+            return Err(bad("shape.setText", "text format bounds"));
+        }
+    } else if text.is_none() {
+        return Err(bad("shape.setText", "text or format required"));
+    }
+    if s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.is_protected()) {
         return Err(EngineError::Other(PROTECTED.into()));
     }
-    if shape.text == text {
+    if text.is_none_or(|t| t == shape.text) && format == shape.format {
         return ok();
     }
     edit(s, |cx| {
-        let shape = cx.sheet_mut(sheet)?.shapes.iter_mut().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setText", "no such text box"))?;
-        shape.text = text.into();
+        let shape = cx.sheet_mut(sheet)?.shapes.iter_mut().find(|x| x.id == id).ok_or_else(|| bad("shape.setText", "shape deleted"))?;
+        if let Some(t) = text {
+            shape.text = t.into();
+        }
+        shape.format = format;
         Ok(Json::Null)
     })
 }
 
+/// The floating object a `{kind, id}` command names on the active sheet. Unknown kinds and
+/// objects are errors, so a stale id never succeeds silently.
+fn object_param(s: &Session, p: &Json, cmd: &str) -> Result<(usize, ObjRef)> {
+    let id = u32_param(p, "id").ok_or_else(|| bad(cmd, "missing `id`"))?;
+    let kind =
+        str_param(p, "kind").and_then(ObjKind::parse).ok_or_else(|| bad(cmd, "kind must be chart, image, shape, slicer, equation or control"))?;
+    let d = s.doc()?;
+    let sheet = target_sheet(s, p)?;
+    let o = ObjRef::new(kind, id);
+    if !d.wb.sheet(sheet).is_some_and(|sh| sh.has_object(o)) {
+        return Err(bad(cmd, "no such object"));
+    }
+    // A locked form control on a protected sheet stays as it is.
+    crate::cmd::controls::check_objects_unlocked(s, sheet, kind, &[id])?;
+    Ok((sheet, o))
+}
+
 pub(super) fn delete_object(s: &mut Session, p: &Json) -> Result<Json> {
-    let id = u32_param(p, "id").ok_or_else(|| bad("object.delete", "missing `id`"))?;
-    let kind = str_param(p, "kind").unwrap_or("").to_string();
-    let sheet = s.doc()?.wb.active_sheet();
+    let (sheet, o) = object_param(s, p, "object.delete")?;
     edit(s, |cx| {
-        let sh = cx.sheet_mut(sheet)?;
-        match kind.as_str() {
-            "chart" => sh.charts.retain(|c| c.id != id),
-            "image" => sh.images.retain(|c| c.id != id),
-            "slicer" => sh.slicers.retain(|c| c.id != id),
-            _ => sh.shapes.retain(|c| c.id != id),
-        }
-        Ok(Json::Null)
+        cx.sheet_mut(sheet)?.remove_object(o);
+        Ok(json!({"deleted": o}))
     })
 }
 
 pub(super) fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
-    let id = u32_param(p, "id").ok_or_else(|| bad("object.move", "missing `id`"))?;
-    let kind = str_param(p, "kind").unwrap_or("").to_string();
-    let sheet = s.doc()?.wb.active_sheet();
-    let at = cell_param(s, p, "at")?;
+    let (sheet, o) = object_param(s, p, "object.move")?;
+    let id = o.id;
+    let kind = o.kind.name();
+    let at = cell_param_on(s, p, "at", sheet)?;
+    let caption = match p.get("caption") {
+        None => None,
+        Some(Json::String(t)) if t.len() <= 65536 => Some(t.clone()),
+        _ => return Err(bad("object.move", "caption bounds")),
+    };
+    let columns = match p.get("columns") {
+        None => None,
+        Some(v) => Some(v.as_u64().filter(|n| (1..=10).contains(n)).ok_or_else(|| bad("object.move", "columns bounds"))? as u32),
+    };
+    if kind != "slicer" && (caption.is_some() || columns.is_some()) {
+        return Err(bad("object.move", "caption/columns require a slicer"));
+    }
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
-        let anchor = match kind.as_str() {
-            "chart" => sh.charts.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-            "image" => sh.images.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-            "slicer" => sh.slicers.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-            "shape" => sh.shapes.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-            _ => None,
-        };
-        let Some(a) = anchor else { return Err(bad("object.move", "no such object")) };
+        let Some(a) = sh.object_anchor_mut(o) else { return Err(bad("object.move", "no such object")) };
         if let Some(at) = at {
             a.cell = at;
         }
         if let Some(v) = f64_param(p, "dx") {
-            a.dx = v as f32;
+            a.dx = v.clamp(-MAX_OBJECT_OFFSET, MAX_OBJECT_OFFSET) as f32;
         }
         if let Some(v) = f64_param(p, "dy") {
-            a.dy = v as f32;
+            a.dy = v.clamp(-MAX_OBJECT_OFFSET, MAX_OBJECT_OFFSET) as f32;
         }
         if let Some(v) = f64_param(p, "width") {
-            a.width = v.clamp(1.0, 10000.0) as f32;
+            a.width = v.clamp(1.0, size_cap(a.width)) as f32;
         }
         if let Some(v) = f64_param(p, "height") {
-            a.height = v.clamp(0.0, 10000.0) as f32;
+            a.height = v.clamp(0.0, size_cap(a.height)) as f32;
+        }
+        if let Some(sl) = sh.slicers.iter_mut().find(|sl| kind == "slicer" && sl.id == id) {
+            if let Some(caption) = caption {
+                sl.caption = caption;
+            }
+            if let Some(columns) = columns {
+                sl.columns = columns;
+            }
         }
         Ok(Json::Null)
     })
@@ -249,22 +325,42 @@ pub(super) fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
 /// cells" / "Don't move or size with cells"), so it follows — or ignores — its rows and columns
 /// when the sheet is sorted or edited structurally.
 pub(super) fn set_anchor_mode(s: &mut Session, p: &Json) -> Result<Json> {
-    let id = u32_param(p, "id").ok_or_else(|| bad("object.setAnchorMode", "missing `id`"))?;
-    let kind = str_param(p, "kind").unwrap_or("").to_string();
-    if !matches!(kind.as_str(), "chart" | "image" | "shape") {
-        return Err(bad("object.setAnchorMode", "kind must be chart, image or shape"));
-    }
+    let (sheet, o) = object_param(s, p, "object.setAnchorMode")?;
     let mode = anchor_mode_param(p).ok_or_else(|| bad("object.setAnchorMode", "mode must be moveAndSize, moveOnly or absolute"))?;
-    let sheet = s.doc()?.wb.active_sheet();
     edit(s, |cx| {
-        let sh = cx.sheet_mut(sheet)?;
-        let anchor = match kind.as_str() {
-            "chart" => sh.charts.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-            "image" => sh.images.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-            _ => sh.shapes.iter_mut().find(|c| c.id == id).map(|c| &mut c.anchor),
-        };
-        let Some(a) = anchor else { return Err(bad("object.setAnchorMode", "no such object")) };
+        let Some(a) = cx.sheet_mut(sheet)?.object_anchor_mut(o) else { return Err(bad("object.setAnchorMode", "no such object")) };
         a.mode = mode;
         Ok(json!({"mode": anchor_mode_name(mode)}))
+    })
+}
+
+pub(super) fn shape_set_macro(s: &mut Session, p: &Json) -> Result<Json> {
+    let id = p.get("id").and_then(Json::as_u64).and_then(|n| u32::try_from(n).ok()).ok_or_else(|| bad("shape.setMacro", "missing shape id"))?;
+    let entry = match p.get("entry") {
+        Some(Json::Null) => None,
+        Some(Json::String(s)) if s.len() <= 256 && !s.chars().any(char::is_control) => {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.clone())
+            }
+        }
+        _ => return Err(bad("shape.setMacro", "entry must be text up to 256 bytes or null")),
+    };
+    let sheet = target_sheet(s, p)?;
+    edit(s, |cx| {
+        let sh = cx.sheet_mut(sheet)?;
+        if sh.is_protected() {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
+        let shape = sh.shapes.iter_mut().find(|shape| shape.id == id).ok_or_else(|| bad("shape.setMacro", "no such shape"))?;
+        if shape.format.control_inert {
+            return Err(bad("shape.setMacro", "unsupported native control is retained without editing"));
+        }
+        if matches!(shape.kind, ShapeKind::Ink | ShapeKind::Icon) {
+            return Err(bad("shape.setMacro", "assign macros to an ordinary worksheet shape"));
+        }
+        shape.on_action = entry;
+        Ok(Json::Null)
     })
 }
