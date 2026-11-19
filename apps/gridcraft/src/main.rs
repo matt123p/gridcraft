@@ -192,16 +192,10 @@ fn services() -> Services {
                 .and_then(|p| p.to_str().map(str::to_string))
         })),
         pick_save: Some(Box::new(|suggested: &str| {
-            let path = std::path::Path::new(suggested);
-            let stem = path.file_stem().and_then(std::ffi::OsStr::to_str).unwrap_or("Book1").to_string();
-            // The suggested name's type (an export asks for .pdf, .csv or .html) comes first.
-            const TYPES: [(&str, &str); 4] =
-                [("Excel Workbook (.xlsx)", "xlsx"), ("CSV UTF-8 (.csv)", "csv"), ("Web Page (.html)", "html"), ("PDF (.pdf)", "pdf")];
-            let ext = path.extension().and_then(std::ffi::OsStr::to_str).map(str::to_ascii_lowercase).filter(|e| TYPES.iter().any(|(_, x)| x == e));
-            let ext = ext.unwrap_or_else(|| "xlsx".to_string());
-            let mut dialog = rfd::FileDialog::new().set_file_name(format!("{stem}.{ext}"));
-            for (label, x) in TYPES.iter().filter(|(_, x)| *x == ext).chain(TYPES.iter().filter(|(_, x)| *x != ext)) {
-                dialog = dialog.add_filter(*label, &[*x]);
+            let (name, filters) = save_dialog_plan(suggested);
+            let mut dialog = rfd::FileDialog::new().set_file_name(name);
+            for (label, x) in filters {
+                dialog = dialog.add_filter(label, &[x]);
             }
             dialog.save_file().and_then(|p| p.to_str().map(str::to_string))
         })),
@@ -466,5 +460,55 @@ mod packaging_tests {
         for ext in &mac {
             assert!(FileKind::from_path(&format!("book.{ext}")).is_some(), "GridCraft doesn't open .{ext}");
         }
+    }
+}
+
+/// Save dialog types. The macro-enabled type is listed so that an edited macro workbook
+/// copy (`vba.exportNativePackage` suggests `EditedWorkbook.xlsm`) keeps its extension:
+/// without it the dialog falls back to `.xlsx`, and the export then refuses the path.
+const SAVE_TYPES: [(&str, &str); 5] = [
+    ("Excel Workbook (.xlsx)", "xlsx"),
+    ("Excel Macro-Enabled Workbook (.xlsm)", "xlsm"),
+    ("CSV UTF-8 (.csv)", "csv"),
+    ("Web Page (.html)", "html"),
+    ("PDF (.pdf)", "pdf"),
+];
+
+/// The file name and filters for a save dialog. The suggested name's type (an export asks
+/// for .pdf, .csv, .html or .xlsm) comes first; an unknown or missing type falls back to .xlsx.
+fn save_dialog_plan(suggested: &str) -> (String, Vec<(&'static str, &'static str)>) {
+    let path = std::path::Path::new(suggested);
+    let stem = path.file_stem().and_then(std::ffi::OsStr::to_str).unwrap_or("Book1");
+    let ext = path
+        .extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .map(str::to_ascii_lowercase)
+        .and_then(|e| SAVE_TYPES.iter().map(|(_, x)| *x).find(|x| *x == e))
+        .unwrap_or("xlsx");
+    let filters = SAVE_TYPES.iter().filter(|(_, x)| *x == ext).chain(SAVE_TYPES.iter().filter(|(_, x)| *x != ext)).copied().collect();
+    (format!("{stem}.{ext}"), filters)
+}
+
+#[cfg(test)]
+mod save_dialog_tests {
+    use super::save_dialog_plan;
+
+    #[test]
+    fn an_edited_macro_workbook_copy_keeps_its_xlsm_extension() {
+        let (name, filters) = save_dialog_plan("EditedWorkbook.xlsm");
+        assert_eq!(name, "EditedWorkbook.xlsm");
+        assert_eq!(filters.first().map(|(_, x)| *x), Some("xlsm"));
+    }
+
+    #[test]
+    fn the_suggested_type_comes_first_and_every_type_stays_available() {
+        let (name, filters) = save_dialog_plan("Report.PDF");
+        assert_eq!(name, "Report.pdf");
+        let exts: Vec<&str> = filters.iter().map(|(_, x)| *x).collect();
+        assert_eq!(exts, ["pdf", "xlsx", "xlsm", "csv", "html"]);
+        // An unknown or missing type falls back to .xlsx.
+        assert_eq!(save_dialog_plan("Notes.txt").0, "Notes.xlsx");
+        assert_eq!(save_dialog_plan("Book2").0, "Book2.xlsx");
+        assert_eq!(save_dialog_plan("").0, "Book1.xlsx");
     }
 }
