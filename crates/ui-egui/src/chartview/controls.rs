@@ -221,7 +221,7 @@ pub(crate) fn show(app: &mut SheetApp, ui: &mut egui::Ui, geo: &Geo, wb: &Workbo
                     };
                 }
                 if app.selected_object == Some(gridcraft_engine::model::ObjRef::new(gridcraft_engine::model::ObjKind::Shape, id)) {
-                    super::selection_frame(ui.painter(), rect);
+                    crate::frame::paint(ui.painter(), rect, 0.0, false, true);
                 }
             }
             if let Some(error) = binding_error {

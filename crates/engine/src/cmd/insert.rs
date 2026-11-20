@@ -181,7 +181,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Move Object",
             [],
             None,
-            "{sheet?, kind: chart|image|shape|slicer|equation|control, id, at?: \"C3\", dx?, dy?, width?, height?, caption?: string (slicer), columns?: 1..10 (slicer) (each at most 10,000 points, or the object's current size when a file made it larger)}",
+            "{sheet?, kind: chart|image|shape|slicer|equation|control, id, at?: \"C3\", dx?, dy?, width?, height?, rotation?: degrees clockwise (shapes, not ink), caption?: string (slicer), columns?: 1..10 (slicer) (each at most 10,000 points, or the object's current size when a file made it larger)}",
             has_doc,
             move_object
         ),

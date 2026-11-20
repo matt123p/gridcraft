@@ -156,6 +156,7 @@ pub(crate) fn decode(sheet: &Sheet) -> Result<Vec<Shape>, IoError> {
             }
         }
         result.push(Shape {
+            rotation: 0.0,
             identity: Default::default(),
             math: Default::default(),
             id: 0,

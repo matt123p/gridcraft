@@ -176,6 +176,7 @@ pub(super) fn insert_shape(s: &mut Session, p: &Json) -> Result<Json> {
         line,
         text: str_param(p, "text").unwrap_or("").into(),
         format: Default::default(),
+        rotation: 0.0,
         math: Default::default(),
     };
     let sheet = target_sheet(s, p)?;
@@ -291,6 +292,16 @@ pub(super) fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
     if kind != "slicer" && (caption.is_some() || columns.is_some()) {
         return Err(bad("object.move", "caption/columns require a slicer"));
     }
+    let rotation = f64_param(p, "rotation").filter(|v| v.is_finite());
+    if rotation.is_some() {
+        let ink = s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.shapes.iter().any(|x| x.id == o.id && x.kind == ShapeKind::Ink));
+        if o.kind != ObjKind::Shape || ink {
+            return Err(bad("object.move", "only shapes other than ink rotate"));
+        }
+        if s.doc()?.wb.sheet(sheet).is_some_and(|sh| sh.is_protected()) {
+            return Err(EngineError::Other(PROTECTED.into()));
+        }
+    }
     edit(s, |cx| {
         let sh = cx.sheet_mut(sheet)?;
         let Some(a) = sh.object_anchor_mut(o) else { return Err(bad("object.move", "no such object")) };
@@ -316,6 +327,11 @@ pub(super) fn move_object(s: &mut Session, p: &Json) -> Result<Json> {
             if let Some(columns) = columns {
                 sl.columns = columns;
             }
+        }
+        if let Some(r) = rotation
+            && let Some(shape) = sh.shapes.iter_mut().find(|x| x.id == o.id)
+        {
+            shape.rotation = r.rem_euclid(360.0) as f32;
         }
         Ok(Json::Null)
     })
