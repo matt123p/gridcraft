@@ -17,8 +17,11 @@ receipts below describe their recorded revisions, rather than the current merge.
 See the [main synchronization validation](validation.md) for current checks and
 the remaining full-CI limitation.
 
-Tagged runtime (2026-11-09): Cargo dependencies use tiny-vba tag `v0.0.1`,
-resolved in `Cargo.lock` to `ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b`.
+Cargo dependencies use tiny-vba tag `v0.0.2`, resolved in `Cargo.lock` to
+`2816d32bf55a20321a815533211dd1f0ff389071`.
+
+Previous tagged runtime (2026-11-09): tiny-vba `v0.0.1` resolved to
+`ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b`.
 This adopts the local M8 runtime fixes. Historical revision-specific receipts
 below retain their original scope; fresh Office comparisons remain M8.5 NOT_RUN.
 Validation: all 10 CI steps, 315 native VBA tests, 306 Node 22 WASM tests,
