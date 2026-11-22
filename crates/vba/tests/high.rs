@@ -84,6 +84,44 @@ End Sub
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn display_flags_hold_for_the_macro_and_reset_when_it_finishes() -> R {
+    let mut s = session();
+    let mut bridge = Bridge::new(&s)?;
+    let mut ide = Ide::new();
+    ide.add_module(
+        "Main.bas",
+        r#"Sub Main()
+Application.ScreenUpdating = False
+Application.DisplayAlerts = False
+Range("A1").Value2 = Application.ScreenUpdating
+Range("A2").Value2 = Application.DisplayAlerts
+End Sub
+Sub Check()
+Range("B1").Value2 = Application.ScreenUpdating
+Range("B2").Value2 = Application.DisplayAlerts
+End Sub
+"#,
+    )?;
+    bridge.configure(&mut ide)?;
+    for entry in ["Main", "Check"] {
+        ide.entry = entry.into();
+        bridge.dispatch(&mut s, &mut ide, Action::Run)?;
+        for _ in 0..20000 {
+            bridge.tick(&mut s, &mut ide)?;
+            if !matches!(ide.mode(), Mode::Running | Mode::Waiting) {
+                break;
+            }
+        }
+        assert_eq!(ide.mode(), Mode::Completed, "{:?}", ide.diagnostics);
+    }
+    for (addr, held) in [("A1", false), ("A2", false), ("B1", true), ("B2", true)] {
+        assert_eq!(value(&s, addr), CellValue::Bool(held), "{addr}");
+    }
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn formula_r1c1_is_relative_per_destination_and_evaluate_uses_explicit_sheet() -> R {
     let mut s = session();
     s.execute("home.insertSheet", json!({"name":"Other"}))?;

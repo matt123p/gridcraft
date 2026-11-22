@@ -251,14 +251,14 @@ End Sub"#;
     s.execute("home.formatCells", serde_json::json!({"range":"A1:A3","style":{"protection":{"locked":false}}}))?;
     s.execute("review.protectSheet", serde_json::json!({}))?;
     run(&mut s, &mut b, &mut ide)?;
-    for (a, n) in [("A1", 1004.), ("A2", 1004.), ("A3", 438.)] {
+    for (a, n) in [("A1", 1004.), ("A2", 1004.), ("A3", 0.)] {
         assert_eq!(cell(&s, a)?, CellValue::Number(n), "{a}");
     }
     assert!(cell(&s, "B2")?.is_empty());
     assert!(cell(&s, "B3")?.is_empty());
     let catalog = gridcraft_vba::catalog();
-    assert!(catalog.iter().any(|m| m.name == "ScreenUpdating" && !m.supported));
-    assert_eq!(gridcraft_vba::compatibility(Some("Application"), "ScreenUpdating").status, gridcraft_vba::CompatibilityStatus::OutOfScope);
+    assert!(catalog.iter().any(|m| m.name == "ScreenUpdating" && m.supported));
+    assert_eq!(gridcraft_vba::compatibility(Some("Application"), "ScreenUpdating").status, gridcraft_vba::CompatibilityStatus::Supported);
     assert!(catalog.iter().any(|m| m.name == "Address" && m.signature.contains("RelativeTo")));
     Ok(())
 }

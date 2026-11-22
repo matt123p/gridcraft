@@ -150,6 +150,10 @@ pub struct Bridge {
     group: BTreeMap<u64, GroupToken>,
     consent: bool,
     enable_events: bool,
+    /// Application.ScreenUpdating and DisplayAlerts: stored for the macro and
+    /// reset to True when it finishes, as in Excel. Neither changes what GridCraft paints or asks.
+    screen_updating: bool,
+    display_alerts: bool,
     pending_events: VecDeque<PendingEvent>,
     event_work: usize,
     binding_refresh_revisions: Vec<(u64, u64, std::sync::Weak<gridcraft_model::Workbook>)>,
@@ -183,6 +187,8 @@ impl Bridge {
             group: BTreeMap::new(),
             consent: false,
             enable_events: true,
+            screen_updating: true,
+            display_alerts: true,
             pending_events: VecDeque::new(),
             event_work: 0,
             binding_refresh_revisions: Vec::new(),
@@ -738,6 +744,8 @@ impl Bridge {
     /// Retain successful writes on failure/stop and make them one ordinary undo step.
     pub fn finish(&mut self, session: &mut Session) -> Result<()> {
         self.control_caller = None;
+        self.screen_updating = true;
+        self.display_alerts = true;
         for (doc, token) in std::mem::take(&mut self.group) {
             if session.document_index(doc).is_some() {
                 session.group_end(token).map_err(diagnostic)?;
@@ -977,6 +985,8 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
         ("Application", "Intersect", "Function Intersect(Arg1 As Range, Arg2 As Range, Optional Arg3 As Variant) As Range"),
         ("Application", "Calculation", "Property Calculation As XlCalculation"),
         ("Application", "EnableEvents", "Property EnableEvents As Boolean"),
+        ("Application", "ScreenUpdating", "Property ScreenUpdating As Boolean"),
+        ("Application", "DisplayAlerts", "Property DisplayAlerts As Boolean"),
         ("Application", "CutCopyMode", "Property CutCopyMode As Variant"),
         ("Application", "Calculate", "Sub Calculate()"),
         ("Workbook", "Calculate", "Sub Calculate()"),
@@ -1104,7 +1114,6 @@ pub fn member_descriptors() -> Vec<MemberDescriptor> {
     })
     .chain([
         ("Application", "Run", "Function Run(Macro As Variant, Optional Arg1 As Variant, Optional Arg2 As Variant, Optional Arg3 As Variant, Optional Arg4 As Variant, Optional Arg5 As Variant, Optional Arg6 As Variant, Optional Arg7 As Variant, Optional Arg8 As Variant, Optional Arg9 As Variant, Optional Arg10 As Variant, Optional Arg11 As Variant, Optional Arg12 As Variant, Optional Arg13 As Variant, Optional Arg14 As Variant, Optional Arg15 As Variant, Optional Arg16 As Variant, Optional Arg17 As Variant, Optional Arg18 As Variant, Optional Arg19 As Variant, Optional Arg20 As Variant, Optional Arg21 As Variant, Optional Arg22 As Variant, Optional Arg23 As Variant, Optional Arg24 As Variant, Optional Arg25 As Variant, Optional Arg26 As Variant, Optional Arg27 As Variant, Optional Arg28 As Variant, Optional Arg29 As Variant, Optional Arg30 As Variant ) As Variant"),
-        ("Application", "ScreenUpdating", "Property ScreenUpdating As Boolean"),
         ("Worksheet", "PasteSpecial", "Sub PasteSpecial(Optional Format As Variant, Optional Link As Variant, Optional DisplayAsIcon As Variant, Optional IconFileName As Variant, Optional IconIndex As Variant, Optional IconLabel As Variant, Optional NoHTMLFormatting As Variant)"),
         ("Range", "CopyPicture", "Sub CopyPicture(Optional Appearance As XlPictureAppearance, Optional Format As XlCopyPictureFormat)"),
     ].into_iter().map(|(owner, name, signature)| MemberDescriptor {

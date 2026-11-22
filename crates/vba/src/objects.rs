@@ -460,6 +460,26 @@ impl Bridge {
             session.set_application_calculation_mode(mode).map_err(|e| failure(1004, e.to_string()))?;
             return Ok(Value::Empty);
         }
+        if object == Object::Application && matches!(member.as_str(), "screenupdating" | "displayalerts") {
+            if call.kind == InvokeKind::Get {
+                arguments(&call, &[])?;
+                return Ok(Value::Boolean(if member == "screenupdating" { self.screen_updating } else { self.display_alerts }));
+            }
+            if call.kind != InvokeKind::Let {
+                return Err(failure(13, format!("{} requires Let", call.member)));
+            }
+            let args = arguments(&call, &["Value"])?;
+            let Value::Boolean(value) = vba_runtime::bind(vba_values::ScalarKind::Boolean, required(&args, 0)?).map_err(values::runtime_error)?
+            else {
+                return Err(failure(13, format!("{} requires Boolean", call.member)));
+            };
+            if member == "screenupdating" {
+                self.screen_updating = value;
+            } else {
+                self.display_alerts = value;
+            }
+            return Ok(Value::Empty);
+        }
         if object == Object::Application && member == "enableevents" {
             if call.kind == InvokeKind::Get {
                 arguments(&call, &[])?;
