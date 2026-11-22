@@ -84,6 +84,29 @@ End Sub
 
 #[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
 #[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+fn application_function_form_returns_errors_as_values() -> R {
+    let mut s = session();
+    run(
+        &mut s,
+        r#"Sub Main()
+Dim v As Variant
+Range("A1").Value2 = 4
+Range("A2").Value2 = 9
+Range("B1").Value2 = Application.Max(Range("A1:A2"), 7)
+v = Application.Match(99, Range("A1:A2"), 0)
+Range("B2").Value2 = IsError(v)
+Range("B3").Value2 = Application.Max(Range("A1:A2")) = WorksheetFunction.Max(Range("A1:A2"))
+End Sub
+"#,
+    )?;
+    assert_eq!(value(&s, "B1"), CellValue::Number(9.0));
+    assert_eq!(value(&s, "B2"), CellValue::Bool(true));
+    assert_eq!(value(&s, "B3"), CellValue::Bool(true));
+    Ok(())
+}
+
+#[cfg_attr(all(target_arch = "wasm32", target_os = "unknown"), wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
 fn formula_r1c1_is_relative_per_destination_and_evaluate_uses_explicit_sheet() -> R {
     let mut s = session();
     s.execute("home.insertSheet", json!({"name":"Other"}))?;

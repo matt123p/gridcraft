@@ -124,7 +124,7 @@ impl Bridge {
                 if reads(call) && matches!(member.as_str(), "application" | "parent") {
                     return Some(arguments(call, &[]).and_then(|_| self.intern(Object::Application)));
                 }
-                return Some(self.worksheet_function(session, call));
+                return Some(self.worksheet_function(session, call, false));
             }
             if feature.kind == "Names" {
                 return Some(self.names_api(session, feature, call, &member));
@@ -181,7 +181,9 @@ impl Bridge {
         }
         None
     }
-    fn worksheet_function(&mut self, session: &Session, call: &HostCall) -> HostResult<Value> {
+    /// `errors_as_values` is the Application.<Function> form: an error result is returned as a
+    /// CVErr value instead of raising 1004.
+    pub(crate) fn worksheet_function(&mut self, session: &Session, call: &HostCall, errors_as_values: bool) -> HostResult<Value> {
         if !reads(call) {
             return Err(failure(438, "WorksheetFunction is read-only"));
         }
@@ -200,7 +202,7 @@ impl Bridge {
         let args = args.iter().map(|v| self.argument_expr(session, v)).collect::<HostResult<Vec<_>>>()?;
         let doc = session.doc().map_err(|e| failure(91, e.to_string()))?;
         let result = gridcraft_engine::calc::recalc::evaluate_expr(&doc.wb, doc.sheet_index(), doc.selection.active, &Expr::Call(name, args));
-        if result.is_error() {
+        if result.is_error() && !errors_as_values {
             return Err(failure(1004, format!("WorksheetFunction.{} returned {}", call.member, result.display())));
         }
         result_value(result)
