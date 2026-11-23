@@ -17,8 +17,8 @@ receipts below describe their recorded revisions, rather than the current merge.
 See the [main synchronization validation](validation.md) for current checks and
 the remaining full-CI limitation.
 
-Cargo dependencies use tiny-vba tag `v0.0.2`, resolved in `Cargo.lock` to
-`2816d32bf55a20321a815533211dd1f0ff389071`.
+Cargo dependencies use tiny-vba tag `v0.0.3`, resolved in `Cargo.lock` to
+`1a79080db6b67ac531f282e391c97959ba52f1ba`.
 
 Previous tagged runtime (2026-11-09): tiny-vba `v0.0.1` resolved to
 `ac10617b5ee9d9112e5accffd07d6f6d1d9fb76b`.
