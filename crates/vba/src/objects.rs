@@ -587,6 +587,11 @@ impl Bridge {
                             doc.path.as_deref().and_then(|p| std::path::Path::new(p).file_name()).and_then(|p| p.to_str()).unwrap_or(&doc.title),
                         )
                     }
+                    // Excel exposes each worksheet function on Application too, returning
+                    // an error value instead of raising (`Application.Max(...)`).
+                    _ if object == Object::Application && crate::formula_api::function_name(&call.member).is_some() => {
+                        self.worksheet_function(session, &call, true)
+                    }
                     _ => Err(failure(438, format!("{receiver}.{} is not a supported member", call.member))),
                 }
             }
